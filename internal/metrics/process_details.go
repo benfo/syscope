@@ -2,6 +2,7 @@ package metrics
 
 import (
 	"context"
+	"runtime"
 	"time"
 
 	"github.com/shirou/gopsutil/v4/process"
@@ -21,6 +22,7 @@ type ProcDetails struct {
 	ThreadsKnown bool
 	Handles      int32 // open handles on Windows, file descriptors elsewhere
 	HandlesKnown bool
+	HandlesName  string // what Handles counts on this OS: "Handles" or "Open files"
 
 	// Cumulative bytes read and written. On Windows this counts all I/O
 	// (files, network, devices), not only disk.
@@ -43,7 +45,7 @@ func ReadProcDetails(ctx context.Context, pid int32) (ProcDetails, error) {
 		d.Threads, d.ThreadsKnown = n, true
 	}
 	if n, err := p.NumFDsWithContext(ctx); err == nil {
-		d.Handles, d.HandlesKnown = n, true
+		d.Handles, d.HandlesKnown, d.HandlesName = n, true, handlesName()
 	}
 	if io, err := p.IOCountersWithContext(ctx); err == nil {
 		d.IORead, d.IOWrite, d.IOKnown = io.ReadBytes, io.WriteBytes, true
@@ -59,4 +61,11 @@ func IORates(prev, cur ProcDetails) (read, write float64, ok bool) {
 		return 0, 0, false
 	}
 	return float64(sub(cur.IORead, prev.IORead)) / wall, float64(sub(cur.IOWrite, prev.IOWrite)) / wall, true
+}
+
+func handlesName() string {
+	if runtime.GOOS == "windows" {
+		return "Handles"
+	}
+	return "Open files"
 }

@@ -305,7 +305,7 @@ func fakeDetails(_ context.Context, pid int32) (metrics.ProcDetails, error) {
 	return metrics.ProcDetails{
 		PID: pid, ReadAt: fakeNow().Add(time.Duration(fakeReads) * time.Second),
 		Cmdline: fakeCmdlines[pid],
-		Threads: 23, ThreadsKnown: true, Handles: 412, HandlesKnown: true,
+		Threads: 23, ThreadsKnown: true, Handles: 412, HandlesKnown: true, HandlesName: "Handles",
 		IORead: uint64(fakeReads) * 2_000_000, IOWrite: uint64(fakeReads) * 40_000, IOKnown: true,
 	}, nil
 }

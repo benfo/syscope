@@ -3,7 +3,6 @@ package tui
 import (
 	"context"
 	"fmt"
-	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -159,7 +158,7 @@ func (t processTable) processLines(r view.Row, w int) []string {
 		who = append(who, kv("Threads", strconv.Itoa(int(d.Threads))))
 	}
 	if d.HandlesKnown {
-		who = append(who, kv(handlesLabel(), strconv.Itoa(int(d.Handles))))
+		who = append(who, kv(d.HandlesName, strconv.Itoa(int(d.Handles))))
 	}
 	lines = append(lines, packLine(who, statSep, w-1)...)
 
@@ -218,13 +217,6 @@ func (t processTable) childCount(pid int32) int {
 		}
 	}
 	return n
-}
-
-func handlesLabel() string {
-	if runtime.GOOS == "windows" {
-		return "Handles"
-	}
-	return "Open files"
 }
 
 // sameName counts processes with this executable name.
