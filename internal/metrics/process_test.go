@@ -62,3 +62,31 @@ func TestParentPIDs(t *testing.T) {
 	}
 	t.Error("own process not found")
 }
+
+func TestReadProcDetailsSelf(t *testing.T) {
+	ctx := context.Background()
+	d, err := ReadProcDetails(ctx, int32(os.Getpid()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if d.Cmdline == "" || !d.ThreadsKnown || d.Threads < 1 || !d.IOKnown {
+		t.Errorf("own details incomplete: %+v", d)
+	}
+	t.Logf("threads=%d handles=%d(%v) io r=%d w=%d cwd=%q", d.Threads, d.Handles, d.HandlesKnown, d.IORead, d.IOWrite, d.Cwd)
+	if _, err := ReadProcDetails(ctx, 0x7ffffff1); err == nil {
+		t.Error("missing process should fail")
+	}
+}
+
+func TestIORates(t *testing.T) {
+	t0 := time.Unix(100, 0)
+	prev := ProcDetails{PID: 1, ReadAt: t0, IORead: 1000, IOWrite: 0, IOKnown: true}
+	cur := ProcDetails{PID: 1, ReadAt: t0.Add(2 * time.Second), IORead: 5000, IOWrite: 600, IOKnown: true}
+	if r, w, ok := IORates(prev, cur); !ok || r != 2000 || w != 300 {
+		t.Errorf("rates: %v %v %v", r, w, ok)
+	}
+	cur.PID = 2
+	if _, _, ok := IORates(prev, cur); ok {
+		t.Error("different processes must not produce a rate")
+	}
+}
