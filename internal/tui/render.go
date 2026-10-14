@@ -64,6 +64,8 @@ func (m model) renderStrip() string {
 		labelStyle.Render("CPU ") + loadStyle(s.CPUTotal).Render(cpuText+" "+sparkline(m.cpuHist.values(), 10)),
 		labelStyle.Render("MEM ") + loadStyle(memPct).Render(fmt.Sprintf("%4.1f%%", memPct)) +
 			dimStyle.Render(" "+shortBytes(s.MemUsed)+"/"+shortBytes(s.MemTotal)),
+		labelStyle.Render("DISK ") + m.stripDisk(),
+		labelStyle.Render("NET ") + m.stripNet(),
 		labelStyle.Render("SWAP ") + dimStyle.Render(shortBytes(s.SwapUsed)+"/"+shortBytes(s.SwapTotal)),
 		labelStyle.Render("PROCS ") + strconv.Itoa(s.ProcCount),
 		labelStyle.Render("UP ") + view.FormatUptime(s.Uptime),
@@ -156,7 +158,7 @@ var (
 		{"↑↓", "move"}, {"s", "sort"}, {"S", "reverse"}, {"/", "filter"}, {"g", "group"},
 		{"i", "irix"}, {"k", "end task"}, {"K", "force kill"}, {"1-2", "tabs"}, {"q", "quit"},
 	}
-	perfHelp = []helpItem{{"↑↓", "device"}, {"1-2", "tabs"}, {"q", "quit"}}
+	perfHelp = []helpItem{{"↑↓", "device"}, {"a", "all adapters"}, {"1-2", "tabs"}, {"q", "quit"}}
 )
 
 func (m model) renderFooter() string {
@@ -216,4 +218,36 @@ func pct(used, total uint64) float64 {
 // shortBytes is FormatBytes without the space, for dense layouts.
 func shortBytes(n uint64) string {
 	return strings.Replace(view.FormatBytes(n), " ", "", 1)
+}
+
+// stripDisk shows the busiest disk's active time, or total transfer rate
+// where active time isn't available.
+func (m model) stripDisk() string {
+	busiest, known := 0.0, false
+	var rate float64
+	for _, d := range m.snap.Disks {
+		rate += d.ReadBps + d.WriteBps
+		if d.ActiveKnown {
+			busiest, known = max(busiest, d.ActivePct), true
+		}
+	}
+	if known {
+		return loadStyle(busiest).Render(fmt.Sprintf("%.0f%%", busiest))
+	}
+	if len(m.snap.Disks) == 0 {
+		return dimStyle.Render("--")
+	}
+	return view.FormatByteRate(rate)
+}
+
+// stripNet totals receive/send across the adapters shown by default.
+func (m model) stripNet() string {
+	var rx, tx float64
+	for _, n := range m.snap.Nets {
+		if n.Default {
+			rx += n.RecvBps
+			tx += n.SentBps
+		}
+	}
+	return "↓" + view.FormatBitRate(rx) + " ↑" + view.FormatBitRate(tx)
 }

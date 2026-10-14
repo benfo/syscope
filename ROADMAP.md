@@ -35,7 +35,7 @@ Out of scope: per-process network rates, app history.
 ## To do
 
 ### Phase 2 — Performance parity
-- [ ] **2b** Disk (per-disk I/O, volume usage) and Network (per-interface rates)
+- [ ] **Search** Type-to-search in the Processes tab (user request; key design to agree first)
 - [ ] **2c** GPU: usage, VRAM, temperature, power, clocks, throttle reasons (NVML + Windows GPU counters)
 - [ ] **2d** Per-process GPU % and VRAM columns
 
@@ -49,6 +49,7 @@ Out of scope: per-process network rates, app history.
 
 ### Phase 2 — Performance parity
 - [x] **2a** Tabs (`1`/`2`, Tab) + summary strip; Performance tab with device sidebar, CPU (history graph, P/E core grid via GetLogicalProcessorInformationEx / sysfs) and Memory (graph, composition, commit charge, cache, swap)
+- [x] **2b** Physical disks (Active time, read/write, response time, volumes; IOCTLs on Windows, sysfs on Linux) and network adapters (rx/tx, link speed, address; shown when up and physical or carrying traffic, `a` shows all); DISK/NET in summary strip
 
 ### Phase 1 — POC
 - [x] Metrics sampler (gopsutil), CPU deltas, PID-reuse safe cache, Toolhelp names on Windows

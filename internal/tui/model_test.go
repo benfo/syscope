@@ -12,11 +12,18 @@ import (
 	"taskman/internal/metrics"
 )
 
-type fakeSampler struct{ procs []metrics.ProcInfo }
+type fakeSampler struct {
+	procs []metrics.ProcInfo
+	nets  []metrics.NetStat
+}
 
 func (f *fakeSampler) Sample(context.Context) (metrics.SystemSnapshot, []metrics.ProcInfo, error) {
 	return metrics.SystemSnapshot{NumCPU: 4, CPUKnown: true, CPUTotal: 40, CPUPerCore: []float64{10, 90, 40, 20},
-		MemTotal: 100, MemUsed: 50, MemCached: 10, ProcCount: len(f.procs)}, f.procs, nil
+		MemTotal: 100, MemUsed: 50, MemCached: 10, ProcCount: len(f.procs),
+		Disks: []metrics.DiskStat{{ID: "0", Name: "Disk 0", Model: "Test SSD", Bus: "NVMe", RatesKnown: true,
+			ReadBps: 5e6, WriteBps: 1e6, ActivePct: 30, ActiveKnown: true, RespMs: 0.2, RespKnown: true,
+			Volumes: []metrics.VolumeStat{{Mount: "C:", Total: 1000, Used: 400}}}},
+		Nets: f.netsOrDefault()}, f.procs, nil
 }
 
 func p(pid int32, name string, cpu float64) metrics.ProcInfo {
@@ -138,7 +145,7 @@ func TestViewFitsTerminal(t *testing.T) {
 		m = drive(t, m, tea.WindowSizeMsg{Width: size[0], Height: size[1]})
 		for _, tab := range []string{"1", "2"} {
 			m = drive(t, m, key(tab))
-			for _, dev := range []string{"up", "down"} {
+			for _, dev := range []string{"up", "down", "down", "down", "down"} {
 				m = drive(t, m, keyMsg(dev))
 				lines := strings.Split(m.View(), "\n")
 				if len(lines) != m.height {
@@ -197,4 +204,69 @@ func keyMsg(s string) tea.KeyMsg {
 		return tea.KeyMsg{Type: tea.KeyTab}
 	}
 	return key(s)
+}
+
+func (f *fakeSampler) netsOrDefault() []metrics.NetStat {
+	if f.nets != nil {
+		return f.nets
+	}
+	return []metrics.NetStat{
+		{Name: "Wi-Fi", Desc: "Test Wi-Fi", Physical: true, Up: true, Default: true, RatesKnown: true,
+			RecvBps: 250_000, SentBps: 20_000, SpeedBps: 866_700_000, Addrs: []string{"192.0.2.106"}},
+		{Name: "VPN", Desc: "Virtual adapter", Up: true, RatesKnown: true},
+	}
+}
+
+func resample(t *testing.T, m model, f *fakeSampler) model {
+	snap, procs, _ := f.Sample(context.Background())
+	return drive(t, m, sampleMsg{snap: snap, procs: procs})
+}
+
+func TestPerfDisksAndNets(t *testing.T) {
+	f := &fakeSampler{}
+	m := sampled(t, f)
+	m = drive(t, m, key("2"), keyMsg("down"), keyMsg("down"))
+	if v := m.View(); !strings.Contains(v, "Disk 0 (C:)") || !strings.Contains(v, "Test SSD · NVMe") ||
+		!strings.Contains(v, "Response") || !strings.Contains(v, "0.20 ms") {
+		t.Error("disk page incomplete")
+	}
+	m = drive(t, m, keyMsg("down"))
+	if v := m.View(); !strings.Contains(v, "Test Wi-Fi") || !strings.Contains(v, "2.0 Mbps") ||
+		!strings.Contains(v, "192.0.2.106") {
+		t.Error("network page incomplete")
+	}
+	if devs := m.perfDevices(); len(devs) != 4 {
+		t.Errorf("hidden VPN should not be listed by default: %d devices", len(devs))
+	}
+	m = drive(t, m, key("a"))
+	if devs := m.perfDevices(); len(devs) != 5 {
+		t.Errorf("a should show all adapters: %d devices", len(devs))
+	}
+
+	// A new adapter sorting before Wi-Fi must not move the selection.
+	f.nets = append([]metrics.NetStat{{Name: "Ethernet", Physical: true, Up: true, Default: true}}, f.netsOrDefault()...)
+	m = resample(t, m, f)
+	if sel, _ := m.selectedDevice(m.perfDevices()); sel.key != "net:Wi-Fi" {
+		t.Errorf("selection moved to %s", sel.key)
+	}
+}
+
+func TestStripShowsDiskAndNet(t *testing.T) {
+	v := sampled(t, &fakeSampler{}).renderStrip()
+	if !strings.Contains(v, "DISK") || !strings.Contains(v, "30%") || !strings.Contains(v, "↓2.0 Mbps") {
+		t.Errorf("strip missing disk/net: %q", v)
+	}
+}
+
+func TestScaledAndSumSeries(t *testing.T) {
+	got, top := scaled(10, []float64{5, 20}, []float64{40})
+	if top != 40 || got[0] != 12.5 || got[1] != 50 {
+		t.Errorf("scaled: %v %v", got, top)
+	}
+	if _, top := scaled(10, []float64{1}); top != 10 {
+		t.Errorf("floor not applied: %v", top)
+	}
+	if s := sumSeries([]float64{1, 2, 3}, []float64{10, 20}); s[0] != 1 || s[1] != 12 || s[2] != 23 {
+		t.Errorf("sumSeries aligned wrong: %v", s)
+	}
 }

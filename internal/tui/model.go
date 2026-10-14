@@ -61,8 +61,10 @@ type model struct {
 	refresh time.Duration
 	cpu     metrics.CPUInfo
 
-	tab     int
-	perfSel int
+	tab         int
+	perfKey     string // selected Performance device
+	showAllNets bool
+	hist        map[string]*ring // per-device histories, keyed "disk:0:read" etc.
 
 	snap    metrics.SystemSnapshot
 	procs   []metrics.ProcInfo
@@ -106,6 +108,7 @@ func newModel(o Options) model {
 		desc:    true,
 		filter:  ti,
 		cpuHist: newRing(historyLen),
+		hist:    map[string]*ring{},
 		memHist: newRing(historyLen),
 	}
 }
@@ -147,6 +150,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.snap.MemTotal > 0 {
 			m.memHist.push(float64(m.snap.MemUsed) / float64(m.snap.MemTotal) * 100)
 		}
+		m.recordHistory()
 		m.rebuild()
 		// The first sample only primes CPU deltas; follow up quickly.
 		next := m.refresh

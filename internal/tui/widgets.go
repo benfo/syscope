@@ -145,3 +145,12 @@ var (
 	pCoreStyle       = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("5"))
 	eCoreStyle       = lipgloss.NewStyle().Foreground(lipgloss.Color("6"))
 )
+
+var (
+	diskGraphStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("2"))
+	readStyle      = lipgloss.NewStyle().Foreground(lipgloss.Color("2"))
+	writeStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("3"))
+	netGraphStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("3"))
+	rxStyle        = lipgloss.NewStyle().Foreground(lipgloss.Color("6"))
+	txStyle        = lipgloss.NewStyle().Foreground(lipgloss.Color("5"))
+)
