@@ -40,11 +40,11 @@ func (m model) View() string {
 	}
 	b.WriteString(m.renderFooter())
 	screen := b.String()
-	if m.settingsUI != nil {
-		screen = overlay(screen, m.settingsUI.box(m), m.width, m.height)
-	}
-	if m.picker != nil { // the theme list opens over Settings
+	switch {
+	case m.picker != nil: // the theme list replaces Settings while open
 		screen = overlay(screen, m.picker.box(), m.width, m.height)
+	case m.settingsUI != nil:
+		screen = overlay(screen, m.settingsUI.box(m), m.width, m.height)
 	}
 	return screen
 }

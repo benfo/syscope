@@ -8,16 +8,16 @@
   55916 Example.TextEditor.Language.ServiceHos… sam                0.1   542.0 MiB    0.0        0 B
       4 System               ╭───────────────────────────────────────╮          --     --         --
   21772 SongPlayer.exe       │ Theme                                 │   187.0 MiB    0.0    4.3 GiB
-                        ╭────│   default            ■■■■■■■■■        │─────╮                        
-                        │ Set│   dracula            ■■■■■■■■■        │     │                        
-                        │ ▸ T│ ▸ catppuccin-mocha   ■■■■■■■■■        │     │                        
-                        │   R│   tokyo-night        ■■■■■■■■■        │     │                        
-                        │   C│   nord               ■■■■■■■■■        │     │                        
-                        │   D│   gruvbox-dark       ■■■■■■■■■        │     │                        
-                        │   D│   solarized-dark     ■■■■■■■■■        │     │                        
-                        │   R│   github-light       ■■■■■■■■■        │     │                        
-                        │ j/k│   high-contrast      ■■■■■■■■■        │lose │                        
-                        ╰────│   colorblind         ■■■■■■■■■        │─────╯                        
+                             │   default            ■■■■■■■■■        │                              
+                             │   dracula            ■■■■■■■■■        │                              
+                             │ ▸ catppuccin-mocha   ■■■■■■■■■        │                              
+                             │   tokyo-night        ■■■■■■■■■        │                              
+                             │   nord               ■■■■■■■■■        │                              
+                             │   gruvbox-dark       ■■■■■■■■■        │                              
+                             │   solarized-dark     ■■■■■■■■■        │                              
+                             │   github-light       ■■■■■■■■■        │                              
+                             │   high-contrast      ■■■■■■■■■        │                              
+                             │   colorblind         ■■■■■■■■■        │                              
                              │ j/k preview · enter keep · esc revert │                              
                              ╰───────────────────────────────────────╯                              
 
