@@ -20,6 +20,22 @@ This file is updated in the same commit as each feature.
 | Kill | Graceful (`k`) + force (`K`), confirm first; never self-elevate |
 | `ps` sampling | Two samples, 1s window (`--interval`) |
 | Testing | Windows native, Linux via Docker (`golang:1.27`), macOS compile-only |
+| Keys | Vim style, one keymap table drives footer, `?` help and tests (see Key rules) |
+
+### Key rules
+The same rules on every tab; arrows / PgUp / PgDn / Home / End always work too.
+
+| Rule | Keys |
+|---|---|
+| Move | `j`/`k` down/up · `g`/`G` top/bottom · `Ctrl+d`/`Ctrl+u` half page |
+| Search | `/` live filter · `Enter` keep and return to list · `Esc` clear |
+| Lowercase acts, uppercase is stronger / reverse | `d` end task / `D` force kill · `s` next sort column / `S` reverse |
+| Toggles | `z` group (fold) · `c` CPU% mode · `.` show hidden |
+| Tabs | `1`–`9` jump · `Tab` / `Shift+Tab` cycle |
+| Everywhere | `?` help · `Esc` cancel / clear · `q` quit · `y`/`n` confirm |
+| Reserved | `Enter` details · `t` tree · `p` suspend/resume · `+`/`-` priority · `o` open file location |
+
+New features must fit these rules and be added to the keymap table, never bound ad hoc.
 
 ### Phases
 1. **POC** — process table, CPU/MEM header, `ps`, `kill`
@@ -35,7 +51,7 @@ Out of scope: per-process network rates, app history.
 ## To do
 
 ### Phase 2 — Performance parity
-- [ ] **Search** Type-to-search in the Processes tab (user request; key design to agree first)
+- [ ] **Keys** Vim-style keymap per Key rules (replaces type-to-search request): one keymap table, `?` help overlay, rebind k→d, g→z, i→c, a→.
 - [ ] **2c** GPU: usage, VRAM, temperature, power, clocks, throttle reasons (NVML + Windows GPU counters)
 - [ ] **2d** Per-process GPU % and VRAM columns
 
