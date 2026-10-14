@@ -1,8 +1,11 @@
 package metrics
 
 import (
+	"context"
 	"strings"
 	"time"
+
+	"github.com/shirou/gopsutil/v4/disk"
 )
 
 // VolumeStat is a mounted volume on a disk.
@@ -97,4 +100,38 @@ func parentDisk(part string, disks []string) string {
 		}
 	}
 	return best
+}
+
+// diskCollector computes per-disk rates from counter deltas and reads the
+// usage of each disk's volumes.
+type diskCollector struct {
+	prev   map[string]diskRaw
+	prevAt time.Time
+}
+
+func (c *diskCollector) collect(ctx context.Context, now time.Time, snap *SystemSnapshot) error {
+	raws, err := readDisks()
+	if err != nil {
+		return nil // disks are optional
+	}
+	var wall time.Duration
+	if !c.prevAt.IsZero() {
+		wall = now.Sub(c.prevAt)
+	}
+	next := make(map[string]diskRaw, len(raws))
+	for _, r := range raws {
+		st := DiskStat{ID: r.ID, Name: r.Name, Model: r.Model, Bus: r.Bus}
+		if prev, ok := c.prev[r.ID]; ok {
+			st = diskDelta(prev, r, wall)
+		}
+		for _, m := range r.Mounts {
+			if u, err := disk.UsageWithContext(ctx, m); err == nil {
+				st.Volumes = append(st.Volumes, VolumeStat{Mount: mountLabel(m), Total: u.Total, Used: u.Used})
+			}
+		}
+		next[r.ID] = r
+		snap.Disks = append(snap.Disks, st)
+	}
+	c.prev, c.prevAt = next, now
+	return nil
 }

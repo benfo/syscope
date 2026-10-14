@@ -39,10 +39,22 @@ func defaultVisible(up, loopback, physical, seenTraffic bool) bool {
 	return up && !loopback && (physical || seenTraffic)
 }
 
-func (s *GopsutilSampler) sampleNets(ctx context.Context, now time.Time) []NetStat {
+// networkCollector computes per-interface rates and remembers which
+// interfaces have carried traffic, for the default visibility rule.
+type networkCollector struct {
+	prev   map[string]gnet.IOCountersStat
+	prevAt time.Time
+	seen   map[string]bool
+}
+
+func newNetworkCollector() *networkCollector {
+	return &networkCollector{seen: map[string]bool{}}
+}
+
+func (c *networkCollector) collect(ctx context.Context, now time.Time, snap *SystemSnapshot) error {
 	ctrs, err := gnet.IOCountersWithContext(ctx, true)
 	if err != nil {
-		return nil
+		return nil // networks are optional
 	}
 	ifaces := map[string]net.Interface{}
 	if list, err := net.Interfaces(); err == nil {
@@ -53,39 +65,40 @@ func (s *GopsutilSampler) sampleNets(ctx context.Context, now time.Time) []NetSt
 	meta := netMetadata()
 
 	var wall time.Duration
-	if !s.prevNetAt.IsZero() {
-		wall = now.Sub(s.prevNetAt)
+	if !c.prevAt.IsZero() {
+		wall = now.Sub(c.prevAt)
 	}
 	next := make(map[string]gnet.IOCountersStat, len(ctrs))
 	out := make([]NetStat, 0, len(ctrs))
-	for _, c := range ctrs {
-		st := NetStat{Name: c.Name}
+	for _, ctr := range ctrs {
+		st := NetStat{Name: ctr.Name}
 		loopback := false
-		if ifc, ok := ifaces[c.Name]; ok {
+		if ifc, ok := ifaces[ctr.Name]; ok {
 			st.Up = ifc.Flags&net.FlagUp != 0 && ifc.Flags&net.FlagRunning != 0
 			loopback = ifc.Flags&net.FlagLoopback != 0
 			if addrs, err := ifc.Addrs(); err == nil {
 				st.Addrs = pickAddrs(addrs)
 			}
 		}
-		m := meta[c.Name]
+		m := meta[ctr.Name]
 		st.Desc, st.Physical, st.SpeedBps = m.Desc, m.Physical, m.SpeedBps
 
-		if prev, ok := s.prevNets[c.Name]; ok && wall > 0 {
+		if prev, ok := c.prev[ctr.Name]; ok && wall > 0 {
 			st.RatesKnown = true
-			st.RecvBps = float64(sub(c.BytesRecv, prev.BytesRecv)) / wall.Seconds()
-			st.SentBps = float64(sub(c.BytesSent, prev.BytesSent)) / wall.Seconds()
+			st.RecvBps = float64(sub(ctr.BytesRecv, prev.BytesRecv)) / wall.Seconds()
+			st.SentBps = float64(sub(ctr.BytesSent, prev.BytesSent)) / wall.Seconds()
 			if st.RecvBps+st.SentBps > 0 {
-				s.netSeen[c.Name] = true
+				c.seen[ctr.Name] = true
 			}
 		}
-		st.Default = defaultVisible(st.Up, loopback, st.Physical, s.netSeen[c.Name])
-		next[c.Name] = c
+		st.Default = defaultVisible(st.Up, loopback, st.Physical, c.seen[ctr.Name])
+		next[ctr.Name] = ctr
 		out = append(out, st)
 	}
-	s.prevNets, s.prevNetAt = next, now
+	c.prev, c.prevAt = next, now
 	sortNets(out)
-	return out
+	snap.Nets = out
+	return nil
 }
 
 // pickAddrs returns the first IPv4 and first global IPv6 address.

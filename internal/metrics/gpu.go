@@ -1,10 +1,12 @@
 package metrics
 
 import (
+	"context"
 	"fmt"
 	"regexp"
 	"sort"
 	"strings"
+	"time"
 	"unicode"
 )
 
@@ -181,4 +183,13 @@ func prettyEngine(typ string) string {
 // luidKey formats an adapter LUID the way PDH instance names do.
 func luidKey(high int32, low uint32) string {
 	return fmt.Sprintf("0x%08x_0x%08x", uint32(high), low)
+}
+
+// gpuCollector reads every GPU. gpuState is the platform's between-sample
+// state (Windows keeps its performance-counter query open).
+type gpuCollector struct{ state gpuState }
+
+func (c *gpuCollector) collect(_ context.Context, _ time.Time, snap *SystemSnapshot) error {
+	snap.GPUs = c.state.read()
+	return nil
 }
