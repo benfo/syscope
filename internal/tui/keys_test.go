@@ -4,6 +4,8 @@ import (
 	"strings"
 	"testing"
 
+	tea "github.com/charmbracelet/bubbletea"
+
 	"taskman/internal/metrics"
 )
 
@@ -104,5 +106,43 @@ func TestFooterFromKeymap(t *testing.T) {
 		if !strings.Contains(f, want) {
 			t.Errorf("footer missing %q: %q", want, f)
 		}
+	}
+}
+
+// TestHelpHonoursGlobalKeys: overlays must not swallow global keys. Every
+// global action changes something while help is open.
+func TestHelpHonoursGlobalKeys(t *testing.T) {
+	m := sampled(t, &fakeSampler{})
+	m = drive(t, m, tea.WindowSizeMsg{Width: 70, Height: 12})
+	for _, b := range keymap {
+		if b.scope != scopeGlobal {
+			continue
+		}
+		for k, act := range b.keys {
+			effect := false
+			for _, tab := range []string{"1", "2"} { // "1" is a no-op on tab 1, so try both
+				open := drive(t, m, key(tab), key("?"), key("j")) // scrolled, so up/top have an effect
+				next, cmd := open.Update(keyMsg(k))
+				after := next.(model)
+				if cmd != nil || after.showHelp != open.showHelp || after.tab != open.tab || after.helpOff != open.helpOff {
+					effect = true
+				}
+			}
+			if !effect {
+				t.Errorf("global key %q (action %d) does nothing in help", k, act)
+			}
+		}
+	}
+}
+
+func TestTabInHelpSwitchesExplanation(t *testing.T) {
+	m := sampled(t, &fakeSampler{})
+	m = drive(t, m, key("?"), keyMsg("tab"))
+	if !m.showHelp || m.tab != tabPerformance || !strings.Contains(strings.Join(m.helpContent(), "\n"), "About: CPU") {
+		t.Error("tab in help should switch tab and keep explaining")
+	}
+	m = drive(t, m, key("1"))
+	if !m.showHelp || m.tab != tabProcesses {
+		t.Error("1 in help should jump to Processes and keep help open")
 	}
 }

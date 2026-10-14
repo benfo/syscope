@@ -34,6 +34,7 @@ The same rules on every tab; arrows / PgUp / PgDn / Home / End always work too.
 | Toggles | `z` group (fold) · `c` CPU% mode · `.` show hidden |
 | Tabs | `1`–`9` jump · `Tab` / `Shift+Tab` cycle |
 | Everywhere | `?` help · `Esc` cancel / clear · `q` quit · `y`/`n` confirm |
+| Overlays | Never swallow global keys: tab keys work in `?` help (it follows you to the new tab); `q`/`Esc` close an overlay first. Exceptions, as in vim: search input is like insert mode (keys type; `Enter`/`Esc` leave) and y/N treats any other key as no |
 | Reserved | `Enter` details · `t` tree · `p` suspend/resume · `+`/`-` priority · `o` open file location |
 
 New features must fit these rules and be added to the keymap table, never bound ad hoc.

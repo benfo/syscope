@@ -196,18 +196,30 @@ func TestAreaGraph(t *testing.T) {
 	}
 }
 
+// keyMsg builds the real key event for a keymap key name, so tests exercise
+// the same strings Bubble Tea produces.
 func keyMsg(s string) tea.KeyMsg {
-	switch s {
-	case "up":
-		return tea.KeyMsg{Type: tea.KeyUp}
-	case "tab":
-		return tea.KeyMsg{Type: tea.KeyTab}
-	case "esc":
-		return tea.KeyMsg{Type: tea.KeyEsc}
-	case "ctrl+d":
-		return tea.KeyMsg{Type: tea.KeyCtrlD}
+	special := map[string]tea.KeyType{
+		"up": tea.KeyUp, "down": tea.KeyDown, "home": tea.KeyHome, "end": tea.KeyEnd,
+		"pgup": tea.KeyPgUp, "pgdown": tea.KeyPgDown, "tab": tea.KeyTab, "shift+tab": tea.KeyShiftTab,
+		"esc": tea.KeyEsc, "enter": tea.KeyEnter, "delete": tea.KeyDelete,
+		"ctrl+c": tea.KeyCtrlC, "ctrl+d": tea.KeyCtrlD, "ctrl+u": tea.KeyCtrlU,
+	}
+	if t, ok := special[s]; ok {
+		return tea.KeyMsg{Type: t}
 	}
 	return key(s)
+}
+
+// TestKeyMsgMatchesKeymap guards the helper: every keymap key must round-trip.
+func TestKeyMsgMatchesKeymap(t *testing.T) {
+	for _, b := range keymap {
+		for k := range b.keys {
+			if got := keyMsg(k).String(); got != k {
+				t.Errorf("keyMsg(%q).String() = %q", k, got)
+			}
+		}
+	}
 }
 
 func (f *fakeSampler) netsOrDefault() []metrics.NetStat {

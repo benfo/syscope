@@ -144,6 +144,10 @@ func (m model) helpAction(act action) model {
 		m.helpOff = 0
 	case actBottom:
 		m.helpOff = len(m.helpContent())
+	case actTab1, actTab2, actNextTab, actPrevTab:
+		// Stay in help and explain the new tab.
+		m = m.switchTab(act)
+		m.helpOff = 0
 	case actCancel, actHelp, actQuit:
 		m.showHelp = false
 	}

@@ -228,15 +228,8 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case actHelp:
 		m.showHelp, m.helpOff = true, 0
 		return m, nil
-	case actTab1, actTab2:
-		m.tab = int(act - actTab1)
-		return m, nil
-	case actNextTab:
-		m.tab = (m.tab + 1) % numTabs
-		return m, nil
-	case actPrevTab:
-		m.tab = (m.tab + numTabs - 1) % numTabs
-		return m, nil
+	case actTab1, actTab2, actNextTab, actPrevTab:
+		return m.switchTab(act), nil
 	}
 	if m.tab == tabPerformance {
 		return m.perfAction(act), nil
@@ -389,4 +382,18 @@ func rowDesc(r view.Row) string {
 		return fmt.Sprintf("%s (%d processes)", r.Name, r.Count)
 	}
 	return fmt.Sprintf("%s (PID %d)", r.Name, r.PID)
+}
+
+// switchTab handles the tab actions. It's shared by every mode that shows
+// the tab bar, so tab keys work the same everywhere (including ? help).
+func (m model) switchTab(act action) model {
+	switch act {
+	case actTab1, actTab2:
+		m.tab = int(act - actTab1)
+	case actNextTab:
+		m.tab = (m.tab + 1) % numTabs
+	case actPrevTab:
+		m.tab = (m.tab + numTabs - 1) % numTabs
+	}
+	return m
 }
