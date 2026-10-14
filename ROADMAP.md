@@ -39,6 +39,14 @@ The same rules on every tab; arrows / PgUp / PgDn / Home / End always work too.
 
 New features must fit these rules and be added to the keymap table, never bound ad hoc.
 
+### Code standards
+The codebase must stay easy to maintain:
+- **DRY**: one helper per idea (formatting lives in `view`, layout helpers in `tui/widgets.go`); no copy-paste variants.
+- **SOLID**: small interfaces over growing `switch`es, so a new device / collector / column is a new file, not edits across many; one responsibility per type and file.
+- **Naming**: code names match the concept users see (e.g. "per-core CPU%", not internal jargon).
+- **Tests**: behaviour covered by unit tests; golden screen tests (`internal/tui/testdata`) catch any visual change; refactors land in their own commits with behaviour unchanged.
+- **Platforms**: OS-specific code in `*_windows.go` / `*_linux.go` / `*_other.go` files grouped per concern.
+
 ### Phases
 1. **POC** — process table, CPU/MEM header, `ps`, `kill`
 2. **Performance parity** — tabs, CPU core grid (P/E), memory, disk, network, GPU, per-process GPU/VRAM
@@ -53,6 +61,7 @@ Out of scope: per-process network rates, app history.
 ## To do
 
 ### Phase 2 — Performance parity
+- [ ] **Refactor** apply Code standards: device pages behind an interface, sampler split into collectors, DRY formatting/grids, naming (irix→per-core, ring→history), process-tab state out of model, per-concern platform files and tests
 - [ ] **2d** Per-process GPU % and VRAM columns
 - [ ] **GPU: Linux Intel** (i915/xe sysfs: clock, power; usage needs root) and **macOS Apple Silicon** (IOKit performance statistics via purego)
 
