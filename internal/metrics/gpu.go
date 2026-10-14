@@ -191,7 +191,7 @@ func luidKey(high int32, low uint32) string {
 // between-sample state (Windows keeps its performance-counter query open).
 type gpuCollector struct {
 	state gpuState
-	procs gpuUsage
+	procs procGPUReport
 }
 
 func (c *gpuCollector) collect(_ context.Context, _ time.Time, snap *SystemSnapshot) error {
@@ -201,12 +201,24 @@ func (c *gpuCollector) collect(_ context.Context, _ time.Time, snap *SystemSnaps
 
 func (c *gpuCollector) enrich(procs []ProcInfo) {
 	for i := range procs {
-		if u, ok := c.procs[procs[i].PID]; ok {
-			p := &procs[i]
-			p.GPU, p.GPUKnown = u.util, u.utilKnown
-			p.VRAM, p.VRAMKnown = u.vram, u.vramKnown
+		p := &procs[i]
+		u, ok := c.procs.usage[p.PID]
+		switch {
+		case ok:
+			p.GPU, p.GPUKnown = u.util, u.utilKnown || c.procs.complete
+			p.VRAM, p.VRAMKnown = u.vram, u.vramKnown || c.procs.complete
+		case c.procs.complete:
+			p.GPUKnown, p.VRAMKnown = true, true // not using the GPU
 		}
 	}
+}
+
+// procGPUReport is per-process GPU use, and whether it covers every process:
+// when complete, a process that isn't listed uses no GPU (0), rather than
+// being unknown (--).
+type procGPUReport struct {
+	usage    gpuUsage
+	complete bool
 }
 
 // procGPU is one process's GPU use across all GPUs.

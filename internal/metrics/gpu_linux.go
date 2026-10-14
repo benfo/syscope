@@ -1,6 +1,7 @@
 package metrics
 
 import (
+	"os"
 	"strconv"
 	"time"
 )
@@ -14,7 +15,7 @@ type gpuState struct {
 // read lists NVIDIA GPUs via NVML and AMD GPUs via amdgpu sysfs, plus
 // per-process use from NVML and from DRM fdinfo (AMD and Intel). System-wide
 // Intel (i915/xe) usage needs root and isn't supported yet.
-func (g *gpuState) read() ([]GPUStat, gpuUsage) {
+func (g *gpuState) read() ([]GPUStat, procGPUReport) {
 	var out []GPUStat
 	var nvProcs gpuUsage
 	if n := openNVML(); n != nil {
@@ -34,5 +35,8 @@ func (g *gpuState) read() ([]GPUStat, gpuUsage) {
 	clients := readDRMClients("/proc")
 	drm := drmUsage(g.drmPrev, clients, now.Sub(g.drmAt))
 	g.drmPrev, g.drmAt = clients, now
-	return out, mergeUsage(nvProcs, drm)
+	// NVML lists every GPU process; DRM fdinfo only covers other users'
+	// processes when running as root.
+	complete := os.Geteuid() == 0 || (nvProcs != nil && !hasNonNVIDIAGPU("/sys"))
+	return out, procGPUReport{usage: mergeUsage(nvProcs, drm), complete: complete}
 }

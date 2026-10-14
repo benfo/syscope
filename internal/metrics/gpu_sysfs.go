@@ -7,9 +7,11 @@ import (
 	"strings"
 )
 
+// Linux GPU sysfs readers. This file has no build tag so tests can run them
+// against a fake tree on any OS; only Linux calls them.
+
 // readAMD reads AMD GPUs from the amdgpu driver's sysfs files under root
-// (normally "/sys"). It has no build tag so tests can run it against a fake
-// tree on any OS; only Linux calls it.
+// (normally "/sys").
 func readAMD(root string) []GPUStat {
 	cards, _ := filepath.Glob(filepath.Join(root, "class", "drm", "card[0-9]*"))
 	var out []GPUStat
@@ -72,4 +74,17 @@ func readTrim(path string) string {
 func readUint(path string) (uint64, bool) {
 	v, err := strconv.ParseUint(readTrim(path), 10, 64)
 	return v, err == nil
+}
+
+// hasNonNVIDIAGPU reports whether any DRM device under root (normally
+// "/sys") is from another vendor; their per-process data comes from fdinfo,
+// which needs root to see other users' processes.
+func hasNonNVIDIAGPU(root string) bool {
+	vendors, _ := filepath.Glob(filepath.Join(root, "class", "drm", "card[0-9]*", "device", "vendor"))
+	for _, v := range vendors {
+		if readTrim(v) != "0x10de" {
+			return true
+		}
+	}
+	return false
 }

@@ -265,3 +265,42 @@ func TestReadDRMClientsFakeProc(t *testing.T) {
 		}
 	}
 }
+
+func TestEnrichCompleteness(t *testing.T) {
+	report := gpuUsage{1: {util: 50, utilKnown: true, vram: 9, vramKnown: true}}
+	procs := func() []ProcInfo { return []ProcInfo{{PID: 1}, {PID: 2}} }
+
+	complete := &gpuCollector{procs: procGPUReport{usage: report, complete: true}}
+	ps := procs()
+	complete.enrich(ps)
+	if !ps[1].GPUKnown || ps[1].GPU != 0 || !ps[1].VRAMKnown {
+		t.Errorf("complete source: unlisted process should read 0, got %+v", ps[1])
+	}
+
+	partial := &gpuCollector{procs: procGPUReport{usage: report}}
+	ps = procs()
+	partial.enrich(ps)
+	if ps[1].GPUKnown || ps[1].VRAMKnown {
+		t.Errorf("partial source: unlisted process should stay unknown, got %+v", ps[1])
+	}
+	if ps[0].GPU != 50 || ps[0].VRAM != 9 {
+		t.Errorf("listed process: %+v", ps[0])
+	}
+}
+
+func TestHasNonNVIDIAGPU(t *testing.T) {
+	root := t.TempDir()
+	vendor := func(card, id string) {
+		p := filepath.Join(root, "class", "drm", card, "device", "vendor")
+		os.MkdirAll(filepath.Dir(p), 0o755)
+		os.WriteFile(p, []byte(id+"\n"), 0o644)
+	}
+	vendor("card0", "0x10de")
+	if hasNonNVIDIAGPU(root) {
+		t.Error("NVIDIA only")
+	}
+	vendor("card1", "0x8086")
+	if !hasNonNVIDIAGPU(root) {
+		t.Error("Intel iGPU present")
+	}
+}

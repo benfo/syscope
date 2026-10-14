@@ -27,12 +27,12 @@ type gpuState struct {
 	adaptersAt time.Time
 }
 
-func (g *gpuState) read() ([]GPUStat, gpuUsage) {
+func (g *gpuState) read() ([]GPUStat, procGPUReport) {
 	if g.adapters == nil || time.Since(g.adaptersAt) > adapterRefresh {
 		g.adapters, g.adaptersAt = dxgiAdapters(), time.Now()
 	}
 	if len(g.adapters) == 0 {
-		return nil, nil
+		return nil, procGPUReport{}
 	}
 	if g.query == nil {
 		if q, err := newPDHQuery(gpuEngineCounter, gpuDedicatedCounter, gpuSharedCounter, gpuProcessVRAM); err == nil {
@@ -84,7 +84,8 @@ func (g *gpuState) read() ([]GPUStat, gpuUsage) {
 		}
 		out = append(out, st)
 	}
-	return out, perProcessGPU(engineVals, processVRAM)
+	// The counters cover every process regardless of permissions.
+	return out, procGPUReport{usage: perProcessGPU(engineVals, processVRAM), complete: g.query != nil}
 }
 
 // mergeNVML adds NVML-only metrics to a Windows adapter; usage and memory
