@@ -2,9 +2,11 @@ package metrics
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"sort"
 	"testing"
 	"time"
@@ -174,4 +176,92 @@ func TestPerProcessGPULive(t *testing.T) {
 		}
 	}
 	t.Logf("%d processes have GPU data", n)
+}
+
+// amdFdinfo is a real-shaped amdgpu fdinfo file.
+const amdFdinfo = `pos:	0
+flags:	02100002
+drm-driver:	amdgpu
+drm-pdev:	0000:03:00.0
+drm-client-id:	17
+drm-memory-vram:	2097152 KiB
+drm-memory-gtt:	8192 KiB
+drm-engine-gfx:	%d ns
+drm-engine-compute:	%d ns
+drm-engine-capacity-gfx:	1
+`
+
+func writeFdinfo(t *testing.T, path string, gfx, compute uint64) {
+	t.Helper()
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, []byte(fmt.Sprintf(amdFdinfo, gfx, compute)), 0o644); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestParseDRMFdinfo(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "fdinfo")
+	writeFdinfo(t, path, 5_000_000, 1_000)
+	key, c, ok := parseDRMFdinfo(path)
+	if !ok || key != "amdgpu/0000:03:00.0/17" || c.vram != 2<<30 || c.engine["gfx"] != 5_000_000 || c.engine["compute"] != 1_000 {
+		t.Errorf("parse: %q %+v %v", key, c, ok)
+	}
+	if _, ok := c.engine["capacity-gfx"]; ok {
+		t.Error("engine capacity is not a busy counter")
+	}
+}
+
+func TestDRMUsage(t *testing.T) {
+	prev := map[string]drmClient{"a": {pid: 10, engine: map[string]uint64{"gfx": 0, "compute": 0}}}
+	cur := map[string]drmClient{
+		"a": {pid: 10, engine: map[string]uint64{"gfx": 600_000_000, "compute": 100_000_000}, vram: 1 << 30},
+		"b": {pid: 10, engine: map[string]uint64{"gfx": 1}, vram: 1 << 20}, // new client: memory only
+		"c": {pid: 20, vram: 5 << 20},
+	}
+	got := drmUsage(prev, cur, time.Second)
+	if u := got[10]; u.util != 60 || !u.utilKnown || u.vram != 1<<30+1<<20 {
+		t.Errorf("pid 10: %+v", u)
+	}
+	if u := got[20]; u.utilKnown || u.vram != 5<<20 {
+		t.Errorf("pid 20: %+v", u)
+	}
+}
+
+func TestMergeUsage(t *testing.T) {
+	got := mergeUsage(gpuUsage{1: {util: 30, utilKnown: true, vram: 100, vramKnown: true}},
+		gpuUsage{1: {util: 50, utilKnown: true, vram: 20, vramKnown: true}, 2: {vram: 5, vramKnown: true}})
+	if got[1].util != 50 || got[1].vram != 120 || got[2].vram != 5 || got[2].utilKnown {
+		t.Errorf("merge: %+v", got)
+	}
+}
+
+func TestReadDRMClientsFakeProc(t *testing.T) {
+	if runtime.GOOS != "linux" {
+		t.Skip("the /proc scan only runs on Linux (Windows reports link targets with backslashes)")
+	}
+	root := t.TempDir()
+	mk := func(pid, fd, target string, gfx uint64) {
+		fdDir := filepath.Join(root, pid, "fd")
+		if err := os.MkdirAll(fdDir, 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.Symlink(target, filepath.Join(fdDir, fd)); err != nil {
+			t.Skipf("symlinks unavailable here: %v", err)
+		}
+		writeFdinfo(t, filepath.Join(root, pid, "fdinfo", fd), gfx, 0)
+	}
+	mk("4242", "7", "/dev/dri/renderD128", 10)
+	mk("4242", "9", "/dev/dri/renderD128", 10)  // same client via a second fd: counted once
+	mk("5151", "3", "/home/user/notes.txt", 10) // not a GPU file
+	got := readDRMClients(root)
+	if len(got) != 1 {
+		t.Fatalf("want 1 client, got %d: %+v", len(got), got)
+	}
+	for _, c := range got {
+		if c.pid != 4242 || c.vram != 2<<30 {
+			t.Errorf("client: %+v", c)
+		}
+	}
 }

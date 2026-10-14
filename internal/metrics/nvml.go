@@ -14,10 +14,11 @@ type nvmlFunc func(args ...uintptr) uintptr
 // nvml is a minimal binding to NVIDIA's management library, which ships with
 // the driver. Only the calls taskman needs are bound.
 type nvml struct {
-	mu      sync.Mutex
-	sym     func(name string) (nvmlFunc, bool)
-	cache   map[string]nvmlFunc
-	devices []uintptr
+	mu       sync.Mutex
+	sym      func(name string) (nvmlFunc, bool)
+	cache    map[string]nvmlFunc
+	devices  []uintptr
+	lastSeen []uint64 // per device: newest process-utilization sample read
 }
 
 var (
@@ -145,6 +146,66 @@ func (n *nvml) read() []nvmlDevice {
 			s.Throttle, s.ThrottleKnown = decodeClockReasons(reasons), true
 		}
 		out = append(out, d)
+	}
+	return out
+}
+
+// nvmlProcessInfo mirrors nvmlProcessInfo_t, used by the *_v3 process calls.
+type nvmlProcessInfo struct {
+	pid               uint32
+	_                 uint32
+	usedGPUMemory     uint64
+	gpuInstanceID     uint32
+	computeInstanceID uint32
+}
+
+// nvmlProcessSample mirrors nvmlProcessUtilizationSample_t.
+type nvmlProcessSample struct {
+	pid       uint32
+	_         uint32
+	timeStamp uint64
+	smUtil    uint32
+	memUtil   uint32
+	encUtil   uint32
+	decUtil   uint32
+}
+
+const nvmlValueNotAvailable = ^uint64(0)
+
+// processes reports per-process VRAM (from the compute and graphics process
+// lists) and SM utilization sampled since the previous call.
+func (n *nvml) processes() gpuUsage {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+	if n.lastSeen == nil {
+		n.lastSeen = make([]uint64, len(n.devices))
+	}
+	out := gpuUsage{}
+	for i, h := range n.devices {
+		for _, fn := range []string{"nvmlDeviceGetComputeRunningProcesses_v3", "nvmlDeviceGetGraphicsRunningProcesses_v3"} {
+			infos := make([]nvmlProcessInfo, 128)
+			count := uint32(len(infos))
+			if !n.call(fn, h, ptr(&count), ptr(&infos[0])) {
+				continue
+			}
+			for _, p := range infos[:count] {
+				u := out[int32(p.pid)]
+				if p.usedGPUMemory != nvmlValueNotAvailable {
+					u.vram, u.vramKnown = u.vram+p.usedGPUMemory, true
+				}
+				out[int32(p.pid)] = u
+			}
+		}
+		samples := make([]nvmlProcessSample, 256)
+		count := uint32(len(samples))
+		if n.call("nvmlDeviceGetProcessUtilization", h, ptr(&samples[0]), ptr(&count), uintptr(n.lastSeen[i])) {
+			for _, s := range samples[:count] {
+				u := out[int32(s.pid)]
+				u.util, u.utilKnown = max(u.util, float64(s.smUtil)), true
+				out[int32(s.pid)] = u
+				n.lastSeen[i] = max(n.lastSeen[i], s.timeStamp)
+			}
+		}
 	}
 	return out
 }
