@@ -6,11 +6,11 @@
                    reused after a process exits.                      
    NAME            The program's executable name. Grouping (z)        
                    combines processes with the same name, e.g.        
-                   "chrome (31)", summing their CPU and memory.       
+                   "chrome (31)", summing their CPU and memory. The   
+                   tree (t) nests each process under the one that     
+                   started it. ▸ can be expanded with l, ▾ collapsed  
+                   with h.                                            
    USER            The account the process runs as. Blank usually     
                    means a system account you can't inspect without   
                    admin rights.                                      
-   CPU%            Share of total CPU capacity used since the last    
-                   refresh. Normalized (default): 100% means every    
-                   core is busy, like Task Manager. Per-core (c):     
- esc close j/k scroll  lines 1–13 of 62
+ esc close j/k scroll  lines 1–13 of 68

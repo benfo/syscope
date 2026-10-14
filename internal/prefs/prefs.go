@@ -29,7 +29,7 @@ type Prefs struct {
 type Processes struct {
 	Sort        string `toml:"sort"` // cpu, mem, gpu, vram, pid, name
 	Descending  bool   `toml:"descending"`
-	Group       bool   `toml:"group"`
+	Layout      string `toml:"layout"` // flat, grouped, tree
 	PerCoreCPU  bool   `toml:"per_core_cpu"`
 	DetailsOpen bool   `toml:"details_open"`
 }
@@ -58,7 +58,7 @@ func Default() Prefs {
 		Theme:     "default",
 		Refresh:   Duration{time.Second},
 		LastTab:   "processes",
-		Processes: Processes{Sort: "cpu", Descending: true},
+		Processes: Processes{Sort: "cpu", Descending: true, Layout: "flat"},
 	}
 }
 

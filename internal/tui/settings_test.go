@@ -44,12 +44,12 @@ func pressAndSave(t *testing.T, m model, keys ...string) model {
 func TestSettingsRestoredOnStart(t *testing.T) {
 	start := prefs.Default()
 	start.Theme, start.LastTab = "nord", "performance"
-	start.Processes = prefs.Processes{Sort: "vram", Descending: true, Group: true, PerCoreCPU: true, DetailsOpen: true}
+	start.Processes = prefs.Processes{Sort: "vram", Descending: true, Layout: "grouped", PerCoreCPU: true, DetailsOpen: true}
 	start.Performance.ShowHidden = true
 	m := modelWith(t, start, &recorder{})
 	tb := m.table
 	if Themes[m.theme].Name != "nord" || m.tab != tabPerformance || tb.sortKey != view.SortVRAM || !tb.desc ||
-		!tb.group || !tb.perCoreCPU || !tb.details.open || !m.showHidden {
+		tb.layout != view.LayoutGrouped || !tb.perCoreCPU || !tb.details.open || !m.showHidden {
 		t.Errorf("settings not restored: %+v", m.settings())
 	}
 	if m.settings() != start {

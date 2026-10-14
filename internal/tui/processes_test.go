@@ -57,3 +57,62 @@ func TestColumnWidths(t *testing.T) {
 		t.Errorf("flex width floor: %v", got)
 	}
 }
+
+func TestLayoutKeys(t *testing.T) {
+	m := sampled(t, &fakeSampler{procs: goldenProcs()})
+	m = drive(t, m, key("t"))
+	if m.table.layout != view.LayoutTree {
+		t.Fatal("t should switch to the tree")
+	}
+	m = drive(t, m, key("z"))
+	if m.table.layout != view.LayoutGrouped {
+		t.Error("z from the tree should switch to grouped, not stack")
+	}
+	m = drive(t, m, key("z"))
+	if m.table.layout != view.LayoutFlat {
+		t.Error("z again should go back to flat")
+	}
+}
+
+func TestFoldKeysOnGroups(t *testing.T) {
+	m := sampled(t, &fakeSampler{procs: goldenProcs()})
+	m = drive(t, m, key("z")) // grouped, sorted by CPU: chrome (2 processes) on top
+	top, _ := m.table.selected()
+	if top.Key != "g:chrome" || top.Expanded {
+		t.Fatalf("setup: top row %+v", top)
+	}
+	m = drive(t, m, key("l"))
+	if r, _ := m.table.selected(); !r.Expanded || len(m.table.rows) != 8 {
+		t.Fatalf("l should open the group: %d rows", len(m.table.rows))
+	}
+	m = drive(t, m, key("l")) // on an open group: move to its first child
+	if r, _ := m.table.selected(); r.Parent != "g:chrome" || r.PID != 21248 {
+		t.Errorf("second l should enter the group: %+v", r)
+	}
+	m = drive(t, m, key("h")) // on a child: back to the group
+	if r, _ := m.table.selected(); r.Key != "g:chrome" || !r.Expanded {
+		t.Errorf("h on a child should go to its group: %+v", r)
+	}
+	m = drive(t, m, key("h"))
+	if r, _ := m.table.selected(); r.Expanded {
+		t.Error("h on an open group should close it")
+	}
+	m = drive(t, m, key("L"))
+	if len(m.table.rows) != 8 {
+		t.Errorf("L should open every group: %d rows", len(m.table.rows))
+	}
+	m = drive(t, m, key("H"))
+	if len(m.table.rows) != 6 {
+		t.Errorf("H should close every group: %d rows", len(m.table.rows))
+	}
+}
+
+func TestTreeRendersNesting(t *testing.T) {
+	m := sampled(t, &fakeSampler{procs: goldenProcs()})
+	v := drive(t, m, key("t"), key("s"), key("s"), key("s"), key("s")).View() // sort by PID
+	for _, want := range []string{"▾ System", "    ollama.exe", "▾ chrome.exe", "    chrome.exe"} {
+		if !strings.Contains(v, want) {
+			t.Errorf("tree view missing %q:\n%s", want, v)
+		}
+	}
+}

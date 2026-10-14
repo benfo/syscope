@@ -25,7 +25,8 @@ type processTable struct {
 
 	sortKey    view.SortKey
 	desc       bool
-	group      bool
+	layout     view.Layout
+	folds      [3]view.Folds // open rows per layout; groups start closed, the tree open
 	perCoreCPU bool
 	showGPU    bool // the machine has a GPU: show GPU% and VRAM
 
@@ -62,7 +63,9 @@ func newProcessTable(fetch detailsFetcher, now func() time.Time) processTable {
 	ti := textinput.New()
 	ti.Prompt = "/"
 	ti.Placeholder = "name or PID"
-	return processTable{sortKey: view.SortCPU, desc: true, search: ti, details: detailsPane{fetch: fetch, now: now}}
+	t := processTable{sortKey: view.SortCPU, desc: true, search: ti, details: detailsPane{fetch: fetch, now: now}}
+	t.folds[view.LayoutTree].Default = true // the tree starts open; groups start closed
+	return t
 }
 
 // setProcs takes a new sample; system figures from snap give the table
@@ -133,8 +136,15 @@ func (t processTable) apply(act action) (processTable, tea.Cmd) {
 			t.rebuild()
 		}
 	case actGroup:
-		t.group = !t.group
-		t.resetSelection()
+		t.setLayout(view.LayoutGrouped)
+	case actTree:
+		t.setLayout(view.LayoutTree)
+	case actExpand:
+		t.expand()
+	case actCollapse:
+		t.collapse()
+	case actExpandAll, actCollapseAll:
+		t.folds[t.layout] = view.Folds{Default: act == actExpandAll}
 		t.rebuild()
 	case actCPUMode:
 		t.perCoreCPU = !t.perCoreCPU
@@ -199,8 +209,7 @@ func rowDesc(r view.Row) string {
 // selection follows that process or group across refreshes; until then the
 // cursor stays put so the top consumer stays highlighted.
 func (t *processTable) rebuild() {
-	t.rows = view.Rows(view.Filter(t.procs, t.search.Value()), t.group)
-	view.Sort(t.rows, t.sortKey, t.desc)
+	t.rows = view.Build(t.procs, t.search.Value(), t.layout, t.sortKey, t.desc, t.folds[t.layout])
 
 	found := false
 	if t.selKey != "" {
@@ -255,20 +264,17 @@ func (t processTable) selected() (view.Row, bool) {
 	return t.rows[t.cursor], true
 }
 
-// modeText summarises sort, CPU% mode and grouping for the tab bar.
+// modeText summarises sort, CPU% mode and layout for the tab bar.
 func (t processTable) modeText() string {
-	mode, layout := "normalized", "flat"
+	mode := "normalized"
 	if t.perCoreCPU {
 		mode = "per-core"
-	}
-	if t.group {
-		layout = "grouped"
 	}
 	dir := "▲"
 	if t.desc {
 		dir = "▼"
 	}
-	return fmt.Sprintf("sort %s%s · CPU%% %s · %s ", t.sortKey, dir, mode, layout)
+	return fmt.Sprintf("sort %s%s · CPU%% %s · %s ", t.sortKey, dir, mode, t.layout)
 }
 
 // column is one Processes table column; adding a column means adding an
@@ -279,8 +285,7 @@ type column struct {
 	right    bool
 	sortKey  view.SortKey
 	sortable bool
-	gpuOnly  bool                        // shown only on machines with a GPU
-	header   func(t processTable) string // overrides title when set
+	gpuOnly  bool // shown only on machines with a GPU
 	cell     func(t processTable, r view.Row) string
 }
 
@@ -291,20 +296,13 @@ const (
 
 var processColumns = []column{
 	{title: "PID", width: 7, right: true, sortKey: view.SortPID, sortable: true,
-		header: func(t processTable) string {
-			if t.group {
-				return "COUNT"
-			}
-			return t.arrow(view.SortPID, "PID")
-		},
-		cell: func(t processTable, r view.Row) string {
-			if t.group {
-				return strconv.Itoa(r.Count)
+		cell: func(_ processTable, r view.Row) string {
+			if r.Count > 1 {
+				return "" // a group: its PIDs are in the details pane
 			}
 			return strconv.Itoa(int(r.PID))
 		}},
-	{title: "NAME", sortKey: view.SortName, sortable: true,
-		cell: func(_ processTable, r view.Row) string { return r.Name }},
+	{title: "NAME", sortKey: view.SortName, sortable: true, cell: nameCell},
 	{title: "USER", width: 14,
 		cell: func(_ processTable, r view.Row) string { return view.ShortUser(r.User) }},
 	{title: "CPU%", width: 7, right: true, sortKey: view.SortCPU, sortable: true,
@@ -383,8 +381,6 @@ func (t processTable) render(w int) string {
 	titles := make([]string, len(cols))
 	for i, c := range cols {
 		switch {
-		case c.header != nil:
-			titles[i] = c.header(t)
 		case c.sortable:
 			titles[i] = t.arrow(c.sortKey, c.title)
 		default:
@@ -426,4 +422,73 @@ func (t processTable) terms() []term {
 		term{"VRAM", "Dedicated GPU memory this process holds. This is what fills your GPU: sort by it (s) to see who's using it. " +
 			"Shared memory can be counted in more than one process, so the column can add up to more than the card has."},
 	)
+}
+
+// nameCell indents nested rows and marks expandable ones (▸ closed, ▾ open);
+// group rows show their size, e.g. "chrome (31)".
+func nameCell(t processTable, r view.Row) string {
+	name := r.Name
+	if r.Count > 1 {
+		name = fmt.Sprintf("%s (%d)", r.Name, r.Count)
+	}
+	if t.layout == view.LayoutFlat {
+		return name
+	}
+	mark := "  "
+	switch {
+	case r.Expanded:
+		mark = "▾ "
+	case r.Expandable:
+		mark = "▸ "
+	}
+	return strings.Repeat("  ", r.Depth) + mark + name
+}
+
+// setLayout switches to l, or back to flat if l is already active.
+func (t *processTable) setLayout(l view.Layout) {
+	if t.layout == l {
+		l = view.LayoutFlat
+	}
+	t.layout = l
+	t.resetSelection()
+	t.rebuild()
+}
+
+// expand opens the selected row; on an open row it moves to the first child.
+func (t *processTable) expand() {
+	r, ok := t.selected()
+	switch {
+	case !ok || !r.Expandable:
+	case r.Expanded:
+		t.move(1)
+	default:
+		t.setOpen(r.Key, true)
+	}
+}
+
+// collapse closes the selected row; on a closed or leaf row it moves to the
+// row it's nested under.
+func (t *processTable) collapse() {
+	r, ok := t.selected()
+	switch {
+	case !ok:
+	case r.Expanded:
+		t.setOpen(r.Key, false)
+	case r.Parent != "":
+		for i, p := range t.rows {
+			if p.Key == r.Parent {
+				t.move(i - t.cursor)
+				break
+			}
+		}
+	}
+}
+
+func (t *processTable) setOpen(key string, open bool) {
+	f := &t.folds[t.layout]
+	if f.Open == nil {
+		f.Open = map[string]bool{}
+	}
+	f.Open[key] = open
+	t.rebuild()
 }

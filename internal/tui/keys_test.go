@@ -7,6 +7,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 
 	"taskman/internal/metrics"
+	"taskman/internal/view"
 )
 
 // TestKeymapConsistent enforces the key rules: a key means one thing per
@@ -72,8 +73,8 @@ func TestVimNavigation(t *testing.T) {
 		t.Errorf("G: cursor %d", m.table.cursor)
 	}
 	m = drive(t, m, key("g"))
-	if m.table.cursor != 0 || m.table.group {
-		t.Errorf("g should go to top without grouping: cursor %d group %v", m.table.cursor, m.table.group)
+	if m.table.cursor != 0 || (m.table.layout == view.LayoutGrouped) {
+		t.Errorf("g should go to top without grouping: cursor %d group %v", m.table.cursor, (m.table.layout == view.LayoutGrouped))
 	}
 	m = drive(t, m, keyMsg("ctrl+d"))
 	if want := m.table.rowsHeight() / 2; m.table.cursor != want {

@@ -19,7 +19,7 @@ func TestSaveLoadRoundTrip(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "sub", "config.toml") // directory created on save
 	want := Default()
 	want.Theme, want.Refresh.Duration, want.LastTab = "nord", 500*time.Millisecond, "performance"
-	want.Processes = Processes{Sort: "vram", Descending: true, Group: true, PerCoreCPU: true, DetailsOpen: true}
+	want.Processes = Processes{Sort: "vram", Descending: true, Layout: "tree", PerCoreCPU: true, DetailsOpen: true}
 	want.Performance.ShowHidden = true
 	if err := Save(path, want); err != nil {
 		t.Fatal(err)

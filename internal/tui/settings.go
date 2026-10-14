@@ -23,7 +23,7 @@ func (m model) settings() prefs.Prefs {
 		Refresh: prefs.Duration{Duration: m.refresh},
 		LastTab: strings.ToLower(tabNames[m.tab]),
 		Processes: prefs.Processes{
-			Sort: t.sortKey.String(), Descending: t.desc, Group: t.group,
+			Sort: t.sortKey.String(), Descending: t.desc, Layout: t.layout.String(),
 			PerCoreCPU: t.perCoreCPU, DetailsOpen: t.details.open,
 		},
 		Performance: prefs.Performance{ShowHidden: m.showHidden},
@@ -55,7 +55,10 @@ func (m *model) applySettings(s prefs.Prefs) {
 	if k, err := view.ParseSortKey(s.Processes.Sort); err == nil {
 		t.sortKey = k
 	}
-	t.desc, t.group = s.Processes.Descending, s.Processes.Group
+	t.desc = s.Processes.Descending
+	if l, err := view.ParseLayout(s.Processes.Layout); err == nil {
+		t.layout = l
+	}
 	t.perCoreCPU, t.details.open = s.Processes.PerCoreCPU, s.Processes.DetailsOpen
 	m.showHidden = s.Performance.ShowHidden
 }

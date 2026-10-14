@@ -32,6 +32,11 @@ const (
 	actShowHidden
 	actDetails
 	actThemePicker
+	actTree
+	actExpand
+	actCollapse
+	actExpandAll
+	actCollapseAll
 	numActions // sentinel for tests
 )
 
@@ -73,7 +78,11 @@ var keymap = []binding{
 	{scopeProcesses, "/", "search (live filter)", "search", map[string]action{"/": actSearch}},
 	{scopeProcesses, "d/D", "end task / force kill", "kill", map[string]action{"d": actEndTask, "delete": actEndTask, "D": actForceKill}},
 	{scopeProcesses, "s/S", "next sort column / reverse", "sort", map[string]action{"s": actSortNext, "S": actSortReverse}},
-	{scopeProcesses, "z", "group by app (fold)", "group", map[string]action{"z": actGroup}},
+	{scopeProcesses, "z", "group by app (again: flat)", "group", map[string]action{"z": actGroup}},
+	{scopeProcesses, "t", "process tree (again: flat)", "tree", map[string]action{"t": actTree}},
+	{scopeProcesses, "l/h", "expand / collapse (or go to parent)", "fold", map[string]action{
+		"l": actExpand, "right": actExpand, "h": actCollapse, "left": actCollapse}},
+	{scopeProcesses, "L/H", "expand / collapse all", "", map[string]action{"L": actExpandAll, "H": actCollapseAll}},
 	{scopeProcesses, "c", "CPU% normalized / per-core", "cpu%", map[string]action{"c": actCPUMode}},
 	{scopeProcesses, "enter", "details pane (follows the cursor)", "details", map[string]action{"enter": actDetails}},
 

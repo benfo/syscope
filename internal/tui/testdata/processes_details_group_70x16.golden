@@ -1,16 +1,16 @@
  CPU 43.0% ▆▂▅▇▃▅▁▄  MEM 77% 49.0/64.0G  GPU 31% 79°C VRAM 9.0/12.0G
  1 Processes   2 Performance    sort cpu▼ · CPU% normalized · grouped 
-  COUNT NAME      USER             CPU%▼         MEM   GPU%       VRAM
-      2 chrome    sam                2.6   710.0 MiB    0.4  180.0 MiB
-      1 ollama    sam                2.5     1.0 GiB   88.0    7.0 GiB
-      1 Meet      sam                1.2     1.0 GiB    3.1  412.0 MiB
-      1 Example.… sam                0.1   542.0 MiB    0.0        0 B
-      1 System    SYSTEM              --          --     --         --
-      1 SongPlay…                    0.0   187.0 MiB    0.0    4.3 GiB
+    PID NAME      USER             CPU%▼         MEM   GPU%       VRAM
+        ▸ chrome… sam                2.6   710.0 MiB    0.4  180.0 MiB
+   4120   ollama  sam                2.5     1.0 GiB   88.0    7.0 GiB
+  72244   Meet    sam                1.2     1.0 GiB    3.1  412.0 MiB
+  55916   Micros… sam                0.1   542.0 MiB    0.0        0 B
+      4   System  SYSTEM              --          --     --         --
+  21772   SongPl…                    0.0   187.0 MiB    0.0    4.3 GiB
 ─ chrome · 2 processes ───────────────────────────────────────────────
  PIDs 21248 47768                                                     
  Totals for the group:                                                
  CPU 2.6%   Memory 710.0 MiB   GPU 0.4%   VRAM 180.0 MiB              
                                                                       
                                                                       
- / search d/D kill s/S sort z group c cpu% enter details j/k move 1-2 
+ / search d/D kill s/S sort z group t tree l/h fold c cpu% enter detai
