@@ -23,14 +23,14 @@ func fakeGPUs() []metrics.GPUStat {
 	}
 }
 
-func gpuPage(t *testing.T, idx int) model {
+func openGPUPage(t *testing.T, idx int) model {
 	m := sampled(t, &fakeSampler{})
 	m.perfKey = "gpu:" + fakeGPUs()[idx].ID
 	return drive(t, m, tea.WindowSizeMsg{Width: 120, Height: 40}, key("2"))
 }
 
 func TestGPUPage(t *testing.T) {
-	v := gpuPage(t, 0).View()
+	v := openGPUPage(t, 0).View()
 	for _, want := range []string{"GPU 0 RTX 3080 Ti", "Dedicated memory · 9.0GiB / 12.0GiB", "79 °C",
 		"88.5 / 95 W", "2400 / 3090 MHz", "P0", "power cap", "thermal (software)", "3D", "Copy"} {
 		if !strings.Contains(v, want) {
@@ -40,7 +40,7 @@ func TestGPUPage(t *testing.T) {
 }
 
 func TestIntegratedGPUPageOmitsMissingSensors(t *testing.T) {
-	m := gpuPage(t, 1)
+	m := openGPUPage(t, 1)
 	v := m.View()
 	for _, absent := range []string{"Temperature", "Power", "P-state", "Limited by"} {
 		if strings.Contains(v, absent) {
@@ -54,7 +54,7 @@ func TestIntegratedGPUPageOmitsMissingSensors(t *testing.T) {
 }
 
 func TestGPUHelp(t *testing.T) {
-	help := strings.Join(drive(t, gpuPage(t, 0), key("?")).helpContent(), "\n")
+	help := strings.Join(drive(t, openGPUPage(t, 0), key("?")).helpContent(), "\n")
 	for _, want := range []string{"About: GPU 0", "tokens per second", "Limited by", "P-state"} {
 		if !strings.Contains(help, want) {
 			t.Errorf("GPU help missing %q", want)

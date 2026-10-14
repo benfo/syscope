@@ -251,19 +251,19 @@ func TestPerfDisksAndNets(t *testing.T) {
 		!strings.Contains(v, "192.0.2.106") {
 		t.Error("network page incomplete")
 	}
-	if devs := m.perfDevices(); len(devs) != 6 { // cpu, mem, disk, wi-fi, 2 gpus
+	if devs := m.visiblePages(); len(devs) != 6 { // cpu, mem, disk, wi-fi, 2 gpus
 		t.Errorf("hidden VPN should not be listed by default: %d devices", len(devs))
 	}
 	m = drive(t, m, key("."))
-	if devs := m.perfDevices(); len(devs) != 7 {
+	if devs := m.visiblePages(); len(devs) != 7 {
 		t.Errorf(". should show all adapters: %d devices", len(devs))
 	}
 
 	// A new adapter sorting before Wi-Fi must not move the selection.
 	f.nets = append([]metrics.NetStat{{Name: "Ethernet", Physical: true, Up: true, Default: true}}, f.netsOrDefault()...)
 	m = resample(t, m, f)
-	if sel, _ := m.selectedDevice(m.perfDevices()); sel.key != "net:Wi-Fi" {
-		t.Errorf("selection moved to %s", sel.key)
+	if sel, _ := m.selectedPage(m.visiblePages()); sel.key() != "net:Wi-Fi" {
+		t.Errorf("selection moved to %s", sel.key())
 	}
 }
 

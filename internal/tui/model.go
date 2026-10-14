@@ -61,18 +61,16 @@ type model struct {
 	refresh time.Duration
 	cpuInfo metrics.CPUInfo
 
-	tab         int
-	perfKey     string // selected Performance device
-	showAllNets bool
-	showHelp    bool
-	helpOff     int                 // scroll offset of the ? screen
-	hist        map[string]*history // per-device histories, keyed "disk:0:read" etc.
+	tab        int
+	perfKey    string // selected Performance device
+	showHidden bool   // list hidden devices (e.g. idle virtual adapters)
+	showHelp   bool
+	helpOff    int // scroll offset of the ? screen
+	histories  histories
 
-	snap    metrics.SystemSnapshot
-	procs   []metrics.ProcInfo
-	rows    []view.Row
-	cpuHist *history
-	memHist *history
+	snap  metrics.SystemSnapshot
+	procs []metrics.ProcInfo
+	rows  []view.Row
 
 	sortKey    view.SortKey
 	desc       bool
@@ -109,9 +107,7 @@ func newModel(o Options) model {
 		sortKey:    view.SortCPU,
 		desc:       true,
 		filter:     ti,
-		cpuHist:    newHistory(historyLen),
-		hist:       map[string]*history{},
-		memHist:    newHistory(historyLen),
+		histories:  histories{},
 	}
 }
 
@@ -146,12 +142,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tick(m.refresh, m.seq)
 		}
 		m.snap, m.procs = msg.snap, msg.procs
-		if m.snap.CPUKnown {
-			m.cpuHist.push(m.snap.CPUTotal)
-		}
-		if m.snap.MemTotal > 0 {
-			m.memHist.push(float64(m.snap.MemUsed) / float64(m.snap.MemTotal) * 100)
-		}
 		m.recordHistory()
 		m.rebuild()
 		// The first sample only primes CPU deltas; follow up quickly.

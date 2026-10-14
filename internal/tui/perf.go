@@ -1,147 +1,99 @@
 package tui
 
 import (
-	"fmt"
-	"strconv"
 	"strings"
 	"time"
 
 	"github.com/charmbracelet/lipgloss"
-
-	"taskman/internal/metrics"
-	"taskman/internal/view"
 )
 
-type devKind int
-
-const (
-	devCPU devKind = iota
-	devMemory
-	devDisk
-	devNet
-	devGPU
-)
-
-// perfDevice is one entry in the Performance sidebar. key is stable across
-// refreshes so the selection survives devices appearing or disappearing.
-type perfDevice struct {
-	kind devKind
-	key  string
-	idx  int // index into snap.Disks or snap.Nets
+// devicePage is one device on the Performance tab. Each kind of device has
+// its own page_*.go file implementing this, so adding a kind means adding a
+// file and a line to pageSources, never editing the tab's layout code.
+type devicePage interface {
+	key() string     // stable identity across refreshes; prefixes its history series
+	name() string    // sidebar title
+	summary() string // sidebar value line
+	trend() []float64
+	style() lipgloss.Style // colour of its sparkline
+	detail(w, h int) []string
+	helpTitle() string
+	terms() []term // ? explanations for what detail shows
+	record()       // append this sample to the device's history series
+	hidden() bool  // listed only after "show hidden" (.)
 }
 
-const (
-	sideW = 24
-	// Graph scale floors so idle devices don't show noise as full-height.
-	diskRateFloor = 1_000_000 // 1 MB/s
-	netRateFloor  = 12_500    // 100 Kbps
-)
+// pageSources lists the device kinds in sidebar order.
+var pageSources = []func(m model) []devicePage{cpuPages, memoryPages, diskPages, netPages, gpuPages}
 
-func (m model) perfDevices() []perfDevice {
-	devs := []perfDevice{{kind: devCPU, key: "cpu"}, {kind: devMemory, key: "mem"}}
-	for i, d := range m.snap.Disks {
-		devs = append(devs, perfDevice{kind: devDisk, key: "disk:" + d.ID, idx: i})
-	}
-	for i, n := range m.snap.Nets {
-		if n.Default || m.showAllNets {
-			devs = append(devs, perfDevice{kind: devNet, key: "net:" + n.Name, idx: i})
+// pages returns every device page, optionally including hidden ones.
+func (m model) pages(includeHidden bool) []devicePage {
+	var out []devicePage
+	for _, src := range pageSources {
+		for _, p := range src(m) {
+			if includeHidden || !p.hidden() {
+				out = append(out, p)
+			}
 		}
 	}
-	for i, g := range m.snap.GPUs {
-		devs = append(devs, perfDevice{kind: devGPU, key: "gpu:" + g.ID, idx: i})
-	}
-	return devs
+	return out
 }
 
-// selectedDevice returns the selected device and its index, falling back to
-// the first device when the selected one has gone.
-func (m model) selectedDevice(devs []perfDevice) (perfDevice, int) {
-	for i, d := range devs {
-		if d.key == m.perfKey {
-			return d, i
+// visiblePages are the pages shown in the sidebar right now.
+func (m model) visiblePages() []devicePage { return m.pages(m.showHidden) }
+
+// selectedPage returns the selected page and its index, falling back to the
+// first page when the selected device has gone.
+func (m model) selectedPage(pages []devicePage) (devicePage, int) {
+	for i, p := range pages {
+		if p.key() == m.perfKey {
+			return p, i
 		}
 	}
-	return devs[0], 0
+	return pages[0], 0
 }
 
 func (m model) perfAction(act action) model {
-	devs := m.perfDevices()
-	_, i := m.selectedDevice(devs)
+	pages := m.visiblePages()
+	_, i := m.selectedPage(pages)
 	switch act {
 	case actUp, actHalfUp, actPageUp:
 		i = max(0, i-1)
 	case actDown, actHalfDown, actPageDown:
-		i = min(len(devs)-1, i+1)
+		i = min(len(pages)-1, i+1)
 	case actTop:
 		i = 0
 	case actBottom:
-		i = len(devs) - 1
+		i = len(pages) - 1
 	case actShowHidden:
-		m.showAllNets = !m.showAllNets
+		m.showHidden = !m.showHidden
 		return m
 	default:
 		return m
 	}
-	m.perfKey = devs[i].key
+	m.perfKey = pages[i].key()
 	return m
 }
 
-// recordHistory appends this sample's per-device values to their graphs.
+// recordHistory appends this sample to every device's graphs, hidden ones
+// included, so their history is there when they're shown.
 func (m model) recordHistory() {
-	for _, d := range m.snap.Disks {
-		if d.RatesKnown {
-			k := "disk:" + d.ID
-			m.push(k+":active", d.ActivePct)
-			m.push(k+":read", d.ReadBps)
-			m.push(k+":write", d.WriteBps)
-		}
+	for _, p := range m.pages(true) {
+		p.record()
 	}
-	for _, n := range m.snap.Nets {
-		if n.RatesKnown {
-			m.push("net:"+n.Name+":rx", n.RecvBps)
-			m.push("net:"+n.Name+":tx", n.SentBps)
-		}
-	}
-	m.recordGPUHistory()
 }
 
-func (m model) push(key string, v float64) {
-	r := m.hist[key]
-	if r == nil {
-		r = newHistory(historyLen)
-		m.hist[key] = r
-	}
-	r.push(v)
-}
-
-func (m model) histVals(key string) []float64 {
-	if r := m.hist[key]; r != nil {
-		return r.values()
-	}
-	return nil
-}
+const sideW = 24
 
 func (m model) renderPerf() string {
 	h := m.height - chromeLines
-	devs := m.perfDevices()
-	sel, selIdx := m.selectedDevice(devs)
+	pages := m.visiblePages()
+	sel, selIdx := m.selectedPage(pages)
 
 	detailW := max(10, m.width-sideW-2)
-	var detail []string
-	switch sel.kind {
-	case devCPU:
-		detail = m.cpuDetail(detailW, h)
-	case devMemory:
-		detail = m.memDetail(detailW, h)
-	case devDisk:
-		detail = m.diskDetail(m.snap.Disks[sel.idx], detailW, h)
-	case devNet:
-		detail = m.netDetail(m.snap.Nets[sel.idx], detailW, h)
-	case devGPU:
-		detail = m.gpuDetail(m.snap.GPUs[sel.idx], detailW, h)
-	}
+	detail := sel.detail(detailW, h)
+	side := sidebar(pages, selIdx, h)
 
-	side := m.sidebar(devs, selIdx, h)
 	var b strings.Builder
 	sep := ui.muted.Render("│")
 	for i := 0; i < h; i++ {
@@ -159,9 +111,9 @@ func (m model) renderPerf() string {
 
 // sidebar renders device entries, dropping spacing and then scrolling when
 // they don't fit in h lines.
-func (m model) sidebar(devs []perfDevice, selIdx, h int) []string {
+func sidebar(pages []devicePage, selIdx, h int) []string {
 	per := 4 // name, value, sparkline, blank
-	if len(devs)*per > h {
+	if len(pages)*per > h {
 		per = 3
 	}
 	first := 0
@@ -172,8 +124,8 @@ func (m model) sidebar(devs []perfDevice, selIdx, h int) []string {
 	if first > 0 {
 		out = append(out, ui.muted.Render("  ▲ more"))
 	}
-	for i := first; i < len(devs); i++ {
-		out = append(out, m.sidebarEntry(devs[i], i == selIdx)...)
+	for i := first; i < len(pages); i++ {
+		out = append(out, sidebarEntry(pages[i], i == selIdx)...)
 		if per == 4 {
 			out = append(out, "")
 		}
@@ -184,294 +136,38 @@ func (m model) sidebar(devs []perfDevice, selIdx, h int) []string {
 	return out
 }
 
-func (m model) sidebarEntry(d perfDevice, selected bool) []string {
-	var name, value string
-	var hist []float64
-	style := ui.cpu
-	switch d.kind {
-	case devCPU:
-		name, hist = "CPU", m.cpuHist.values()
-		value = "--"
-		if m.snap.CPUKnown {
-			value = fmt.Sprintf("%.0f%%", m.snap.CPUTotal)
-		}
-		if m.cpuInfo.BaseMHz > 0 {
-			value += fmt.Sprintf("  %.2f GHz", m.cpuInfo.BaseMHz/1000)
-		}
-	case devMemory:
-		name, hist, style = "Memory", m.memHist.values(), ui.memory
-		value = fmt.Sprintf("%s/%s (%.0f%%)", view.FormatBytesCompact(m.snap.MemUsed), view.FormatBytesCompact(m.snap.MemTotal),
-			view.Percent(m.snap.MemUsed, m.snap.MemTotal))
-	case devDisk:
-		dk := m.snap.Disks[d.idx]
-		name, style = diskTitle(dk), ui.disk
-		value = view.FormatByteRate(dk.ReadBps + dk.WriteBps)
-		if dk.ActiveKnown {
-			value = fmt.Sprintf("%.0f%%  %s", dk.ActivePct, value)
-			hist = m.histVals(d.key + ":active")
-		} else {
-			hist, _ = scaled(diskRateFloor, sumSeries(m.histVals(d.key+":read"), m.histVals(d.key+":write")))
-		}
-	case devNet:
-		n := m.snap.Nets[d.idx]
-		name, style = n.Name, ui.network
-		value = "↓" + view.FormatBitRate(n.RecvBps) + " ↑" + view.FormatBitRate(n.SentBps)
-		hist, _ = scaled(netRateFloor, sumSeries(m.histVals(d.key+":rx"), m.histVals(d.key+":tx")))
-	case devGPU:
-		g := m.snap.GPUs[d.idx]
-		name, value, hist, style = gpuTitle(g), gpuSummary(g), m.histVals(d.key+":util"), ui.gpu
-	}
-	marker := "  "
-	title := name
+func sidebarEntry(p devicePage, selected bool) []string {
+	marker, title := "  ", p.name()
 	if selected {
 		marker = ui.accent.Render("▌ ")
-		title = ui.bold.Render(name)
+		title = ui.bold.Render(title)
 	}
 	return []string{
 		marker + title,
-		marker + ui.muted.Render(value),
-		marker + style.Render(sparkline(hist, sideW-3)),
+		marker + ui.muted.Render(p.summary()),
+		marker + p.style().Render(sparkline(p.trend(), sideW-3)),
 	}
 }
 
-func (m model) cpuDetail(w, h int) []string {
-	cores := strconv.Itoa(m.cpuInfo.Physical)
-	if p, e := m.cpuInfo.Count(metrics.CorePerformance), m.cpuInfo.Count(metrics.CoreEfficiency); p > 0 && e > 0 {
-		cores = fmt.Sprintf("%d (%dP + %dE)", m.cpuInfo.Physical, p, e)
+// histories holds one fixed-size series per graph, keyed by device key and
+// series name ("disk:0" + "read").
+type histories map[string]*history
+
+func (h histories) push(device, series string, v float64) {
+	k := device + ":" + series
+	r := h[k]
+	if r == nil {
+		r = newHistory(historyLen)
+		h[k] = r
 	}
-	util := "--"
-	if m.snap.CPUKnown {
-		util = fmt.Sprintf("%.1f%%", m.snap.CPUTotal)
-	}
-	base := "--"
-	if m.cpuInfo.BaseMHz > 0 {
-		base = fmt.Sprintf("%.2f GHz", m.cpuInfo.BaseMHz/1000)
-	}
-	stats := packLine([]string{
-		kv("Utilization", util), kv("Base speed", base), kv("Cores", cores), kv("Logical", strconv.Itoa(m.cpuInfo.Logical)),
-		kv("Processes", strconv.Itoa(m.snap.ProcCount)), kv("Up", view.FormatUptime(m.snap.Uptime)),
-	}, statSep, w)
-	head := []string{
-		spread(ui.label.Render("CPU"), ui.muted.Render(m.cpuInfo.Model), w),
-		ui.muted.Render("% Utilization · " + m.graphSpan(w-2)),
-	}
-	tail := append(append([]string{""}, stats...), "")
-	tail = append(tail, m.coreGrid(w)...)
-	return withGraphs(head, tail, []graphSpec{{vals: m.cpuHist.values(), style: ui.cpu}}, w, h)
+	r.push(v)
 }
 
-func (m model) memDetail(w, h int) []string {
-	s := m.snap
-	stats := []string{
-		kv("In use", fmt.Sprintf("%s (%.0f%%)", view.FormatBytes(s.MemUsed), view.Percent(s.MemUsed, s.MemTotal))),
-		kv("Available", view.FormatBytes(s.MemAvailable)),
+func (h histories) values(device, series string) []float64 {
+	if r := h[device+":"+series]; r != nil {
+		return r.values()
 	}
-	second := stats
-	if s.MemCached > 0 {
-		second = append(second, kv("Cached", view.FormatBytes(s.MemCached)))
-	}
-	if s.CommitLimit > 0 {
-		second = append(second, kv("Committed", view.FormatBytesCompact(s.CommitUsed)+"/"+view.FormatBytesCompact(s.CommitLimit)))
-	}
-	second = append(second, kv("Swap", view.FormatBytesCompact(s.SwapUsed)+"/"+view.FormatBytesCompact(s.SwapTotal)))
-	stats = packLine(second, statSep, w)
-
-	head := []string{
-		spread(ui.label.Render("Memory"), ui.muted.Render(view.FormatBytes(s.MemTotal)), w),
-		ui.muted.Render("% In use · " + m.graphSpan(w-2)),
-	}
-	tail := []string{"", ui.muted.Render("Composition"), m.memComposition(w), ""}
-	tail = append(tail, stats...)
-	return withGraphs(head, tail, []graphSpec{{vals: m.memHist.values(), style: ui.memory}}, w, h)
-}
-
-func (m model) diskDetail(d metrics.DiskStat, w, h int) []string {
-	key := "disk:" + d.ID
-	desc := d.Model
-	if d.Bus != "" {
-		desc = strings.TrimSpace(desc + " · " + d.Bus)
-	}
-	read, readMax := scaled(diskRateFloor, m.histVals(key+":read"))
-	write, writeMax := scaled(diskRateFloor, m.histVals(key+":write"))
-
-	var graphs []graphSpec
-	sub := "Transfer rate · " + m.graphSpan(w-2)
-	if d.ActiveKnown {
-		sub = "% Active time · " + m.graphSpan(w-2)
-		graphs = append(graphs, graphSpec{vals: m.histVals(key + ":active"), style: ui.disk})
-	}
-	graphs = append(graphs,
-		graphSpec{title: "Read · scale " + view.FormatByteRate(readMax), vals: read, style: ui.read},
-		graphSpec{title: "Write · scale " + view.FormatByteRate(writeMax), vals: write, style: ui.write},
-	)
-
-	var stats []string
-	if d.ActiveKnown {
-		stats = append(stats, kv("Active", fmt.Sprintf("%.0f%%", d.ActivePct)))
-	}
-	stats = append(stats, kv("Read", view.FormatByteRate(d.ReadBps)), kv("Write", view.FormatByteRate(d.WriteBps)))
-	if d.RespKnown {
-		stats = append(stats, kv("Response", fmt.Sprintf("%.2f ms", d.RespMs)))
-	}
-	tail := append([]string{""}, packLine(stats, statSep, w)...)
-	for _, v := range d.Volumes {
-		p := view.Percent(v.Used, v.Total)
-		tail = append(tail, fmt.Sprintf("%-6s ", v.Mount)+bar(p, 20)+
-			fmt.Sprintf(" %s/%s (%.0f%%)", view.FormatBytesCompact(v.Used), view.FormatBytesCompact(v.Total), p))
-	}
-	head := []string{spread(ui.label.Render(diskTitle(d)), ui.muted.Render(desc), w), ui.muted.Render(sub)}
-	return withGraphs(head, tail, graphs, w, h)
-}
-
-func (m model) netDetail(n metrics.NetStat, w, h int) []string {
-	key := "net:" + n.Name
-	rx, tx := m.histVals(key+":rx"), m.histVals(key+":tx")
-	// Receive and send share one scale so they're comparable at a glance.
-	_, top := scaled(netRateFloor, sumSeries(rx, nil), tx)
-	rxs, _ := scaled(top, rx)
-	txs, _ := scaled(top, tx)
-	graphs := []graphSpec{
-		{title: "Receive", vals: rxs, style: ui.receive},
-		{title: "Send", vals: txs, style: ui.send},
-	}
-
-	kind := "Virtual"
-	if n.Physical {
-		kind = "Hardware"
-	}
-	link := "--"
-	if n.SpeedBps > 0 {
-		link = view.FormatBitRate(float64(n.SpeedBps) / 8)
-	}
-	state := "Up"
-	if !n.Up {
-		state = "Down"
-	}
-	tail := append([]string{""}, packLine([]string{
-		kv("Receive", view.FormatBitRate(n.RecvBps)), kv("Send", view.FormatBitRate(n.SentBps)),
-		kv("Link", link), kv("Type", kind), kv("State", state),
-	}, statSep, w)...)
-	if len(n.Addrs) > 0 {
-		tail = append(tail, kv("Address", strings.Join(n.Addrs, "  ")))
-	}
-	head := []string{
-		spread(ui.label.Render(n.Name), ui.muted.Render(n.Desc), w),
-		ui.muted.Render("Throughput · scale " + view.FormatBitRate(top) + " · " + m.graphSpan(w-2)),
-	}
-	return withGraphs(head, tail, graphs, w, h)
-}
-
-func diskTitle(d metrics.DiskStat) string {
-	if len(d.Volumes) == 0 {
-		return d.Name
-	}
-	mounts := make([]string, len(d.Volumes))
-	for i, v := range d.Volumes {
-		mounts[i] = v.Mount
-	}
-	return d.Name + " (" + strings.Join(mounts, " ") + ")"
-}
-
-type graphSpec struct {
-	title string // optional line above the graph
-	vals  []float64
-	style lipgloss.Style
-}
-
-// withGraphs stacks head, framed graphs sharing the spare height, and tail.
-// Graphs that can't get at least one row are dropped. Output is cut to h.
-func withGraphs(head, tail []string, graphs []graphSpec, w, h int) []string {
-	avail := h - len(head) - len(tail)
-	for len(graphs) > 1 && avail/len(graphs) < 4 {
-		graphs = graphs[:len(graphs)-1]
-	}
-	lines := append([]string{}, head...)
-	for i, g := range graphs {
-		share := avail / len(graphs)
-		if i == len(graphs)-1 {
-			share = avail - share*(len(graphs)-1)
-		}
-		gh := share - 2 // frame
-		if g.title != "" {
-			lines = append(lines, ui.muted.Render(g.title))
-			gh--
-		}
-		graph := ui.frame.Render(g.style.Render(strings.Join(areaGraph(g.vals, w-2, max(1, gh)), "\n")))
-		lines = append(lines, strings.Split(graph, "\n")...)
-	}
-	lines = append(lines, tail...)
-	if len(lines) > h {
-		lines = lines[:h]
-	}
-	return lines
-}
-
-// scaled converts series to 0–100 against their shared maximum (at least
-// min) and returns that maximum.
-func scaled(minTop float64, series ...[]float64) ([]float64, float64) {
-	top := minTop
-	for _, s := range series {
-		for _, v := range s {
-			top = max(top, v)
-		}
-	}
-	if len(series) == 0 {
-		return nil, top
-	}
-	out := make([]float64, len(series[0]))
-	for i, v := range series[0] {
-		out[i] = v / top * 100
-	}
-	return out, top
-}
-
-// sumSeries adds two histories element-wise, aligned at the newest value.
-func sumSeries(a, b []float64) []float64 {
-	if len(b) > len(a) {
-		a, b = b, a
-	}
-	out := append([]float64(nil), a...)
-	off := len(a) - len(b)
-	for i, v := range b {
-		out[off+i] += v
-	}
-	return out
-}
-
-// coreGrid renders one cell per logical CPU: index, P/E kind, meter, %.
-func (m model) coreGrid(w int) []string {
-	cells := make([]string, len(m.snap.CPUPerCore))
-	for i, v := range m.snap.CPUPerCore {
-		var kind metrics.CoreKind
-		if i < len(m.cpuInfo.Kinds) {
-			kind = m.cpuInfo.Kinds[i]
-		}
-		label := fmt.Sprintf("%3d", i)
-		switch kind {
-		case metrics.CorePerformance:
-			label += ui.pCore.Render("P")
-		case metrics.CoreEfficiency:
-			label += ui.eCore.Render("E")
-		default:
-			label += " "
-		}
-		cells[i] = meterCell(label, v)
-	}
-	return packLine(cells, gridSep, w)
-}
-
-// memComposition is a single bar: in use | cached | free.
-func (m model) memComposition(w int) string {
-	s := m.snap
-	if s.MemTotal == 0 || w <= 0 {
-		return ""
-	}
-	used := int(float64(w) * float64(s.MemUsed) / float64(s.MemTotal))
-	cached := min(w-used, int(float64(w)*float64(s.MemCached)/float64(s.MemTotal)))
-	free := max(0, w-used-cached)
-	return ui.memory.Render(strings.Repeat("█", used)) +
-		ui.cached.Render(strings.Repeat("▓", cached)) +
-		ui.muted.Render(strings.Repeat("░", free))
+	return nil
 }
 
 // graphSpan describes how much time a graph of width w covers.
@@ -479,4 +175,5 @@ func (m model) graphSpan(w int) string {
 	return (time.Duration(min(w, historyLen)) * m.refresh).Round(time.Second).String()
 }
 
+// kv renders one "Label value" stat.
 func kv(k, v string) string { return ui.muted.Render(k+" ") + v }

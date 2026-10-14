@@ -126,3 +126,69 @@ func areaGraph(vals []float64, w, h int) []string {
 func meterCell(label string, pct float64) string {
 	return label + " " + bar(pct, 5) + loadStyle(pct).Render(fmt.Sprintf("%4.0f%%", pct))
 }
+
+type graphSpec struct {
+	title string // optional line above the graph
+	vals  []float64
+	style lipgloss.Style
+}
+
+// withGraphs stacks head, framed graphs sharing the spare height, and tail.
+// Graphs that can't get at least one row are dropped. Output is cut to h.
+func withGraphs(head, tail []string, graphs []graphSpec, w, h int) []string {
+	avail := h - len(head) - len(tail)
+	for len(graphs) > 1 && avail/len(graphs) < 4 {
+		graphs = graphs[:len(graphs)-1]
+	}
+	lines := append([]string{}, head...)
+	for i, g := range graphs {
+		share := avail / len(graphs)
+		if i == len(graphs)-1 {
+			share = avail - share*(len(graphs)-1)
+		}
+		gh := share - 2 // frame
+		if g.title != "" {
+			lines = append(lines, ui.muted.Render(g.title))
+			gh--
+		}
+		graph := ui.frame.Render(g.style.Render(strings.Join(areaGraph(g.vals, w-2, max(1, gh)), "\n")))
+		lines = append(lines, strings.Split(graph, "\n")...)
+	}
+	lines = append(lines, tail...)
+	if len(lines) > h {
+		lines = lines[:h]
+	}
+	return lines
+}
+
+// scaled converts series to 0–100 against their shared maximum (at least
+// minTop) and returns that maximum.
+func scaled(minTop float64, series ...[]float64) ([]float64, float64) {
+	top := minTop
+	for _, s := range series {
+		for _, v := range s {
+			top = max(top, v)
+		}
+	}
+	if len(series) == 0 {
+		return nil, top
+	}
+	out := make([]float64, len(series[0]))
+	for i, v := range series[0] {
+		out[i] = v / top * 100
+	}
+	return out, top
+}
+
+// sumSeries adds two histories element-wise, aligned at the newest value.
+func sumSeries(a, b []float64) []float64 {
+	if len(b) > len(a) {
+		a, b = b, a
+	}
+	out := append([]float64(nil), a...)
+	off := len(a) - len(b)
+	for i, v := range b {
+		out[off+i] += v
+	}
+	return out
+}

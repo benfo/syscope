@@ -68,7 +68,7 @@ func (m model) renderStrip() string {
 		keep int
 	}
 	items := []item{
-		{ui.label.Render("CPU ") + loadStyle(s.CPUTotal).Render(cpuText+" "+sparkline(m.cpuHist.values(), 8)), 9},
+		{ui.label.Render("CPU ") + loadStyle(s.CPUTotal).Render(cpuText+" "+sparkline(m.histories.values(cpuKey, "util"), 8)), 9},
 		{ui.label.Render("MEM ") + loadStyle(memPct).Render(fmt.Sprintf("%.0f%%", memPct)) +
 			ui.muted.Render(" "+view.FormatUsedTotal(s.MemUsed, s.MemTotal)), 8},
 	}
