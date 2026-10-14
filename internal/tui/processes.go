@@ -242,56 +242,126 @@ func (t processTable) modeText() string {
 	return fmt.Sprintf("sort %s%s · CPU%% %s · %s ", t.sortKey, dir, mode, layout)
 }
 
+// column is one Processes table column; adding a column means adding an
+// entry to processColumns.
+type column struct {
+	title    string
+	width    int // 0: flexible, takes the remaining width (at least minFlexW)
+	right    bool
+	sortKey  view.SortKey
+	sortable bool
+	header   func(t processTable) string // overrides title when set
+	cell     func(t processTable, r view.Row) string
+}
+
 const (
-	colID   = 7
-	colUser = 14
-	colCPU  = 7
-	colMem  = 11
-	colGap  = 1
+	colGap   = 1
+	minFlexW = 8
 )
+
+var processColumns = []column{
+	{title: "PID", width: 7, right: true, sortKey: view.SortPID, sortable: true,
+		header: func(t processTable) string {
+			if t.group {
+				return "COUNT"
+			}
+			return t.arrow(view.SortPID, "PID")
+		},
+		cell: func(t processTable, r view.Row) string {
+			if t.group {
+				return strconv.Itoa(r.Count)
+			}
+			return strconv.Itoa(int(r.PID))
+		}},
+	{title: "NAME", sortKey: view.SortName, sortable: true,
+		cell: func(_ processTable, r view.Row) string { return r.Name }},
+	{title: "USER", width: 14,
+		cell: func(_ processTable, r view.Row) string { return view.ShortUser(r.User) }},
+	{title: "CPU%", width: 7, right: true, sortKey: view.SortCPU, sortable: true,
+		cell: func(t processTable, r view.Row) string {
+			return view.FormatCPU(r.CPU, r.CPUKnown, t.numCPU, t.perCoreCPU)
+		}},
+	{title: "MEM", width: 11, right: true, sortKey: view.SortMem, sortable: true,
+		cell: func(_ processTable, r view.Row) string { return view.FormatMem(r.RSS, r.RSSKnown) }},
+}
+
+// arrow marks the sort column's title with the sort direction.
+func (t processTable) arrow(k view.SortKey, title string) string {
+	switch {
+	case t.sortKey != k:
+		return title
+	case t.desc:
+		return title + "▼"
+	}
+	return title + "▲"
+}
+
+// columnWidths resolves flexible columns against the available width w.
+func columnWidths(cols []column, w int) []int {
+	fixed, flex := colGap*(len(cols)-1), 0
+	for _, c := range cols {
+		if c.width == 0 {
+			flex++
+		}
+		fixed += c.width
+	}
+	widths := make([]int, len(cols))
+	for i, c := range cols {
+		widths[i] = c.width
+		if c.width == 0 {
+			widths[i] = max(minFlexW, (w-fixed)/max(1, flex))
+		}
+	}
+	return widths
+}
+
+// line lays out one row of cells at the given column widths.
+func line(cols []column, widths []int, cells []string, w int) string {
+	gap := strings.Repeat(" ", colGap)
+	parts := make([]string, len(cols))
+	for i, c := range cols {
+		if c.right {
+			parts[i] = fitRight(cells[i], widths[i])
+		} else {
+			parts[i] = fit(cells[i], widths[i])
+		}
+	}
+	return fit(strings.Join(parts, gap), w)
+}
 
 // render draws the heading and t.height rows at width w.
 func (t processTable) render(w int) string {
-	nameW := max(8, w-colID-colUser-colCPU-colMem-4*colGap)
-	gap := strings.Repeat(" ", colGap)
+	cols := processColumns
+	widths := columnWidths(cols, w)
 
-	arrow := func(k view.SortKey, title string) string {
+	titles := make([]string, len(cols))
+	for i, c := range cols {
 		switch {
-		case t.sortKey != k:
-			return title
-		case t.desc:
-			return title + "▼"
+		case c.header != nil:
+			titles[i] = c.header(t)
+		case c.sortable:
+			titles[i] = t.arrow(c.sortKey, c.title)
+		default:
+			titles[i] = c.title
 		}
-		return title + "▲"
 	}
-	idTitle := arrow(view.SortPID, "PID")
-	if t.group {
-		idTitle = "COUNT"
-	}
-	head := fitRight(idTitle, colID) + gap + fit(arrow(view.SortName, "NAME"), nameW) + gap +
-		fit("USER", colUser) + gap + fitRight(arrow(view.SortCPU, "CPU%"), colCPU) + gap +
-		fitRight(arrow(view.SortMem, "MEM"), colMem)
-
 	var b strings.Builder
-	b.WriteString(ui.inverse.Render(fit(head, w)) + "\n")
+	b.WriteString(ui.inverse.Render(line(cols, widths, titles, w)) + "\n")
+
+	cells := make([]string, len(cols))
 	for i := t.offset; i < t.offset+t.height; i++ {
 		if i >= len(t.rows) {
 			b.WriteString("\n")
 			continue
 		}
-		r := t.rows[i]
-		id := strconv.Itoa(int(r.PID))
-		if t.group {
-			id = strconv.Itoa(r.Count)
+		for j, c := range cols {
+			cells[j] = c.cell(t, t.rows[i])
 		}
-		line := fit(fitRight(id, colID)+gap+fit(r.Name, nameW)+gap+
-			fit(view.ShortUser(r.User), colUser)+gap+
-			fitRight(view.FormatCPU(r.CPU, r.CPUKnown, t.numCPU, t.perCoreCPU), colCPU)+gap+
-			fitRight(view.FormatMem(r.RSS, r.RSSKnown), colMem), w)
+		row := line(cols, widths, cells, w)
 		if i == t.cursor {
-			line = ui.selected.Render(line)
+			row = ui.selected.Render(row)
 		}
-		b.WriteString(line + "\n")
+		b.WriteString(row + "\n")
 	}
 	return b.String()
 }
