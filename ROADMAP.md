@@ -61,7 +61,6 @@ Out of scope: per-process network rates, app history.
 ## To do
 
 ### Phase 2 — Performance parity
-- [ ] **Refactor** apply Code standards: colours behind one Theme type (prepares theming), device pages behind an interface, sampler split into collectors, DRY formatting/grids, naming (irix→per-core, ring→history), process-tab state out of model, per-concern platform files and tests
 - [ ] **2d** Per-process GPU % and VRAM columns
 - [ ] **GPU: Linux Intel** (i915/xe sysfs: clock, power; usage needs root) and **macOS Apple Silicon** (IOKit performance statistics via purego)
 
@@ -91,6 +90,7 @@ Out of scope: per-process network rates, app history.
 - [x] **Keys** Vim-style keymap per Key rules (replaces type-to-search request): single keymap table drives footer, `?` help overlay and consistency tests; rebound k→d, g→z, i→c, a→.
 - [x] **Explain** `?` opens "About this view": context-aware explanations (process columns; CPU, memory, disk, network metrics, only those shown on this platform) above the key list; `j`/`k` scroll, `Esc` closes
 - [x] **2c** GPU page: every GPU on Windows (DXGI + Task Manager's PDH counters: per-engine usage, dedicated/shared memory; D3DKMT temperature/fan/power for any vendor), NVIDIA deep stats via pure-Go NVML (temp, power vs limit, clocks, P-state, throttle reasons) on Windows + Linux, Linux AMD via amdgpu sysfs; GPU + VRAM in top line, which now drops low-priority items when narrow; stat lines wrap
+- [x] **Refactor** to Code standards (behaviour unchanged, proven by golden screen tests + colour comparison): formatting helpers in `view`, shared grid/stat layout; irix→per-core (`--irix` kept as deprecated alias), ring→history, cpu→cpuInfo; all colours behind a `Theme` of named roles; Performance devices behind a `devicePage` interface (one `page_*.go` per device); Processes tab extracted to `processTable`; sampler split into per-area collectors; metrics files and tests grouped per concern
 
 ### Phase 1 — POC
 - [x] Metrics sampler (gopsutil), CPU deltas, PID-reuse safe cache, Toolhelp names on Windows
