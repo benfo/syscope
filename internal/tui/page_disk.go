@@ -18,10 +18,17 @@ type diskPage struct {
 	d metrics.DiskStat
 }
 
+// diskPages lists each physical disk followed by its volumes (only when it
+// has more than one; a single volume would just repeat the disk).
 func diskPages(m model) []devicePage {
-	out := make([]devicePage, len(m.snap.Disks))
-	for i, d := range m.snap.Disks {
-		out[i] = diskPage{m, d}
+	var out []devicePage
+	for _, d := range m.snap.Disks {
+		out = append(out, diskPage{m, d})
+		if len(d.Volumes) > 1 {
+			for _, v := range d.Volumes {
+				out = append(out, volumePage{m, d, v})
+			}
+		}
 	}
 	return out
 }

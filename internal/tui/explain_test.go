@@ -31,11 +31,13 @@ func TestExplainFollowsView(t *testing.T) {
 	}
 
 	m = drive(t, m, keyMsg("esc"), key("j"), key("?"))
-	if v := strings.Join(m.helpContent(), "\n"); !strings.Contains(v, "About: Disk 0 (C:)") || !strings.Contains(v, "Response") {
+	if v := strings.Join(m.helpContent(), "\n"); !strings.Contains(v, "About: Disk 0 (C: D:)") || !strings.Contains(v, "Response") {
 		t.Error("Disk help should explain active time and response")
 	}
 
-	m = drive(t, m, keyMsg("esc"), key("j"), key("?"))
+	m = drive(t, m, keyMsg("esc"))
+	m.perfKey = "net:Wi-Fi"
+	m = drive(t, m, key("?"))
 	if v := strings.Join(m.helpContent(), "\n"); !strings.Contains(v, "About: Wi-Fi") || !strings.Contains(v, "12.5 MB/s") {
 		t.Error("Network help should explain bits vs bytes")
 	}

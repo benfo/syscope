@@ -1,12 +1,12 @@
  CPU 43.0% ▆▂▅▇▃▅▁▄  MEM 77% 49.0/64.0G  GPU 31% 79°C VRAM 9.0/12.0G
  1 Processes   2 Performance  
   ▲ more                │ GPU 0  NVIDIA GeForce RTX 3080 Ti Laptop GPU
-  Memory                │ Utilization (busiest engine) · 42s          
-  49.0GiB/64.0GiB (77%) │ ╭──────────────────────────────────────────╮
-  ▆▄▄▄▄▄▄▄▅▅▅▅▅▅▅▅▅▆▆▆▆ │ │ ▅ ▂▅▇▁▄▆ ▃▅▇▂▄▆ ▃▅▇▂▄▆▁▃▅█▂▄▇▁▃▆█▂▅▇▁▄▆ ▂│
-  Disk 0 (C:)           │ ╰──────────────────────────────────────────╯
-  7%  4.0 MB/s          │                                             
-  ▄▅▆▇▇▁▂▃▄▅▆▇▁▂▃▃▄▅▆▇▁ │ Utilization 31%   Dedicated 9.0GiB/12.0GiB  
+    C:                  │ Utilization (busiest engine) · 42s          
+    5.0 MB/s            │ ╭──────────────────────────────────────────╮
+    ███████████████████ │ │ ▅ ▂▅▇▁▄▆ ▃▅▇▂▄▆ ▃▅▇▂▄▆▁▃▅█▂▄▇▁▃▆█▂▅▇▁▄▆ ▂│
+    D:                  │ ╰──────────────────────────────────────────╯
+    20% full            │                                             
+                        │ Utilization 31%   Dedicated 9.0GiB/12.0GiB  
   Wi-Fi                 │ Shared 1.0GiB/32.0GiB   Temperature 79 °C   
   ↓3.2 Mbps ↑160 Kbps   │ Power 88.5 / 95 W   Clock 2400 / 3090 MHz   
   ▃█▅▂▇▄▂▇▄▁▆▄▁▆▃▁▅▃█▅▂ │ Memory clock 12000 MHz   P-state P0         

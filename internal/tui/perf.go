@@ -128,15 +128,15 @@ func sidebar(pages []devicePage, selIdx, h int) []string {
 }
 
 func sidebarEntry(p devicePage, selected bool) []string {
-	marker, title := "  ", p.name()
+	marker, title := "  ", indent(p)+p.name() // nested pages, e.g. volumes, are indented
 	if selected {
 		marker = ui.accent.Render("▌ ")
 		title = ui.bold.Render(title)
 	}
 	return []string{
 		marker + title,
-		marker + ui.muted.Render(p.summary()),
-		marker + p.style().Render(sparkline(p.trend(), sideW-3)),
+		marker + indent(p) + ui.muted.Render(p.summary()),
+		marker + indent(p) + p.style().Render(sparkline(p.trend(), sideW-3-len(indent(p)))),
 	}
 }
 
@@ -168,3 +168,11 @@ func (m model) graphSpan(w int) string {
 
 // kv renders one "Label value" stat.
 func kv(k, v string) string { return ui.muted.Render(k+" ") + v }
+
+// indent is the extra left margin for nested pages.
+func indent(p devicePage) string {
+	if n, ok := p.(nested); ok {
+		return strings.Repeat("  ", n.depth())
+	}
+	return ""
+}

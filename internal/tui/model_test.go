@@ -23,7 +23,9 @@ func (f *fakeSampler) Sample(context.Context) (metrics.SystemSnapshot, []metrics
 		MemTotal: 64 << 30, MemUsed: 32 << 30, MemCached: 6 << 30, MemAvailable: 26 << 30, ProcCount: len(f.procs),
 		Disks: []metrics.DiskStat{{ID: "0", Name: "Disk 0", Model: "Test SSD", Bus: "NVMe", RatesKnown: true,
 			ReadBps: 5e6, WriteBps: 1e6, ActivePct: 30, ActiveKnown: true, RespMs: 0.2, RespKnown: true,
-			Volumes: []metrics.VolumeStat{{Mount: "C:", Total: 1000, Used: 400}}}},
+			Volumes: []metrics.VolumeStat{
+				{Mount: "C:", Total: 1000 << 30, Used: 400 << 30, RatesKnown: true, ReadBps: 4e6, WriteBps: 1e6},
+				{Mount: "D:", Total: 500 << 30, Used: 100 << 30}}}},
 		Nets: f.netsOrDefault(), GPUs: f.gpus()}, f.procs, nil
 }
 
@@ -243,20 +245,20 @@ func TestPerfDisksAndNets(t *testing.T) {
 	f := &fakeSampler{}
 	m := sampled(t, f)
 	m = drive(t, m, key("2"), keyMsg("down"), keyMsg("down"))
-	if v := m.View(); !strings.Contains(v, "Disk 0 (C:)") || !strings.Contains(v, "Test SSD · NVMe") ||
+	if v := m.View(); !strings.Contains(v, "Disk 0 (C: D:)") || !strings.Contains(v, "Test SSD · NVMe") ||
 		!strings.Contains(v, "Response") || !strings.Contains(v, "0.20 ms") {
 		t.Error("disk page incomplete")
 	}
-	m = drive(t, m, keyMsg("down"))
+	m.perfKey = "net:Wi-Fi"
 	if v := m.View(); !strings.Contains(v, "Test Wi-Fi") || !strings.Contains(v, "2.0 Mbps") ||
 		!strings.Contains(v, "192.0.2.106") {
 		t.Error("network page incomplete")
 	}
-	if devs := m.visiblePages(); len(devs) != 6 { // cpu, mem, disk, wi-fi, 2 gpus
+	if devs := m.visiblePages(); len(devs) != 8 { // cpu, mem, disk + 2 volumes, wi-fi, 2 gpus
 		t.Errorf("hidden VPN should not be listed by default: %d devices", len(devs))
 	}
 	m = drive(t, m, key("."))
-	if devs := m.visiblePages(); len(devs) != 7 {
+	if devs := m.visiblePages(); len(devs) != 9 {
 		t.Errorf(". should show all adapters: %d devices", len(devs))
 	}
 
