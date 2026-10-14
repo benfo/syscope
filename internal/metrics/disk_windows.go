@@ -22,7 +22,7 @@ const (
 // gives the idle/query clocks Task Manager uses for "Active time", which the
 // per-volume counters gopsutil reads don't expose.
 func readDisks() ([]diskRaw, error) {
-	volumes := volumesByDisk()
+	volumes, volIO := volumesByDisk()
 	var out []diskRaw
 	for n := 0; n < maxPhysicalDrives; n++ {
 		h, err := openDevice(fmt.Sprintf(`\\.\PhysicalDrive%d`, n))
@@ -35,6 +35,7 @@ func readDisks() ([]diskRaw, error) {
 			raw.Name = "Disk " + raw.ID
 			raw.Model, raw.Bus = storageDescriptor(h)
 			raw.Mounts = volumes[uint32(n)]
+			raw.VolumeIO = volIO
 			out = append(out, raw)
 		}
 		windows.CloseHandle(h)
@@ -109,13 +110,15 @@ func storageDescriptor(h windows.Handle) (model, bus string) {
 }
 
 // volumesByDisk maps physical disk numbers to the drive roots ("C:\") on
-// them, via IOCTL_VOLUME_GET_VOLUME_DISK_EXTENTS.
-func volumesByDisk() map[uint32][]string {
+// them, via IOCTL_VOLUME_GET_VOLUME_DISK_EXTENTS, and reads each volume's own
+// I/O counters (IOCTL_DISK_PERFORMANCE works on volumes too).
+func volumesByDisk() (map[uint32][]string, map[string]volumeIO) {
 	out := map[uint32][]string{}
+	io := map[string]volumeIO{}
 	var names [256]uint16
 	n, err := windows.GetLogicalDriveStrings(uint32(len(names)), &names[0])
 	if err != nil {
-		return out
+		return out, io
 	}
 	// The buffer is a list of NUL-separated roots ("C:\", "D:\", …).
 	for _, root := range splitMultiSZ(names[:n]) {
@@ -132,6 +135,9 @@ func volumesByDisk() map[uint32][]string {
 		var buf [8 + 24*8]byte
 		var got uint32
 		err = windows.DeviceIoControl(h, ioctlVolumeGetDiskExtents, nil, 0, &buf[0], uint32(len(buf)), &got, nil)
+		if perf, ok := diskPerformance(h); ok {
+			io[root] = volumeIO{perf.ReadBytes, perf.WriteBytes}
+		}
 		windows.CloseHandle(h)
 		if err != nil || got < 8 {
 			continue
@@ -142,7 +148,7 @@ func volumesByDisk() map[uint32][]string {
 			out[disk] = append(out[disk], root)
 		}
 	}
-	return out
+	return out, io
 }
 
 func splitMultiSZ(u []uint16) []string {

@@ -27,10 +27,20 @@ func readDisks() ([]diskRaw, error) {
 	sort.Strings(names)
 
 	mounts := map[string][]string{}
+	volIO := map[string]map[string]volumeIO{} // disk → mount → counters
 	if parts, err := disk.Partitions(false); err == nil {
 		for _, p := range parts {
-			if d := parentDisk(filepath.Base(p.Device), names); d != "" {
-				mounts[d] = append(mounts[d], p.Mountpoint)
+			part := filepath.Base(p.Device)
+			d := parentDisk(part, names)
+			if d == "" {
+				continue
+			}
+			mounts[d] = append(mounts[d], p.Mountpoint)
+			if c, ok := ctrs[part]; ok { // the partition's own counters
+				if volIO[d] == nil {
+					volIO[d] = map[string]volumeIO{}
+				}
+				volIO[d][p.Mountpoint] = volumeIO{c.ReadBytes, c.WriteBytes}
 			}
 		}
 	}
@@ -39,7 +49,7 @@ func readDisks() ([]diskRaw, error) {
 	for _, name := range names {
 		c := ctrs[name]
 		out = append(out, diskRaw{
-			ID: name, Name: name, Model: diskModel(name), Mounts: mounts[name],
+			ID: name, Name: name, Model: diskModel(name), Mounts: mounts[name], VolumeIO: volIO[name],
 			ReadBytes: c.ReadBytes, WriteBytes: c.WriteBytes, Reads: c.ReadCount, Writes: c.WriteCount,
 			TickUnit: time.Millisecond,
 			IOTime:   c.ReadTime + c.WriteTime,

@@ -13,6 +13,23 @@ type VolumeStat struct {
 	Mount string // "C:" on Windows, mount point elsewhere
 	Total uint64
 	Used  uint64
+
+	// Read/write rates of this volume alone; RatesKnown is false on the first
+	// sample and where the OS has no per-volume counters (macOS).
+	RatesKnown bool
+	ReadBps    float64
+	WriteBps   float64
+}
+
+// volumeIO is a volume's cumulative bytes read and written.
+type volumeIO struct{ read, write uint64 }
+
+// volumeRates is bytes per second between two volume counter readings.
+func volumeRates(prev, cur volumeIO, wall time.Duration) (read, write float64, ok bool) {
+	if wall <= 0 {
+		return 0, 0, false
+	}
+	return float64(sub(cur.read, prev.read)) / wall.Seconds(), float64(sub(cur.write, prev.write)) / wall.Seconds(), true
 }
 
 // DiskStat is one physical disk.
@@ -38,7 +55,8 @@ type DiskStat struct {
 // time.Duration.
 type diskRaw struct {
 	ID, Name, Model, Bus string
-	Mounts               []string // paths usable with disk.Usage
+	Mounts               []string            // paths usable with disk.Usage
+	VolumeIO             map[string]volumeIO // per mount in Mounts; nil without per-volume counters
 
 	ReadBytes, WriteBytes uint64
 	Reads, Writes         uint64
@@ -124,10 +142,18 @@ func (c *diskCollector) collect(ctx context.Context, now time.Time, snap *System
 		if prev, ok := c.prev[r.ID]; ok {
 			st = diskDelta(prev, r, wall)
 		}
+		prev := c.prev[r.ID]
 		for _, m := range r.Mounts {
-			if u, err := disk.UsageWithContext(ctx, m); err == nil {
-				st.Volumes = append(st.Volumes, VolumeStat{Mount: mountLabel(m), Total: u.Total, Used: u.Used})
+			u, err := disk.UsageWithContext(ctx, m)
+			if err != nil {
+				continue
 			}
+			v := VolumeStat{Mount: mountLabel(m), Total: u.Total, Used: u.Used}
+			cur, okCur := r.VolumeIO[m]
+			if old, okPrev := prev.VolumeIO[m]; okCur && okPrev {
+				v.ReadBps, v.WriteBps, v.RatesKnown = volumeRates(old, cur, wall)
+			}
+			st.Volumes = append(st.Volumes, v)
 		}
 		next[r.ID] = r
 		snap.Disks = append(snap.Disks, st)

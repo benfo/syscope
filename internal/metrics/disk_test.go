@@ -68,3 +68,32 @@ func TestReadDisks(t *testing.T) {
 			d.Name, d.Model, d.Bus, d.ActivePct, d.ActiveKnown, d.ReadBps, d.WriteBps, d.RespMs, d.Volumes)
 	}
 }
+
+func TestVolumeRates(t *testing.T) {
+	r, w, ok := volumeRates(volumeIO{read: 1000, write: 500}, volumeIO{read: 5000, write: 900}, 2*time.Second)
+	if !ok || r != 2000 || w != 200 {
+		t.Errorf("rates: %v %v %v", r, w, ok)
+	}
+	if _, _, ok := volumeRates(volumeIO{}, volumeIO{}, 0); ok {
+		t.Error("no elapsed time, no rate")
+	}
+	if r, _, _ := volumeRates(volumeIO{read: 9}, volumeIO{read: 1}, time.Second); r != 0 {
+		t.Error("a counter reset reads as zero")
+	}
+}
+
+func TestVolumeRatesLive(t *testing.T) {
+	s := NewGopsutilSampler()
+	ctx := context.Background()
+	s.Sample(ctx)
+	time.Sleep(500 * time.Millisecond)
+	snap, _, err := s.Sample(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, d := range snap.Disks {
+		for _, v := range d.Volumes {
+			t.Logf("%s %s: known=%v read=%.0f write=%.0f", d.Name, v.Mount, v.RatesKnown, v.ReadBps, v.WriteBps)
+		}
+	}
+}
