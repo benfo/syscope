@@ -147,3 +147,35 @@ func TestPercent(t *testing.T) {
 		t.Error("Percent")
 	}
 }
+
+func TestGPUSortAndGroup(t *testing.T) {
+	ps := []metrics.ProcInfo{
+		{PID: 1, Name: "ollama", GPU: 80, GPUKnown: true, VRAM: 7 << 30, VRAMKnown: true},
+		{PID: 2, Name: "chrome.exe", GPU: 30, GPUKnown: true, VRAM: 100 << 20, VRAMKnown: true},
+		{PID: 3, Name: "chrome.exe", GPU: 90, GPUKnown: true, VRAM: 200 << 20, VRAMKnown: true},
+		{PID: 4, Name: "idle"},
+	}
+	rows := Rows(ps, false)
+	Sort(rows, SortVRAM, true)
+	if got := pids(rows); !reflect.DeepEqual(got, []int32{1, 3, 2, 4}) {
+		t.Errorf("vram sort: %v", got)
+	}
+	Sort(rows, SortGPU, true)
+	if got := pids(rows); !reflect.DeepEqual(got, []int32{3, 1, 2, 4}) {
+		t.Errorf("gpu sort: %v", got)
+	}
+	for _, r := range Rows(ps, true) {
+		if r.Name == "chrome" && (r.GPU != 100 || r.VRAM != 300<<20) {
+			t.Errorf("chrome group: GPU %v (capped at 100), VRAM %d", r.GPU, r.VRAM)
+		}
+		if r.Name == "idle" && (r.GPUKnown || r.VRAMKnown) {
+			t.Error("group without GPU data should stay unknown")
+		}
+	}
+	if !SortVRAM.IsGPU() || SortMem.IsGPU() || !SortGPU.DefaultDesc() || SortName.DefaultDesc() {
+		t.Error("GPU sort key properties")
+	}
+	if FormatGPU(12.34, true) != "12.3" || FormatGPU(0, false) != "--" {
+		t.Error("FormatGPU")
+	}
+}

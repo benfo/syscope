@@ -17,11 +17,13 @@ type SortKey int
 const (
 	SortCPU SortKey = iota
 	SortMem
+	SortGPU
+	SortVRAM
 	SortPID
 	SortName
 )
 
-var sortNames = []string{"cpu", "mem", "pid", "name"}
+var sortNames = []string{"cpu", "mem", "gpu", "vram", "pid", "name"}
 
 func (k SortKey) String() string { return sortNames[k] }
 
@@ -30,7 +32,10 @@ func (k SortKey) Next() SortKey { return (k + 1) % SortKey(len(sortNames)) }
 
 // DefaultDesc reports the natural direction for a column: biggest consumers
 // first for resources, ascending for identifiers.
-func (k SortKey) DefaultDesc() bool { return k == SortCPU || k == SortMem }
+func (k SortKey) DefaultDesc() bool { return k != SortPID && k != SortName }
+
+// IsGPU reports whether the column only exists on machines with a GPU.
+func (k SortKey) IsGPU() bool { return k == SortGPU || k == SortVRAM }
 
 func ParseSortKey(s string) (SortKey, error) {
 	for i, n := range sortNames {
@@ -54,6 +59,11 @@ type Row struct {
 	CPUKnown bool
 	RSS      uint64
 	RSSKnown bool
+
+	GPU       float64
+	GPUKnown  bool
+	VRAM      uint64
+	VRAMKnown bool
 }
 
 // Filter keeps processes whose name contains q (case-insensitive) or whose
@@ -82,6 +92,7 @@ func Rows(procs []metrics.ProcInfo, group bool) []Row {
 				Key: "p:" + strconv.Itoa(int(p.PID)), PID: p.PID, PIDs: []int32{p.PID},
 				Name: p.Name, User: p.User, Count: 1,
 				CPU: p.CPU, CPUKnown: p.CPUKnown, RSS: p.RSS, RSSKnown: p.RSSKnown,
+				GPU: p.GPU, GPUKnown: p.GPUKnown, VRAM: p.VRAM, VRAMKnown: p.VRAMKnown,
 			}
 		}
 		return rows
@@ -110,6 +121,14 @@ func Rows(procs []metrics.ProcInfo, group bool) []Row {
 		if p.RSSKnown {
 			r.RSS += p.RSS
 			r.RSSKnown = true
+		}
+		if p.GPUKnown {
+			r.GPU = min(r.GPU+p.GPU, 100)
+			r.GPUKnown = true
+		}
+		if p.VRAMKnown {
+			r.VRAM += p.VRAM
+			r.VRAMKnown = true
 		}
 	}
 	for i := range rows {
@@ -148,6 +167,10 @@ func Sort(rows []Row, key SortKey, desc bool) {
 			c = cmpFloat(a.CPU, b.CPU)
 		case SortMem:
 			c = cmpUint(a.RSS, b.RSS)
+		case SortGPU:
+			c = cmpFloat(a.GPU, b.GPU)
+		case SortVRAM:
+			c = cmpUint(a.VRAM, b.VRAM)
 		case SortName:
 			c = strings.Compare(strings.ToLower(a.Name), strings.ToLower(b.Name))
 		}
@@ -208,6 +231,14 @@ func FormatCPU(normalized float64, known bool, numCPU int, perCore bool) string 
 		return "--"
 	}
 	return strconv.FormatFloat(CPUValue(normalized, numCPU, perCore), 'f', 1, 64)
+}
+
+// FormatGPU renders a GPU% cell, "--" when unknown.
+func FormatGPU(pct float64, known bool) string {
+	if !known {
+		return "--"
+	}
+	return strconv.FormatFloat(pct, 'f', 1, 64)
 }
 
 // FormatBytes renders a byte count with binary units, e.g. "1.2 GiB".
