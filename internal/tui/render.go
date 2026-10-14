@@ -155,12 +155,12 @@ func (m model) renderTable() string {
 
 // renderHelp is the ? overlay, filling the body area.
 func (m model) renderHelp() string {
-	lines := helpLines(m.scope())
+	lines := m.helpContent()
 	var b strings.Builder
 	for i := 0; i < m.height-chromeLines; i++ {
 		var l string
-		if i < len(lines) {
-			l = " " + lines[i]
+		if j := m.helpOff + i; j < len(lines) {
+			l = " " + lines[j]
 		}
 		b.WriteString(padANSI(l, m.width) + "\n")
 	}
@@ -170,7 +170,7 @@ func (m model) renderHelp() string {
 func (m model) renderFooter() string {
 	switch {
 	case m.showHelp:
-		return dimStyle.Render(fit(" any key closes help", m.width))
+		return m.helpFooter()
 	case m.confirm != nil:
 		verb := "End task"
 		if m.confirm.force {
@@ -255,4 +255,15 @@ func (m model) stripNet() string {
 		}
 	}
 	return "↓" + view.FormatBitRate(rx) + " ↑" + view.FormatBitRate(tx)
+}
+
+// helpFooter shows scroll keys and position while the ? screen is open.
+func (m model) helpFooter() string {
+	total, page := len(m.helpContent()), max(1, m.height-chromeLines)
+	s := " " + helpKeyStyle.Render("esc") + " " + helpTextStyle.Render("close")
+	if total > page {
+		s += " " + helpKeyStyle.Render("j/k") + " " + helpTextStyle.Render("scroll") +
+			dimStyle.Render(fmt.Sprintf("  lines %d–%d of %d", m.helpOff+1, min(total, m.helpOff+page), total))
+	}
+	return ansi.Truncate(s, m.width, "")
 }

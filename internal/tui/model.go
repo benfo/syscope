@@ -65,6 +65,7 @@ type model struct {
 	perfKey     string // selected Performance device
 	showAllNets bool
 	showHelp    bool
+	helpOff     int              // scroll offset of the ? screen
 	hist        map[string]*ring // per-device histories, keyed "disk:0:read" etc.
 
 	snap    metrics.SystemSnapshot
@@ -217,8 +218,7 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	}
 
 	if m.showHelp {
-		m.showHelp = false // any key closes help
-		return m, nil
+		return m.helpAction(lookup(scopeGlobal, key)), nil
 	}
 
 	act := lookup(m.scope(), key)
@@ -226,7 +226,7 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case actQuit:
 		return m, tea.Quit
 	case actHelp:
-		m.showHelp = true
+		m.showHelp, m.helpOff = true, 0
 		return m, nil
 	case actTab1, actTab2:
 		m.tab = int(act - actTab1)

@@ -82,7 +82,7 @@ func TestVimNavigation(t *testing.T) {
 func TestHelpOverlay(t *testing.T) {
 	m := sampled(t, &fakeSampler{procs: []metrics.ProcInfo{p(1, "a", 1)}})
 	m = drive(t, m, key("?"))
-	v := m.View()
+	v := strings.Join(m.helpContent(), "\n")
 	if !m.showHelp || !strings.Contains(v, "end task / force kill") || !strings.Contains(v, "Everywhere") {
 		t.Fatal("? should show Processes and global keys")
 	}
@@ -92,7 +92,7 @@ func TestHelpOverlay(t *testing.T) {
 		t.Error("q while help is open should only close help")
 	}
 	m = drive(t, m, key("2"), key("?"))
-	if v := m.View(); !strings.Contains(v, "show hidden adapters") || strings.Contains(v, "end task") {
+	if v := strings.Join(m.helpContent(), "\n"); !strings.Contains(v, "show hidden adapters") || strings.Contains(v, "end task") {
 		t.Error("help should follow the current tab")
 	}
 }

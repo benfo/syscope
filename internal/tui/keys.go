@@ -113,7 +113,7 @@ func hints(sc scope) []binding {
 func helpLines(sc scope) []string {
 	var out []string
 	for _, want := range []scope{sc, scopeGlobal} {
-		out = append(out, labelStyle.Render(scopeTitles[want]))
+		out = append(out, labelStyle.Render("Keys: "+scopeTitles[want]))
 		for _, b := range keymap {
 			if b.scope == want {
 				out = append(out, "  "+helpKeyStyle.Render(fit(b.label, 8))+" "+b.desc)
@@ -121,6 +121,6 @@ func helpLines(sc scope) []string {
 		}
 		out = append(out, "")
 	}
-	out = append(out, dimStyle.Render("Arrows, PgUp/PgDn and Home/End always work too. Press any key to close."))
+	out = append(out, dimStyle.Render("Arrows, PgUp/PgDn and Home/End always work too."))
 	return out
 }
