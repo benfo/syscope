@@ -144,7 +144,13 @@ func TestPerProcessGPU(t *testing.T) {
 		"pid_100_luid_0x00000000_0x00013e7a_phys_0": 1 << 20, // also on the iGPU: summed
 		"pid_300_luid_0x00000000_0x000142de_phys_0": 512 << 20,
 	}
-	got := perProcessGPU(engines, vram)
+	got := perProcessGPU(engines, vram, map[string]string{"0x00000000_0x000142de": "0", "0x00000000_0x00013e7a": "1"})
+	if u := got[100]; u.engine != "GPU 0 · Video Decode" {
+		t.Errorf("pid 100 engine: %q", u.engine)
+	}
+	if u := got[200]; u.engine != "GPU 1 · 3D" {
+		t.Errorf("pid 200 engine: %q", u.engine)
+	}
 	if u := got[100]; u.util != 70 || !u.utilKnown || u.vram != 7<<30+1<<20 || !u.vramKnown {
 		t.Errorf("pid 100: %+v", u)
 	}
@@ -171,7 +177,7 @@ func TestPerProcessGPULive(t *testing.T) {
 		if p.VRAMKnown || p.GPUKnown {
 			n++
 			if n <= 6 {
-				t.Logf("%6d %-28s gpu=%5.1f(%v) vram=%6d MiB", p.PID, p.Name, p.GPU, p.GPUKnown, p.VRAM>>20)
+				t.Logf("%6d %-28s gpu=%5.1f(%v) %-24q vram=%6d MiB", p.PID, p.Name, p.GPU, p.GPUKnown, p.GPUEngine, p.VRAM>>20)
 			}
 		}
 	}
@@ -302,5 +308,23 @@ func TestHasNonNVIDIAGPU(t *testing.T) {
 	vendor("card1", "0x8086")
 	if !hasNonNVIDIAGPU(root) {
 		t.Error("Intel iGPU present")
+	}
+}
+
+func TestEngineLabelOnlyWhenBusy(t *testing.T) {
+	ids := map[string]string{"0x00000000_0x000142de": "0"}
+	got := perProcessGPU(map[string]float64{
+		"pid_1_luid_0x00000000_0x000142de_phys_0_eng_0_engtype_Copy": 0,
+		"pid_2_luid_0x00000000_0x000142de_phys_0_eng_0_engtype_":     5,
+		"pid_3_luid_0x00000000_0x00099999_phys_0_eng_0_engtype_3D":   5,
+	}, nil, ids)
+	if got[1].engine != "" || !got[1].utilKnown {
+		t.Errorf("idle process: %+v", got[1])
+	}
+	if got[2].engine != "GPU 0" {
+		t.Errorf("empty engine type: %q", got[2].engine)
+	}
+	if got[3].engine != "3D" {
+		t.Errorf("unlisted adapter: %q", got[3].engine)
 	}
 }

@@ -2,6 +2,7 @@ package metrics
 
 import (
 	"bytes"
+	"strconv"
 	"sync"
 	"unsafe"
 )
@@ -201,7 +202,10 @@ func (n *nvml) processes() gpuUsage {
 		if n.call("nvmlDeviceGetProcessUtilization", h, ptr(&samples[0]), ptr(&count), uintptr(n.lastSeen[i])) {
 			for _, s := range samples[:count] {
 				u := out[int32(s.pid)]
-				u.util, u.utilKnown = max(u.util, float64(s.smUtil)), true
+				if v := float64(s.smUtil); v > u.util {
+					u.util, u.engine = v, "GPU "+strconv.Itoa(i)
+				}
+				u.utilKnown = true
 				out[int32(s.pid)] = u
 				n.lastSeen[i] = max(n.lastSeen[i], s.timeStamp)
 			}

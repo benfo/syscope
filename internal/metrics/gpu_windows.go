@@ -85,7 +85,7 @@ func (g *gpuState) read() ([]GPUStat, procGPUReport) {
 		out = append(out, st)
 	}
 	// The counters cover every process regardless of permissions.
-	return out, procGPUReport{usage: perProcessGPU(engineVals, processVRAM), complete: g.query != nil}
+	return out, procGPUReport{usage: perProcessGPU(engineVals, processVRAM, g.gpuIDs()), complete: g.query != nil}
 }
 
 // mergeNVML adds NVML-only metrics to a Windows adapter; usage and memory
@@ -261,4 +261,13 @@ func mergeAdapterPerf(st *GPUStat, p adapterPerf) {
 	if !st.PowerKnown && p.powerPct > 0 {
 		st.PowerPct = p.powerPct
 	}
+}
+
+// gpuIDs maps adapter LUIDs (as in counter instance names) to GPU IDs.
+func (g *gpuState) gpuIDs() map[string]string {
+	ids := make(map[string]string, len(g.adapters))
+	for i, a := range g.adapters {
+		ids[luidKey(a.luidHigh, a.luidLow)] = strconv.Itoa(i)
+	}
+	return ids
 }

@@ -206,6 +206,7 @@ func (c *gpuCollector) enrich(procs []ProcInfo) {
 		switch {
 		case ok:
 			p.GPU, p.GPUKnown = u.util, u.utilKnown || c.procs.complete
+			p.GPUEngine = u.engine
 			p.VRAM, p.VRAMKnown = u.vram, u.vramKnown || c.procs.complete
 		case c.procs.complete:
 			p.GPUKnown, p.VRAMKnown = true, true // not using the GPU
@@ -225,8 +226,27 @@ type procGPUReport struct {
 type procGPU struct {
 	util      float64 // busiest engine, 0–100
 	utilKnown bool
+	engine    string // where that is, e.g. "GPU 0 · 3D"; "" when unknown
 	vram      uint64 // dedicated GPU memory
 	vramKnown bool
+}
+
+// engineLabel names the GPU and engine of a counter instance, e.g. "GPU 0 ·
+// 3D", using gpuIDs (adapter LUID → GPU ID).
+func engineLabel(inst string, gpuIDs map[string]string) string {
+	m := engineInstanceRE.FindStringSubmatch(inst)
+	if m == nil {
+		return ""
+	}
+	engine := prettyEngine(m[3])
+	id, ok := gpuIDs[strings.ToLower(m[1])]
+	switch {
+	case !ok:
+		return engine
+	case engine == "":
+		return "GPU " + id
+	}
+	return "GPU " + id + " · " + engine
 }
 
 // gpuUsage is per-process GPU use keyed by PID.
@@ -237,7 +257,7 @@ var pidInstanceRE = regexp.MustCompile(`^pid_(\d+)_`)
 // perProcessGPU reads per-process figures from Windows counter instances named
 // "pid_<pid>_luid_…": a process's GPU% is its busiest engine (as in Task
 // Manager) and its VRAM is the sum over adapters.
-func perProcessGPU(engines, vram map[string]float64) gpuUsage {
+func perProcessGPU(engines, vram map[string]float64, gpuIDs map[string]string) gpuUsage {
 	out := gpuUsage{}
 	pidOf := func(inst string) (int32, bool) {
 		m := pidInstanceRE.FindStringSubmatch(inst)
@@ -248,11 +268,16 @@ func perProcessGPU(engines, vram map[string]float64) gpuUsage {
 		return int32(pid), err == nil
 	}
 	for inst, v := range engines {
-		if pid, ok := pidOf(inst); ok {
-			u := out[pid]
-			u.util, u.utilKnown = max(u.util, min(v, 100)), true
-			out[pid] = u
+		pid, ok := pidOf(inst)
+		if !ok {
+			continue
 		}
+		u := out[pid]
+		if v = min(v, 100); v > u.util {
+			u.util, u.engine = v, engineLabel(inst, gpuIDs) // only label engines in use
+		}
+		u.utilKnown = true
+		out[pid] = u
 	}
 	for inst, v := range vram {
 		if pid, ok := pidOf(inst); ok {

@@ -51,6 +51,7 @@ type ProcInfo struct {
 
 	GPU       float64 // busiest GPU engine this process uses, 0–100
 	GPUKnown  bool
+	GPUEngine string // where that is, e.g. "GPU 0 · 3D"
 	VRAM      uint64 // dedicated GPU memory
 	VRAMKnown bool
 }
