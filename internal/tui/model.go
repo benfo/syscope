@@ -10,24 +10,37 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 
 	"taskman/internal/metrics"
+	"taskman/internal/prefs"
 )
 
 const historyLen = 300
 
 type Options struct {
-	Refresh    time.Duration
-	PerCoreCPU bool
-	Sampler    metrics.Sampler
-	CPUInfo    metrics.CPUInfo  // static processor info for the Performance tab
-	Details    detailsFetcher   // reads the details pane's per-process extras
-	Now        func() time.Time // clock; nil means time.Now
-	Theme      Theme            // zero value means DefaultTheme
+	Sampler metrics.Sampler
+	CPUInfo metrics.CPUInfo  // static processor info for the Performance tab
+	Details detailsFetcher   // reads the details pane's per-process extras
+	Now     func() time.Time // clock; nil means time.Now
+
+	// Prefs are the starting settings (the preferences file with any flag
+	// overrides); zero value means defaults. Save persists changes; nil means
+	// don't save.
+	Prefs prefs.Prefs
+	Save  savePrefsFunc
+	// Notice is shown in the footer at start (e.g. a preferences problem).
+	Notice string
 }
 
 // Run blocks until the user quits.
 func Run(ctx context.Context, o Options) error {
 	p := tea.NewProgram(newModel(o), tea.WithAltScreen(), tea.WithContext(ctx))
-	_, err := p.Run()
+	final, err := p.Run()
+	// A change made just before quitting may not have finished saving in the
+	// background; save it synchronously.
+	if m, ok := final.(model); ok && m.save != nil && m.settings() != m.saved {
+		if serr := m.save(m.saved, m.settings()); serr != nil && err == nil {
+			err = serr
+		}
+	}
 	if errors.Is(err, tea.ErrProgramKilled) {
 		return nil
 	}
@@ -61,6 +74,9 @@ type model struct {
 	theme      int          // index into Themes
 	picker     *themePicker // theme popover; nil when closed
 
+	save  savePrefsFunc
+	saved prefs.Prefs // settings as last saved (or loaded)
+
 	status   string
 	statusOK bool
 	statusAt time.Time
@@ -72,21 +88,27 @@ type model struct {
 }
 
 func newModel(o Options) model {
-	theme := 0
-	for i, t := range Themes {
-		if t.Name == o.Theme.Name {
-			theme = i
-		}
+	s := o.Prefs
+	if s == (prefs.Prefs{}) {
+		s = prefs.Default()
 	}
-	applyTheme(Themes[theme])
-	return model{
-		theme:     theme,
+	m := model{
 		sampler:   o.Sampler,
 		cpuInfo:   o.CPUInfo,
-		refresh:   o.Refresh,
+		refresh:   s.Refresh.Duration,
+		save:      o.Save,
 		histories: histories{},
-		table:     newProcessTable(o.PerCoreCPU, o.Details, o.Now),
+		table:     newProcessTable(o.Details, o.Now),
 	}
+	if m.refresh <= 0 {
+		m.refresh = prefs.Default().Refresh.Duration
+	}
+	m.applySettings(s)
+	m.saved = m.settings()
+	if o.Notice != "" {
+		m.setStatus(o.Notice, false)
+	}
+	return m
 }
 
 func (m model) Init() tea.Cmd {
@@ -149,7 +171,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, m.sampleCmd()
 
 	case tea.KeyMsg:
-		return m.handleKey(msg)
+		next, cmd := m.handleKey(msg)
+		return next.(model).persist(cmd)
+
+	case prefsSavedMsg:
+		if msg.err != nil {
+			m.setStatus("couldn't save preferences: "+msg.err.Error(), false)
+		}
+		return m, nil
 	}
 	return m, nil
 }

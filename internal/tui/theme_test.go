@@ -3,6 +3,7 @@ package tui
 import (
 	"reflect"
 	"strings"
+	"taskman/internal/prefs"
 	"testing"
 )
 
@@ -75,7 +76,9 @@ func TestThemeByName(t *testing.T) {
 	if _, ok := ThemeByName("nope"); ok {
 		t.Error("unknown theme")
 	}
-	m := newModel(Options{Theme: Themes[3]})
+	start := prefs.Default()
+	start.Theme = Themes[3].Name
+	m := newModel(Options{Prefs: start})
 	t.Cleanup(func() { applyTheme(DefaultTheme) })
 	if m.theme != 3 {
 		t.Errorf("start theme: %d", m.theme)

@@ -55,14 +55,14 @@ type killDoneMsg struct {
 	err    error // last error
 }
 
-func newProcessTable(perCoreCPU bool, fetch detailsFetcher, now func() time.Time) processTable {
+func newProcessTable(fetch detailsFetcher, now func() time.Time) processTable {
 	if now == nil {
 		now = time.Now
 	}
 	ti := textinput.New()
 	ti.Prompt = "/"
 	ti.Placeholder = "name or PID"
-	return processTable{sortKey: view.SortCPU, desc: true, perCoreCPU: perCoreCPU, search: ti, details: detailsPane{fetch: fetch, now: now}}
+	return processTable{sortKey: view.SortCPU, desc: true, search: ti, details: detailsPane{fetch: fetch, now: now}}
 }
 
 // setProcs takes a new sample; system figures from snap give the table
