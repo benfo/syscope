@@ -56,6 +56,10 @@ Out of scope: per-process network rates, app history.
 - [ ] **2c** GPU: usage, VRAM, temperature, power, clocks, throttle reasons (NVML + Windows GPU counters)
 - [ ] **2d** Per-process GPU % and VRAM columns
 
+### Investigate (user ideas; check viability on all OSes before committing to a design)
+- [ ] **Expandable groups** — in group mode (`z`), expand a group to see its individual processes, like Task Manager. First look: pure UI, the data is already there, so viable on every OS. Open questions: keys under the fold rules (e.g. `l`/`h` or `Enter` to expand/collapse one group, `zR`/`zM` all), and how it relates to the Phase 3 tree view (`t`). (2026-10-14)
+- [ ] **Apps vs Background processes** — split the list into Apps / Background (/ OS processes) like Task Manager. First look: Windows: viable (apps own a visible top-level window — same enumeration `d` already uses; Windows processes = session 0). Linux: no universal notion; likely viable on systemd desktops (GNOME/KDE launch apps into `app-*.scope` cgroups), fallback heuristic otherwise. macOS: viable via NSRunningApplication activation policy (Objective-C runtime through purego, no cgo). Needs a spike per OS. (2026-10-14)
+
 ### Revisit (Claude reminds at the trigger)
 - [ ] **Help on Performance can't change device** — while `?` is open, `j`/`k` scroll the help, so you must close it to explain another device. Option: help as a side panel that follows the selection. *Trigger: end of Phase 2 (after 2d), once help has had real use.* (noted 2026-10-14)
 
