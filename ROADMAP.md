@@ -56,6 +56,9 @@ Out of scope: per-process network rates, app history.
 - [ ] **2c** GPU: usage, VRAM, temperature, power, clocks, throttle reasons (NVML + Windows GPU counters)
 - [ ] **2d** Per-process GPU % and VRAM columns
 
+### Revisit (Claude reminds at the trigger)
+- [ ] **Help on Performance can't change device** — while `?` is open, `j`/`k` scroll the help, so you must close it to explain another device. Option: help as a side panel that follows the selection. *Trigger: end of Phase 2 (after 2d), once help has had real use.* (noted 2026-10-14)
+
 ### Later phases
 - [ ] Phase 3 — developers / power users
 - [ ] Phase 4 — AI / local LLM
