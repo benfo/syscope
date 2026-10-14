@@ -119,8 +119,12 @@ var rules = []rule{
 		level: Info,
 		when:  func(c Context) bool { return c.SameName >= sameNameMany },
 		text: func(c Context) string {
-			return fmt.Sprintf("One of %d %s processes: browsers and Electron apps split work into many processes. "+
-				"Press z to group them and see the total.", c.SameName, view.GroupName(c.Proc.Name))
+			why := "This program runs as several processes."
+			if chromiumRole(c.Details.Cmdline) != "" {
+				why = "Browser engines (Chromium, Electron, WebView2) split each tab or window into its own process."
+			}
+			return fmt.Sprintf("One of %d %s processes. %s Press z to group them and see the total.",
+				c.SameName, view.GroupName(c.Proc.Name), why)
 		},
 	},
 	{
@@ -131,7 +135,7 @@ var rules = []rule{
 	{
 		level: Info,
 		when: func(c Context) bool {
-			return !c.Proc.CPUKnown && !c.Proc.RSSKnown && c.Proc.PID > 4
+			return !c.Proc.CPUKnown && !c.Proc.RSSKnown && c.Proc.PID > 4 && !isolated[strings.ToLower(c.Proc.Name)]
 		},
 		text: func(Context) string {
 			return "The OS protects this process: run taskman as administrator (or with sudo) to see its CPU and memory."
@@ -197,6 +201,10 @@ func svchostService(c Context) string {
 	return ""
 }
 
+// isolated processes can't be read even as administrator, so the "run as
+// admin" hint would be wrong for them; knownProcesses explains them instead.
+var isolated = map[string]bool{"secure system": true, "registry": true, "vmmem": true, "vmmemwsl": true}
+
 // knownProcesses explains common system processes users ask about.
 var knownProcesses = map[string]string{
 	"dwm":                "Desktop Window Manager: draws every window on screen. GPU and VRAM use grow with monitors, resolution and open windows.",
@@ -204,6 +212,10 @@ var knownProcesses = map[string]string{
 	"searchindexer":      "Windows Search indexing files. Busy after installs or file changes, then it settles.",
 	"memory compression": "Windows compressing RAM instead of paging to disk. Large values mean memory pressure.",
 	"system":             "The Windows kernel. Disk and CPU here are drivers and the OS itself.",
+	"secure system":      "Windows virtualization-based security (e.g. Credential Guard), isolated from the OS: no tool can read its usage.",
+	"registry":           "The Windows registry, held in memory by the kernel.",
+	"vmmem":              "Memory and CPU of a virtual machine (WSL 2, Docker or Hyper-V) as seen by Windows.",
+	"vmmemwsl":           "Memory and CPU of the WSL 2 virtual machine (Linux and Docker on Windows).",
 	"csrss":              "A core Windows process for consoles and windows. Must not be ended.",
 	"wmiprvse":           "Windows Management Instrumentation: answers system queries from apps and tools. Bursts are normal.",
 	"explorer":           "Windows Explorer: the taskbar, Start menu and file windows.",

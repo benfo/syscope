@@ -105,3 +105,22 @@ func TestVideoEngines(t *testing.T) {
 		t.Error("no engine, no video hint")
 	}
 }
+
+func TestManyProcessesWording(t *testing.T) {
+	svc := Context{SameName: 102, Proc: metrics.ProcInfo{Name: "svchost.exe"}}
+	if h := For(svc); has(h, "Browser") || !has(h, "This program runs as several processes") {
+		t.Errorf("svchost isn't a browser: %+v", h)
+	}
+	tab := Context{SameName: 65, Proc: metrics.ProcInfo{Name: "chrome.exe"},
+		Details: metrics.ProcDetails{Cmdline: "chrome.exe --type=renderer"}}
+	if !has(For(tab), "Browser engines") {
+		t.Error("chrome renderer should get the browser explanation")
+	}
+}
+
+func TestIsolatedProcessesDontSayRunAsAdmin(t *testing.T) {
+	h := For(Context{Proc: metrics.ProcInfo{PID: 156, Name: "Secure System"}})
+	if has(h, "administrator") || !has(h, "no tool can read") {
+		t.Errorf("Secure System: %+v", h)
+	}
+}
