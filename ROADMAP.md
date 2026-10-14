@@ -29,6 +29,7 @@ The same rules on every tab; arrows / PgUp / PgDn / Home / End always work too.
 | Rule | Keys |
 |---|---|
 | Move | `j`/`k` down/up · `g`/`G` top/bottom · `Ctrl+d`/`Ctrl+u` half page |
+| Wrapping | **Menus wrap, scrolling lists don't** (as in vim: the completion menu and wildmenu cycle, buffers stop). Menus — short lists shown in full: Settings, the theme list, Performance devices — go from first to last and back. Scrolling lists — processes, help — stop at the ends; use `g`/`G` |
 | Search | `/` live filter · `Enter` keep and return to list · `Esc` clear |
 | Lowercase acts, uppercase is stronger / reverse | `d` end task / `D` force kill · `s` next sort column / `S` reverse |
 | Toggles | `z` group (fold) · `c` CPU% mode · `.` show hidden |
@@ -61,9 +62,6 @@ Stretch: `taskman record` (CSV/JSON logging), `taskman serve` (Prometheus endpoi
 Out of scope: per-process network rates, app history.
 
 ## To do
-
-### Next
-- [ ] **Wrap-around in lists** (user request, 2026-10-14) — in popover lists (Settings, theme list, and the Performance device sidebar), pressing up on the first item jumps to the last and down on the last jumps to the first. Decide whether the process table should wrap too (it has `g`/`G`; vim buffers don't wrap) — consistency rule needed.
 
 ### Phase 2 — Performance parity
 - [ ] **Disks: per-volume view** (user request, 2026-10-14) — Performance shows *physical* disks, so volumes on one disk (e.g. C: and G: on Disk 0) appear combined. Option: show each volume's own read/write and usage too (as sub-entries or a toggle). Windows has per-volume counters (the ones gopsutil reads per drive letter); Linux has per-partition counters in /proc/diskstats; active time stays per physical disk.
@@ -108,6 +106,7 @@ Out of scope: per-process network rates, app history.
 - [x] **Preferences** — auto-saved TOML in the OS config dir (`taskman config path`): theme, refresh, last tab, sort/direction, grouping, per-core CPU%, details pane, show-hidden devices. Only changed settings are saved (one-run flag overrides aren't); background atomic saves plus a final save on quit; a broken file starts on defaults without overwriting it; `taskman config show|path|reset`, `--config <file>`. `taskman ps` deliberately ignores preferences
 - [x] **Process tree + expandable groups** (Phase 3) — layouts flat / grouped (`z`) / tree (`t`); `l`/`h` (or →/←) expand/collapse or go to parent, `L`/`H` all; groups start closed, the tree open; search keeps matches' ancestors; processes in parent cycles are never hidden; group rows read `chrome (31)`; layout saved as a preference
 - [x] **Settings screen + what persists** — `,` opens Settings (Theme, Refresh, CPU%, Default layout, Default sort, Restore last session), saved as you change them; `T` removed. Only settings persist; dashboard keys are session-only unless "Restore last session" is on, which saves and restores tab, sort, layout, CPU% mode, details pane and hidden devices in a `[session]` section. Footer always keeps `? help`
+- [x] **Wrap-around in menus** — Settings, theme list and Performance devices wrap; processes and help don't (one shared `menuMove` helper; rule in Key rules)
 
 ### Phase 1 — POC
 - [x] Metrics sampler (gopsutil), CPU deltas, PID-reuse safe cache, Toolhelp names on Windows
