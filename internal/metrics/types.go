@@ -27,6 +27,7 @@ type SystemSnapshot struct {
 	Uptime    time.Duration
 
 	Disks []DiskStat
+	Nets  []NetStat
 }
 
 // ProcInfo is a point-in-time view of one process.

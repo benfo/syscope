@@ -11,6 +11,7 @@ import (
 	"github.com/shirou/gopsutil/v4/disk"
 	"github.com/shirou/gopsutil/v4/host"
 	"github.com/shirou/gopsutil/v4/mem"
+	gnet "github.com/shirou/gopsutil/v4/net"
 	"github.com/shirou/gopsutil/v4/process"
 )
 
@@ -40,6 +41,10 @@ type GopsutilSampler struct {
 
 	prevDisks  map[string]diskRaw
 	prevDiskAt time.Time
+
+	prevNets  map[string]gnet.IOCountersStat
+	prevNetAt time.Time
+	netSeen   map[string]bool // interfaces that have carried traffic
 }
 
 func NewGopsutilSampler() *GopsutilSampler {
@@ -47,7 +52,7 @@ func NewGopsutilSampler() *GopsutilSampler {
 	if err != nil || n < 1 {
 		n = runtime.NumCPU()
 	}
-	return &GopsutilSampler{numCPU: n, procs: map[int32]*entry{}}
+	return &GopsutilSampler{numCPU: n, procs: map[int32]*entry{}, netSeen: map[string]bool{}}
 }
 
 func (s *GopsutilSampler) Sample(ctx context.Context) (SystemSnapshot, []ProcInfo, error) {
@@ -61,6 +66,7 @@ func (s *GopsutilSampler) Sample(ctx context.Context) (SystemSnapshot, []ProcInf
 	}
 
 	snap.Disks = s.sampleDisks(ctx, now)
+	snap.Nets = s.sampleNets(ctx, now)
 
 	pids, err := process.PidsWithContext(ctx)
 	if err != nil {

@@ -2,7 +2,10 @@
 
 package metrics
 
-import "regexp"
+import (
+	"regexp"
+	"strings"
+)
 
 // coreKinds is not implemented on this platform yet (macOS exposes P/E
 // counts via sysctl but not which CPU index is which).
@@ -17,3 +20,8 @@ var wholeDiskRE = regexp.MustCompile(`^disk\d+$`)
 func isWholeDisk(name string) bool { return wholeDiskRE.MatchString(name) }
 
 func diskModel(string) string { return "" }
+
+// isPhysicalNIC treats macOS en* interfaces (Wi-Fi, Ethernet) as physical.
+func isPhysicalNIC(name string) bool { return strings.HasPrefix(name, "en") }
+
+func nicSpeedBps(string) uint64 { return 0 }
