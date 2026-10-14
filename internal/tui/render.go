@@ -41,8 +41,10 @@ func (m model) View() string {
 	var b strings.Builder
 	b.WriteString(m.renderStrip() + "\n")
 	b.WriteString(m.renderTabs() + "\n")
-	switch m.tab {
-	case tabPerformance:
+	switch {
+	case m.showHelp:
+		b.WriteString(m.renderHelp())
+	case m.tab == tabPerformance:
 		b.WriteString(m.renderPerf())
 	default:
 		b.WriteString(m.renderTable())
@@ -151,18 +153,24 @@ func (m model) renderTable() string {
 	return b.String()
 }
 
-type helpItem struct{ k, t string }
-
-var (
-	processHelp = []helpItem{
-		{"↑↓", "move"}, {"s", "sort"}, {"S", "reverse"}, {"/", "filter"}, {"g", "group"},
-		{"i", "irix"}, {"k", "end task"}, {"K", "force kill"}, {"1-2", "tabs"}, {"q", "quit"},
+// renderHelp is the ? overlay, filling the body area.
+func (m model) renderHelp() string {
+	lines := helpLines(m.scope())
+	var b strings.Builder
+	for i := 0; i < m.height-chromeLines; i++ {
+		var l string
+		if i < len(lines) {
+			l = " " + lines[i]
+		}
+		b.WriteString(padANSI(l, m.width) + "\n")
 	}
-	perfHelp = []helpItem{{"↑↓", "device"}, {"a", "all adapters"}, {"1-2", "tabs"}, {"q", "quit"}}
-)
+	return b.String()
+}
 
 func (m model) renderFooter() string {
 	switch {
+	case m.showHelp:
+		return dimStyle.Render(fit(" any key closes help", m.width))
 	case m.confirm != nil:
 		verb := "End task"
 		if m.confirm.force {
@@ -179,15 +187,12 @@ func (m model) renderFooter() string {
 		return st.Render(fit(" "+m.status, m.width))
 	}
 
-	help := processHelp
 	var b strings.Builder
-	if m.tab == tabPerformance {
-		help = perfHelp
-	} else if f := m.filter.Value(); f != "" {
+	if f := m.filter.Value(); f != "" && m.tab == tabProcesses {
 		b.WriteString(confirmStyle.Render(" filter: "+f) + helpTextStyle.Render(" (esc clears) "))
 	}
-	for _, h := range help {
-		b.WriteString(" " + helpKeyStyle.Render(h.k) + " " + helpTextStyle.Render(h.t))
+	for _, h := range hints(m.scope()) {
+		b.WriteString(" " + helpKeyStyle.Render(h.label) + " " + helpTextStyle.Render(h.short))
 	}
 	return ansi.Truncate(b.String(), m.width, "")
 }

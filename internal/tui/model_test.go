@@ -109,11 +109,11 @@ func TestFilterAndGroup(t *testing.T) {
 	if len(m.rows) != 2 || m.filtering {
 		t.Fatalf("filter: %d rows, filtering=%v", len(m.rows), m.filtering)
 	}
-	m = drive(t, m, key("g"))
+	m = drive(t, m, key("z"))
 	if len(m.rows) != 1 || m.rows[0].Count != 2 {
 		t.Fatalf("group: %+v", m.rows)
 	}
-	m = drive(t, m, key("esc"), key("g"))
+	m = drive(t, m, keyMsg("esc"), key("z"))
 	if len(m.rows) != 3 {
 		t.Errorf("esc should clear filter: %d rows", len(m.rows))
 	}
@@ -121,9 +121,9 @@ func TestFilterAndGroup(t *testing.T) {
 
 func TestKillNeedsConfirmation(t *testing.T) {
 	m := sampled(t, &fakeSampler{procs: []metrics.ProcInfo{p(1, "a", 1)}})
-	m = drive(t, m, key("K"))
+	m = drive(t, m, key("D"))
 	if m.confirm == nil || !m.confirm.force {
-		t.Fatal("K should ask to confirm a force kill")
+		t.Fatal("D should ask to confirm a force kill")
 	}
 	if !strings.Contains(m.View(), "Force kill a (PID 1)? [y/N]") {
 		t.Error("confirmation prompt not shown")
@@ -174,7 +174,7 @@ func TestTabs(t *testing.T) {
 	if !strings.Contains(m.View(), "Composition") {
 		t.Error("down should select Memory")
 	}
-	m = drive(t, m, key("K")) // process keys are inert on the Performance tab
+	m = drive(t, m, key("D")) // process keys are inert on the Performance tab
 	if m.confirm != nil {
 		t.Error("kill must not trigger from the Performance tab")
 	}
@@ -202,6 +202,10 @@ func keyMsg(s string) tea.KeyMsg {
 		return tea.KeyMsg{Type: tea.KeyUp}
 	case "tab":
 		return tea.KeyMsg{Type: tea.KeyTab}
+	case "esc":
+		return tea.KeyMsg{Type: tea.KeyEsc}
+	case "ctrl+d":
+		return tea.KeyMsg{Type: tea.KeyCtrlD}
 	}
 	return key(s)
 }
@@ -238,9 +242,9 @@ func TestPerfDisksAndNets(t *testing.T) {
 	if devs := m.perfDevices(); len(devs) != 4 {
 		t.Errorf("hidden VPN should not be listed by default: %d devices", len(devs))
 	}
-	m = drive(t, m, key("a"))
+	m = drive(t, m, key("."))
 	if devs := m.perfDevices(); len(devs) != 5 {
-		t.Errorf("a should show all adapters: %d devices", len(devs))
+		t.Errorf(". should show all adapters: %d devices", len(devs))
 	}
 
 	// A new adapter sorting before Wi-Fi must not move the selection.

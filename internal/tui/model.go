@@ -64,6 +64,7 @@ type model struct {
 	tab         int
 	perfKey     string // selected Performance device
 	showAllNets bool
+	showHelp    bool
 	hist        map[string]*ring // per-device histories, keyed "disk:0:read" etc.
 
 	snap    metrics.SystemSnapshot
@@ -215,60 +216,77 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
-	switch key {
-	case "q":
-		return m, tea.Quit
-	case "1", "2":
-		m.tab = int(key[0] - '1')
+	if m.showHelp {
+		m.showHelp = false // any key closes help
 		return m, nil
-	case "tab":
+	}
+
+	act := lookup(m.scope(), key)
+	switch act {
+	case actQuit:
+		return m, tea.Quit
+	case actHelp:
+		m.showHelp = true
+		return m, nil
+	case actTab1, actTab2:
+		m.tab = int(act - actTab1)
+		return m, nil
+	case actNextTab:
 		m.tab = (m.tab + 1) % numTabs
 		return m, nil
-	case "shift+tab":
+	case actPrevTab:
 		m.tab = (m.tab + numTabs - 1) % numTabs
 		return m, nil
 	}
 	if m.tab == tabPerformance {
-		return m.handlePerfKey(key), nil
+		return m.perfAction(act), nil
 	}
+	return m.processAction(act)
+}
 
-	switch key {
-	case "up":
-		m.move(-1)
-	case "down":
+func (m model) processAction(act action) (tea.Model, tea.Cmd) {
+	half := max(1, m.bodyHeight()/2)
+	switch act {
+	case actDown:
 		m.move(1)
-	case "pgup":
-		m.move(-m.bodyHeight())
-	case "pgdown":
-		m.move(m.bodyHeight())
-	case "home":
+	case actUp:
+		m.move(-1)
+	case actTop:
 		m.move(-len(m.rows))
-	case "end":
+	case actBottom:
 		m.move(len(m.rows))
-	case "s":
+	case actHalfDown:
+		m.move(half)
+	case actHalfUp:
+		m.move(-half)
+	case actPageDown:
+		m.move(m.bodyHeight())
+	case actPageUp:
+		m.move(-m.bodyHeight())
+	case actSortNext:
 		m.sortKey = m.sortKey.Next()
 		m.desc = m.sortKey.DefaultDesc()
 		m.rebuild()
-	case "S":
+	case actSortReverse:
 		m.desc = !m.desc
 		m.rebuild()
-	case "/":
+	case actSearch:
 		m.filtering = true
 		return m, m.filter.Focus()
-	case "esc":
+	case actCancel:
 		if m.filter.Value() != "" {
 			m.filter.SetValue("")
 			m.rebuild()
 		}
-	case "g":
+	case actGroup:
 		m.group = !m.group
 		m.resetSelection()
 		m.rebuild()
-	case "i":
+	case actCPUMode:
 		m.irix = !m.irix
-	case "k", "K":
+	case actEndTask, actForceKill:
 		if r, ok := m.selected(); ok {
-			m.confirm = &pendingKill{row: r, force: key == "K"}
+			m.confirm = &pendingKill{row: r, force: act == actForceKill}
 		}
 	}
 	return m, nil

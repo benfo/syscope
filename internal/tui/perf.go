@@ -60,15 +60,19 @@ func (m model) selectedDevice(devs []perfDevice) (perfDevice, int) {
 	return devs[0], 0
 }
 
-func (m model) handlePerfKey(key string) model {
+func (m model) perfAction(act action) model {
 	devs := m.perfDevices()
 	_, i := m.selectedDevice(devs)
-	switch key {
-	case "up":
+	switch act {
+	case actUp, actHalfUp, actPageUp:
 		i = max(0, i-1)
-	case "down":
+	case actDown, actHalfDown, actPageDown:
 		i = min(len(devs)-1, i+1)
-	case "a":
+	case actTop:
+		i = 0
+	case actBottom:
+		i = len(devs) - 1
+	case actShowHidden:
 		m.showAllNets = !m.showAllNets
 		return m
 	default:
