@@ -34,6 +34,7 @@ The same rules on every tab; arrows / PgUp / PgDn / Home / End always work too.
 | Toggles | `z` group (fold) · `c` CPU% mode · `.` show hidden |
 | Tabs | `1`–`9` jump · `Tab` / `Shift+Tab` cycle |
 | Everywhere | `?` help · `Esc` cancel / clear · `q` quit · `y`/`n` confirm |
+| Appearance | `T` theme picker (popover: `j`/`k` preview live, `Enter` keep, `Esc` revert) — uppercase so it doesn't take a lowercase action letter |
 | Overlays | Never swallow global keys: tab keys work in `?` help (it follows you to the new tab); `q`/`Esc` close an overlay first. Exceptions, as in vim: search input is like insert mode (keys type; `Enter`/`Esc` leave) and y/N treats any other key as no |
 | Reserved | `Enter` details · `t` tree · `p` suspend/resume · `+`/`-` priority · `o` open file location |
 
@@ -65,7 +66,8 @@ Out of scope: per-process network rates, app history.
 
 
 ### Theming (user request, 2026-10-14)
-- [ ] **Themes** — built-in presets (e.g. default, light, high-contrast, colour-blind-safe, popular palettes like Dracula / Catppuccin / Gruvbox), user themes from a file in the config dir, and community themes (shareable files; maybe a themes folder in the repo). Prerequisite (in Refactor): all colours behind one `Theme` type of named roles. Open questions: file format (TOML/JSON), switching keys/flag (`--theme`), terminal colour support (16 / 256 / truecolor fallbacks).
+- [ ] **Themes, part 2** — user themes from a file in the config dir and community themes (shareable files; maybe a `themes/` folder in the repo); optional painting of the background colour (themes currently colour text only). Depends on **Preferences**.
+- [ ] **Preferences** (user request, 2026-10-14) — persist choices between sessions in a config file in the OS config dir (`%APPDATA%\taskman` / `~/.config/taskman` / `~/Library/Application Support/taskman`): theme, sort column/direction, grouping, per-core CPU%, refresh rate, show-hidden devices, last tab, details pane open. Saved when changed in the dashboard; flags override for one run. Open questions: file format (TOML/JSON), and whether every toggle saves automatically or only via an explicit "save".
 
 ### Investigate (user ideas; check viability on all OSes before committing to a design)
 - [ ] **Expandable groups** — in group mode (`z`), expand a group to see its individual processes, like Task Manager. First look: pure UI, the data is already there, so viable on every OS. Open questions: keys under the fold rules (e.g. `l`/`h` or `Enter` to expand/collapse one group, `zR`/`zM` all), and how it relates to the Phase 3 tree view (`t`). (2026-10-14)
@@ -93,6 +95,8 @@ Out of scope: per-process network rates, app history.
 - [x] **2c** GPU page: every GPU on Windows (DXGI + Task Manager's PDH counters: per-engine usage, dedicated/shared memory; D3DKMT temperature/fan/power for any vendor), NVIDIA deep stats via pure-Go NVML (temp, power vs limit, clocks, P-state, throttle reasons) on Windows + Linux, Linux AMD via amdgpu sysfs; GPU + VRAM in top line, which now drops low-priority items when narrow; stat lines wrap
 - [x] **Refactor** to Code standards (behaviour unchanged, proven by golden screen tests + colour comparison): formatting helpers in `view`, shared grid/stat layout; irix→per-core (`--irix` kept as deprecated alias), ring→history, cpu→cpuInfo; all colours behind a `Theme` of named roles; Performance devices behind a `devicePage` interface (one `page_*.go` per device); Processes tab extracted to `processTable`; sampler split into per-area collectors; metrics files and tests grouped per concern
 - [x] **2d** Per-process GPU% (busiest engine) and VRAM: Processes columns (only on machines with a GPU; sortable; summed in groups; explained in `?`) and in `taskman ps` (`--sort gpu|vram`, JSON `gpu_percent`/`vram_bytes`). Sources: Windows per-process GPU counters (any vendor), NVML process lists (NVIDIA), DRM fdinfo (Linux AMD/Intel). Idle processes show 0 when the source covers every process, `--` only when genuinely unknown. Processes columns are now a table (`processColumns`), and collectors can enrich processes (`procEnricher`)
+- [x] **Themes, part 1** — 10 built-in presets (default, dracula, catppuccin-mocha, tokyo-night, nord, gruvbox-dark, solarized-dark, github-light, high-contrast, colorblind / Okabe–Ito), `--theme`, `taskman themes` preview, `T` live-preview picker popover
+- [x] **Details pane** (Phase 3, part 1) — `Enter` opens a bottom split following the cursor: path, command line, parent/children, user, start time, threads, handles, live I/O rate, CPU/memory/GPU (which GPU and engine)/VRAM; group summary for grouped rows; `Esc` closes before clearing search
 
 ### Phase 1 — POC
 - [x] Metrics sampler (gopsutil), CPU deltas, PID-reuse safe cache, Toolhelp names on Windows
