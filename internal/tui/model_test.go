@@ -15,6 +15,7 @@ import (
 type fakeSampler struct {
 	procs []metrics.ProcInfo
 	nets  []metrics.NetStat
+	noGPU bool
 }
 
 func (f *fakeSampler) Sample(context.Context) (metrics.SystemSnapshot, []metrics.ProcInfo, error) {
@@ -23,7 +24,7 @@ func (f *fakeSampler) Sample(context.Context) (metrics.SystemSnapshot, []metrics
 		Disks: []metrics.DiskStat{{ID: "0", Name: "Disk 0", Model: "Test SSD", Bus: "NVMe", RatesKnown: true,
 			ReadBps: 5e6, WriteBps: 1e6, ActivePct: 30, ActiveKnown: true, RespMs: 0.2, RespKnown: true,
 			Volumes: []metrics.VolumeStat{{Mount: "C:", Total: 1000, Used: 400}}}},
-		Nets: f.netsOrDefault(), GPUs: fakeGPUs()}, f.procs, nil
+		Nets: f.netsOrDefault(), GPUs: f.gpus()}, f.procs, nil
 }
 
 func p(pid int32, name string, cpu float64) metrics.ProcInfo {
@@ -285,4 +286,11 @@ func TestScaledAndSumSeries(t *testing.T) {
 	if s := sumSeries([]float64{1, 2, 3}, []float64{10, 20}); s[0] != 1 || s[1] != 12 || s[2] != 23 {
 		t.Errorf("sumSeries aligned wrong: %v", s)
 	}
+}
+
+func (f *fakeSampler) gpus() []metrics.GPUStat {
+	if f.noGPU {
+		return nil
+	}
+	return fakeGPUs()
 }

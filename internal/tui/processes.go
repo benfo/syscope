@@ -25,6 +25,7 @@ type processTable struct {
 	desc       bool
 	group      bool
 	perCoreCPU bool
+	showGPU    bool // the machine has a GPU: show GPU% and VRAM
 
 	search    textinput.Model
 	searching bool
@@ -58,8 +59,8 @@ func newProcessTable(perCoreCPU bool) processTable {
 	return processTable{sortKey: view.SortCPU, desc: true, perCoreCPU: perCoreCPU, search: ti}
 }
 
-func (t *processTable) setProcs(procs []metrics.ProcInfo, numCPU int) {
-	t.procs, t.numCPU = procs, numCPU
+func (t *processTable) setProcs(procs []metrics.ProcInfo, numCPU int, showGPU bool) {
+	t.procs, t.numCPU, t.showGPU = procs, numCPU, showGPU
 	t.rebuild()
 }
 
@@ -90,6 +91,9 @@ func (t processTable) action(act action) (processTable, tea.Cmd) {
 		t.move(-t.height)
 	case actSortNext:
 		t.sortKey = t.sortKey.Next()
+		for t.sortKey.IsGPU() && !t.showGPU { // skip columns this machine doesn't show
+			t.sortKey = t.sortKey.Next()
+		}
 		t.desc = t.sortKey.DefaultDesc()
 		t.rebuild()
 	case actSortReverse:
@@ -250,6 +254,7 @@ type column struct {
 	right    bool
 	sortKey  view.SortKey
 	sortable bool
+	gpuOnly  bool                        // shown only on machines with a GPU
 	header   func(t processTable) string // overrides title when set
 	cell     func(t processTable, r view.Row) string
 }
@@ -283,6 +288,21 @@ var processColumns = []column{
 		}},
 	{title: "MEM", width: 11, right: true, sortKey: view.SortMem, sortable: true,
 		cell: func(_ processTable, r view.Row) string { return view.FormatMem(r.RSS, r.RSSKnown) }},
+	{title: "GPU%", width: 6, right: true, sortKey: view.SortGPU, sortable: true, gpuOnly: true,
+		cell: func(_ processTable, r view.Row) string { return view.FormatGPU(r.GPU, r.GPUKnown) }},
+	{title: "VRAM", width: 10, right: true, sortKey: view.SortVRAM, sortable: true, gpuOnly: true,
+		cell: func(_ processTable, r view.Row) string { return view.FormatMem(r.VRAM, r.VRAMKnown) }},
+}
+
+// columns are the columns shown on this machine.
+func (t processTable) columns() []column {
+	var out []column
+	for _, c := range processColumns {
+		if !c.gpuOnly || t.showGPU {
+			out = append(out, c)
+		}
+	}
+	return out
 }
 
 // arrow marks the sort column's title with the sort direction.
@@ -331,7 +351,7 @@ func line(cols []column, widths []int, cells []string, w int) string {
 
 // render draws the heading and t.height rows at width w.
 func (t processTable) render(w int) string {
-	cols := processColumns
+	cols := t.columns()
 	widths := columnWidths(cols, w)
 
 	titles := make([]string, len(cols))
@@ -364,4 +384,17 @@ func (t processTable) render(w int) string {
 		b.WriteString(row + "\n")
 	}
 	return b.String()
+}
+
+// terms are the ? explanations for the Processes tab.
+func (t processTable) terms() []term {
+	if !t.showGPU {
+		return processTerms
+	}
+	return append(append([]term{}, processTerms...),
+		term{"GPU%", "How busy the GPU is for this process: its busiest GPU engine, as in Task Manager. Watching video counts (video decode). " +
+			"A local LLM showing high CPU% but ~0 GPU% has fallen back to the CPU, usually because the model didn't fit in VRAM."},
+		term{"VRAM", "Dedicated GPU memory this process holds. This is what fills your GPU: sort by it (s) to see who's using it. " +
+			"Shared memory can be counted in more than one process, so the column can add up to more than the card has."},
+	)
 }

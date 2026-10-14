@@ -18,13 +18,13 @@
    Top line        CPU and MEM as on the Performance tab. DISK is the busiest disk's active time.   
                    NET is total download/upload on the adapters shown. SWAP is memory paged out to  
                    disk; if it keeps growing while MEM is high, you're short of RAM.                
+   GPU%            How busy the GPU is for this process: its busiest GPU engine, as in Task         
+                   Manager. Watching video counts (video decode). A local LLM showing high CPU% but 
+                   ~0 GPU% has fallen back to the CPU, usually because the model didn't fit in      
+                   VRAM.                                                                            
+   VRAM            Dedicated GPU memory this process holds. This is what fills your GPU: sort by it 
+                   (s) to see who's using it. Shared memory can be counted in more than one         
+                   process, so the column can add up to more than the card has.                     
                                                                                                     
  Keys: Processes                                                                                    
-   /        search (live filter)                                                                    
-   d/D      end task / force kill                                                                   
-   s/S      next sort column / reverse                                                              
-   z        group by app (fold)                                                                     
-   c        CPU% normalized / per-core                                                              
-                                                                                                    
- Keys: Everywhere                                                                                   
- esc close j/k scroll  lines 1–27 of 37
+ esc close j/k scroll  lines 1–27 of 44

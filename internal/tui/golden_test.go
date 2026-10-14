@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"taskman/internal/metrics"
 	"testing"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -21,7 +22,7 @@ var update = flag.Bool("update", false, "rewrite golden files")
 
 // goldenModel is a model fed with a deterministic history of samples.
 func goldenModel(t *testing.T, w, h int) model {
-	f := &fakeSampler{}
+	f := &fakeSampler{procs: goldenProcs()}
 	m := sampled(t, f)
 	m = drive(t, m, tea.WindowSizeMsg{Width: w, Height: h})
 	for i := 0; i < 40; i++ {
@@ -104,4 +105,23 @@ func firstDiff(want, got string) string {
 		}
 	}
 	return "(no line differs; trailing content changed)"
+}
+
+// goldenProcs covers the interesting row cases: a group, a long name, a
+// protected process with unknown values, and GPU users.
+func goldenProcs() []metrics.ProcInfo {
+	gib := uint64(1 << 30)
+	return []metrics.ProcInfo{
+		{PID: 4, Name: "System", User: "SYSTEM"},
+		{PID: 4120, Name: "ollama.exe", User: `CORP\sam`, CPU: 2.5, CPUKnown: true, RSS: 1 * gib, RSSKnown: true,
+			GPU: 88, GPUKnown: true, VRAM: 7 * gib, VRAMKnown: true},
+		{PID: 21248, Name: "chrome.exe", User: `CORP\sam`, CPU: 1.9, CPUKnown: true, RSS: 535 << 20, RSSKnown: true,
+			GPU: 0.4, GPUKnown: true, VRAM: 180 << 20, VRAMKnown: true},
+		{PID: 47768, Name: "chrome.exe", User: `CORP\sam`, CPU: 0.7, CPUKnown: true, RSS: 175 << 20, RSSKnown: true,
+			GPUKnown: true, VRAMKnown: true},
+		{PID: 55916, Name: "Example.TextEditor.Language.ServiceHost.exe", User: `CORP\sam`, CPU: 0.1, CPUKnown: true,
+			RSS: 542 << 20, RSSKnown: true, GPUKnown: true, VRAMKnown: true},
+		{PID: 72244, Name: "Meet.exe", User: `CORP\sam`, CPU: 1.2, CPUKnown: true, RSS: 1 * gib, RSSKnown: true,
+			GPU: 3.1, GPUKnown: true, VRAM: 412 << 20, VRAMKnown: true},
+	}
 }

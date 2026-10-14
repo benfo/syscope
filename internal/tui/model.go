@@ -108,7 +108,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		m.snap = msg.snap
 		m.recordHistory()
-		m.table.setProcs(msg.procs, msg.snap.NumCPU)
+		m.table.setProcs(msg.procs, msg.snap.NumCPU, len(msg.snap.GPUs) > 0)
 		// The first sample only primes CPU deltas; follow up quickly.
 		next := m.refresh
 		if !m.snap.CPUKnown {

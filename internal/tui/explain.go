@@ -14,7 +14,7 @@ type term struct{ name, text string }
 // metrics this platform reports.
 func (m model) about() (string, []term) {
 	if m.tab == tabProcesses {
-		return "Processes", processTerms
+		return "Processes", m.table.terms()
 	}
 	sel, _ := m.selectedPage(m.visiblePages())
 	return sel.helpTitle(), sel.terms()
