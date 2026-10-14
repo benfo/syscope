@@ -241,3 +241,41 @@ func TestSampleNets(t *testing.T) {
 			n.Name, n.Default, n.Physical, n.Up, n.SpeedBps, n.RecvBps, n.SentBps, n.Addrs, n.Desc)
 	}
 }
+
+func TestDecodeClockReasons(t *testing.T) {
+	got := decodeClockReasons(0x1 | 0x4 | 0x400 | 0x8000)
+	if want := []string{"idle", "power cap", "reliability", "0x8000"}; !reflect.DeepEqual(got, want) {
+		t.Errorf("got %v, want %v", got, want)
+	}
+	if got := decodeClockReasons(0); got != nil {
+		t.Errorf("no reasons: %v", got)
+	}
+}
+
+func TestShortGPUName(t *testing.T) {
+	for in, want := range map[string]string{
+		"NVIDIA GeForce RTX 3080 Ti Laptop GPU": "RTX 3080 Ti Laptop",
+		"Intel(R) Graphics":                     "Intel Graphics",
+		"AMD Radeon(TM) RX 7900 XTX":            "RX 7900 XTX",
+	} {
+		if got := shortGPUName(in); got != want {
+			t.Errorf("shortGPUName(%q) = %q, want %q", in, got, want)
+		}
+	}
+}
+
+func TestNVMLLive(t *testing.T) {
+	n := openNVML()
+	if n == nil {
+		t.Skip("no NVIDIA driver")
+	}
+	for _, d := range n.read() {
+		s := d.stat
+		t.Logf("%q pci=0x%08X util=%.0f(%v) mem=%d/%d temp=%.0f power=%.1fW limit=%.1fW clock=%d/%d mem=%d fan=%v pstate=P%d throttle=%v engines=%v",
+			d.name, d.pciDevice, s.Util, s.UtilKnown, s.MemUsed>>20, s.MemTotal>>20, s.TempC, s.PowerW, s.PowerLimitW,
+			s.ClockMHz, s.ClockMaxMHz, s.MemClockMHz, s.FanKnown, s.PState, s.Throttle, s.Engines)
+		if d.name == "" || !s.MemKnown || s.MemTotal == 0 {
+			t.Errorf("incomplete NVML device: %+v", d)
+		}
+	}
+}
