@@ -6,13 +6,22 @@ import (
 	"strings"
 	"time"
 
+	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/x/ansi"
 
 	"taskman/internal/view"
 )
 
-// Fixed screen furniture: 3 header lines, table heading, footer.
-const chromeLines = 5
+const (
+	tabProcesses = iota
+	tabPerformance
+	numTabs
+)
+
+var tabNames = [numTabs]string{"Processes", "Performance"}
+
+// Fixed screen furniture on every tab: summary strip, tab bar, footer.
+const chromeLines = 3
 
 const (
 	colID   = 7
@@ -22,52 +31,74 @@ const (
 	colGap  = 1
 )
 
-func (m model) bodyHeight() int { return max(1, m.height-chromeLines) }
+// bodyHeight is the number of process rows (the table heading takes a line).
+func (m model) bodyHeight() int { return max(1, m.height-chromeLines-1) }
 
 func (m model) View() string {
 	if m.width == 0 {
 		return "loading…"
 	}
 	var b strings.Builder
-	b.WriteString(m.renderHeader())
-	b.WriteString(m.renderTable())
+	b.WriteString(m.renderStrip() + "\n")
+	b.WriteString(m.renderTabs() + "\n")
+	switch m.tab {
+	case tabPerformance:
+		b.WriteString(m.renderPerf())
+	default:
+		b.WriteString(m.renderTable())
+	}
 	b.WriteString(m.renderFooter())
 	return b.String()
 }
 
-func (m model) renderHeader() string {
-	const barW, textW = 20, 18
-	sparkW := max(0, m.width-6-barW-1-textW-1)
+// renderStrip is the one-line summary shown on every tab.
+func (m model) renderStrip() string {
 	s := m.snap
-
-	cpuText := "--"
+	cpuText := "  --"
 	if s.CPUKnown {
-		cpuText = fmt.Sprintf("%5.1f%%", s.CPUTotal)
+		cpuText = fmt.Sprintf("%4.1f%%", s.CPUTotal)
 	}
-	memPct := 0.0
-	if s.MemTotal > 0 {
-		memPct = float64(s.MemUsed) / float64(s.MemTotal) * 100
-	}
-	memText := fmt.Sprintf("%s/%s", shortBytes(s.MemUsed), shortBytes(s.MemTotal))
+	memPct := pct(s.MemUsed, s.MemTotal)
 
-	cpuLine := labelStyle.Render(" CPU  ") + bar(s.CPUTotal, barW) + " " + fit(cpuText, textW) + " " +
-		loadStyle(s.CPUTotal).Render(sparkline(m.cpuHist.values(), sparkW))
-	memLine := labelStyle.Render(" MEM  ") + bar(memPct, barW) + " " + fit(memText, textW) + " " +
-		loadStyle(memPct).Render(sparkline(m.memHist.values(), sparkW))
-
-	mode := "normalized"
-	if m.irix {
-		mode = "per-core"
+	parts := []string{
+		labelStyle.Render("CPU ") + loadStyle(s.CPUTotal).Render(cpuText+" "+sparkline(m.cpuHist.values(), 10)),
+		labelStyle.Render("MEM ") + loadStyle(memPct).Render(fmt.Sprintf("%4.1f%%", memPct)) +
+			dimStyle.Render(" "+shortBytes(s.MemUsed)+"/"+shortBytes(s.MemTotal)),
+		labelStyle.Render("SWAP ") + dimStyle.Render(shortBytes(s.SwapUsed)+"/"+shortBytes(s.SwapTotal)),
+		labelStyle.Render("PROCS ") + strconv.Itoa(s.ProcCount),
+		labelStyle.Render("UP ") + view.FormatUptime(s.Uptime),
 	}
-	layout := "flat"
-	if m.group {
-		layout = "grouped"
-	}
-	info := fmt.Sprintf(" Procs %d · Cores %d · Up %s · Swap %s/%s · CPU%% %s · %s",
-		s.ProcCount, s.NumCPU, view.FormatUptime(s.Uptime),
-		shortBytes(s.SwapUsed), shortBytes(s.SwapTotal), mode, layout)
+	return ansi.Truncate(" "+strings.Join(parts, "   "), m.width, "")
+}
 
-	return ansi.Truncate(cpuLine, m.width, "") + "\n" + ansi.Truncate(memLine, m.width, "") + "\n" + dimStyle.Render(fit(info, m.width)) + "\n"
+func (m model) renderTabs() string {
+	var left strings.Builder
+	for i, n := range tabNames {
+		t := fmt.Sprintf(" %d %s ", i+1, n)
+		if i == m.tab {
+			left.WriteString(tabActiveStyle.Render(t))
+		} else {
+			left.WriteString(tabInactiveStyle.Render(t))
+		}
+		left.WriteString(" ")
+	}
+
+	var right string
+	if m.tab == tabProcesses {
+		mode, layout := "normalized", "flat"
+		if m.irix {
+			mode = "per-core"
+		}
+		if m.group {
+			layout = "grouped"
+		}
+		dir := "▲"
+		if m.desc {
+			dir = "▼"
+		}
+		right = dimStyle.Render(fmt.Sprintf("sort %s%s · CPU%% %s · %s ", m.sortKey, dir, mode, layout))
+	}
+	return spread(left.String(), right, m.width)
 }
 
 func (m model) renderTable() string {
@@ -118,6 +149,16 @@ func (m model) renderTable() string {
 	return b.String()
 }
 
+type helpItem struct{ k, t string }
+
+var (
+	processHelp = []helpItem{
+		{"↑↓", "move"}, {"s", "sort"}, {"S", "reverse"}, {"/", "filter"}, {"g", "group"},
+		{"i", "irix"}, {"k", "end task"}, {"K", "force kill"}, {"1-2", "tabs"}, {"q", "quit"},
+	}
+	perfHelp = []helpItem{{"↑↓", "device"}, {"1-2", "tabs"}, {"q", "quit"}}
+)
+
 func (m model) renderFooter() string {
 	switch {
 	case m.confirm != nil:
@@ -136,12 +177,11 @@ func (m model) renderFooter() string {
 		return st.Render(fit(" "+m.status, m.width))
 	}
 
-	help := []struct{ k, t string }{
-		{"↑↓", "move"}, {"s", "sort"}, {"S", "reverse"}, {"/", "filter"}, {"g", "group"},
-		{"i", "irix"}, {"k", "end task"}, {"K", "force kill"}, {"q", "quit"},
-	}
+	help := processHelp
 	var b strings.Builder
-	if f := m.filter.Value(); f != "" {
+	if m.tab == tabPerformance {
+		help = perfHelp
+	} else if f := m.filter.Value(); f != "" {
 		b.WriteString(confirmStyle.Render(" filter: "+f) + helpTextStyle.Render(" (esc clears) "))
 	}
 	for _, h := range help {
@@ -150,7 +190,30 @@ func (m model) renderFooter() string {
 	return ansi.Truncate(b.String(), m.width, "")
 }
 
-// shortBytes is FormatBytes without the space, for the dense header.
+// spread places left and right on one line of width w, dropping right if
+// there is no room.
+func spread(left, right string, w int) string {
+	gap := w - lipgloss.Width(left) - lipgloss.Width(right)
+	if right == "" || gap < 1 {
+		return ansi.Truncate(left, w, "")
+	}
+	return left + strings.Repeat(" ", gap) + right
+}
+
+// padANSI truncates or pads a styled string to exactly w cells.
+func padANSI(s string, w int) string {
+	s = ansi.Truncate(s, w, "")
+	return s + strings.Repeat(" ", max(0, w-lipgloss.Width(s)))
+}
+
+func pct(used, total uint64) float64 {
+	if total == 0 {
+		return 0
+	}
+	return float64(used) / float64(total) * 100
+}
+
+// shortBytes is FormatBytes without the space, for dense layouts.
 func shortBytes(n uint64) string {
 	return strings.Replace(view.FormatBytes(n), " ", "", 1)
 }

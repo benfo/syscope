@@ -7,6 +7,7 @@ import (
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 
 	"taskman/internal/metrics"
 )
@@ -14,8 +15,8 @@ import (
 type fakeSampler struct{ procs []metrics.ProcInfo }
 
 func (f *fakeSampler) Sample(context.Context) (metrics.SystemSnapshot, []metrics.ProcInfo, error) {
-	return metrics.SystemSnapshot{NumCPU: 4, CPUKnown: true, CPUTotal: 40, MemTotal: 100, MemUsed: 50,
-		ProcCount: len(f.procs)}, f.procs, nil
+	return metrics.SystemSnapshot{NumCPU: 4, CPUKnown: true, CPUTotal: 40, CPUPerCore: []float64{10, 90, 40, 20},
+		MemTotal: 100, MemUsed: 50, MemCached: 10, ProcCount: len(f.procs)}, f.procs, nil
 }
 
 func p(pid int32, name string, cpu float64) metrics.ProcInfo {
@@ -46,7 +47,10 @@ func drive(t *testing.T, m model, msgs ...tea.Msg) model {
 }
 
 func sampled(t *testing.T, f *fakeSampler) model {
-	m := newModel(Options{Refresh: time.Second, Sampler: f})
+	m := newModel(Options{Refresh: time.Second, Sampler: f, CPU: metrics.CPUInfo{
+		Model: "Test CPU", Logical: 4, Physical: 4, BaseMHz: 2700,
+		Kinds: []metrics.CoreKind{metrics.CorePerformance, metrics.CorePerformance, metrics.CoreEfficiency, metrics.CoreEfficiency},
+	}})
 	snap, procs, _ := f.Sample(context.Background())
 	return drive(t, m, tea.WindowSizeMsg{Width: 100, Height: 20}, sampleMsg{snap: snap, procs: procs})
 }
@@ -130,8 +134,67 @@ func TestViewFitsTerminal(t *testing.T) {
 		procs = append(procs, p(i, strings.Repeat("x", 80), 1))
 	}
 	m := sampled(t, &fakeSampler{procs: procs})
-	lines := strings.Split(m.View(), "\n")
-	if len(lines) != m.height {
-		t.Errorf("view has %d lines, want %d", len(lines), m.height)
+	for _, size := range [][2]int{{100, 20}, {60, 12}, {160, 45}} {
+		m = drive(t, m, tea.WindowSizeMsg{Width: size[0], Height: size[1]})
+		for _, tab := range []string{"1", "2"} {
+			m = drive(t, m, key(tab))
+			for _, dev := range []string{"up", "down"} {
+				m = drive(t, m, keyMsg(dev))
+				lines := strings.Split(m.View(), "\n")
+				if len(lines) != m.height {
+					t.Errorf("%v tab %s %s: %d lines, want %d", size, tab, dev, len(lines), m.height)
+				}
+				for i, l := range lines {
+					if w := lipgloss.Width(l); w > m.width {
+						t.Errorf("%v tab %s line %d: width %d > %d", size, tab, i, w, m.width)
+					}
+				}
+			}
+		}
 	}
+}
+
+func TestTabs(t *testing.T) {
+	m := sampled(t, &fakeSampler{procs: []metrics.ProcInfo{p(1, "a", 1)}})
+	m = drive(t, m, key("2"))
+	if m.tab != tabPerformance || !strings.Contains(m.View(), "Test CPU") {
+		t.Fatal("2 should show the Performance tab")
+	}
+	if v := m.View(); !strings.Contains(v, "2P + 2E") || !strings.Contains(v, "2.70 GHz") {
+		t.Error("CPU detail missing core split or base speed")
+	}
+	m = drive(t, m, keyMsg("down"))
+	if !strings.Contains(m.View(), "Composition") {
+		t.Error("down should select Memory")
+	}
+	m = drive(t, m, key("K")) // process keys are inert on the Performance tab
+	if m.confirm != nil {
+		t.Error("kill must not trigger from the Performance tab")
+	}
+	m = drive(t, m, keyMsg("tab"))
+	if m.tab != tabProcesses {
+		t.Error("tab should cycle back to Processes")
+	}
+	m = drive(t, m, key("/"), key("2"))
+	if m.tab != tabProcesses || m.filter.Value() != "2" {
+		t.Error("digits typed into the filter must not switch tabs")
+	}
+}
+
+func TestAreaGraph(t *testing.T) {
+	got := areaGraph([]float64{100, 50, 0, 6.25}, 5, 2)
+	want := []string{" █   ", " ██ ▁"}
+	if strings.Join(got, "|") != strings.Join(want, "|") {
+		t.Errorf("got %q, want %q", got, want)
+	}
+}
+
+func keyMsg(s string) tea.KeyMsg {
+	switch s {
+	case "up":
+		return tea.KeyMsg{Type: tea.KeyUp}
+	case "tab":
+		return tea.KeyMsg{Type: tea.KeyTab}
+	}
+	return key(s)
 }

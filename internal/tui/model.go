@@ -15,12 +15,13 @@ import (
 	"taskman/internal/view"
 )
 
-const historyLen = 120
+const historyLen = 300
 
 type Options struct {
 	Refresh time.Duration
 	Irix    bool
 	Sampler metrics.Sampler
+	CPU     metrics.CPUInfo // static processor info for the Performance tab
 }
 
 // Run blocks until the user quits.
@@ -58,6 +59,10 @@ type pendingKill struct {
 type model struct {
 	sampler metrics.Sampler
 	refresh time.Duration
+	cpu     metrics.CPUInfo
+
+	tab     int
+	perfSel int
 
 	snap    metrics.SystemSnapshot
 	procs   []metrics.ProcInfo
@@ -94,6 +99,7 @@ func newModel(o Options) model {
 	ti.Placeholder = "name or PID"
 	return model{
 		sampler: o.Sampler,
+		cpu:     o.CPU,
 		refresh: o.Refresh,
 		irix:    o.Irix,
 		sortKey: view.SortCPU,
@@ -208,6 +214,21 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch key {
 	case "q":
 		return m, tea.Quit
+	case "1", "2":
+		m.tab = int(key[0] - '1')
+		return m, nil
+	case "tab":
+		m.tab = (m.tab + 1) % numTabs
+		return m, nil
+	case "shift+tab":
+		m.tab = (m.tab + numTabs - 1) % numTabs
+		return m, nil
+	}
+	if m.tab == tabPerformance {
+		return m.handlePerfKey(key), nil
+	}
+
+	switch key {
 	case "up":
 		m.move(-1)
 	case "down":

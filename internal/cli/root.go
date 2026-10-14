@@ -64,6 +64,7 @@ func newRootCmd() *cobra.Command {
 				Refresh: refresh,
 				Irix:    irix,
 				Sampler: metrics.NewGopsutilSampler(),
+				CPU:     metrics.ReadCPUInfo(cmd.Context()),
 			})
 		},
 	}

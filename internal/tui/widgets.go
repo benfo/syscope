@@ -99,3 +99,49 @@ var (
 	helpKeyStyle  = lipgloss.NewStyle().Bold(true)
 	helpTextStyle = dimStyle
 )
+
+var graphLevels = []rune(" ▁▂▃▄▅▆▇█")
+
+// areaGraph renders the newest w values (0–100) as a filled area chart h
+// rows tall, using eighth-block characters for sub-row resolution.
+func areaGraph(vals []float64, w, h int) []string {
+	if w <= 0 || h <= 0 {
+		return nil
+	}
+	if len(vals) > w {
+		vals = vals[len(vals)-w:]
+	}
+	rows := make([][]rune, h)
+	for r := range rows {
+		rows[r] = []rune(strings.Repeat(" ", w))
+	}
+	pad := w - len(vals)
+	for i, v := range vals {
+		eighths := int(max(0, min(v, 100))/100*float64(h*8) + 0.5)
+		for r := 0; r < h; r++ { // r = 0 is the bottom row
+			fill := eighths - r*8
+			switch {
+			case fill >= 8:
+				rows[h-1-r][pad+i] = '█'
+			case fill > 0:
+				rows[h-1-r][pad+i] = graphLevels[fill]
+			}
+		}
+	}
+	out := make([]string, h)
+	for r := range rows {
+		out[r] = string(rows[r])
+	}
+	return out
+}
+
+var (
+	tabActiveStyle   = lipgloss.NewStyle().Bold(true).Reverse(true)
+	tabInactiveStyle = dimStyle
+	selMarkerStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("6"))
+	cpuGraphStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("6"))
+	memGraphStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("5"))
+	cachedStyle      = lipgloss.NewStyle().Foreground(lipgloss.Color("4"))
+	pCoreStyle       = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("5"))
+	eCoreStyle       = lipgloss.NewStyle().Foreground(lipgloss.Color("6"))
+)

@@ -35,7 +35,6 @@ Out of scope: per-process network rates, app history.
 ## To do
 
 ### Phase 2 — Performance parity
-- [ ] **2a** Tabs + summary strip; Performance tab with CPU (graph, P/E core grid) and Memory (graph, commit, cache, swap)
 - [ ] **2b** Disk (per-disk I/O, volume usage) and Network (per-interface rates)
 - [ ] **2c** GPU: usage, VRAM, temperature, power, clocks, throttle reasons (NVML + Windows GPU counters)
 - [ ] **2d** Per-process GPU % and VRAM columns
@@ -47,6 +46,9 @@ Out of scope: per-process network rates, app history.
 - [ ] Phase 6 — admin parity
 
 ## Done
+
+### Phase 2 — Performance parity
+- [x] **2a** Tabs (`1`/`2`, Tab) + summary strip; Performance tab with device sidebar, CPU (history graph, P/E core grid via GetLogicalProcessorInformationEx / sysfs) and Memory (graph, composition, commit charge, cache, swap)
 
 ### Phase 1 — POC
 - [x] Metrics sampler (gopsutil), CPU deltas, PID-reuse safe cache, Toolhelp names on Windows
