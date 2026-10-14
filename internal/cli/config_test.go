@@ -58,12 +58,12 @@ func TestSaverKeepsFlagOverridesOutOfTheFile(t *testing.T) {
 	start := file
 	start.Theme = "dracula" // --theme dracula for this run
 	changed := start
-	changed.Processes.Layout = "grouped" // the user pressed z
+	changed.DefaultLayout = "grouped" // the user changed it in Settings
 	if err := s.save(start, changed); err != nil {
 		t.Fatal(err)
 	}
 	got, err := prefs.Load(path)
-	if err != nil || got.Theme != "nord" || got.Processes.Layout != "grouped" {
+	if err != nil || got.Theme != "nord" || got.DefaultLayout != "grouped" {
 		t.Errorf("want saved theme kept and grouping saved, got %+v (%v)", got, err)
 	}
 }

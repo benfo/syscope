@@ -182,12 +182,8 @@ var Themes = []Theme{
 
 // ThemeByName finds a built-in theme.
 func ThemeByName(name string) (Theme, bool) {
-	for _, t := range Themes {
-		if strings.EqualFold(t.Name, name) {
-			return t, true
-		}
-	}
-	return Theme{}, false
+	i, ok := themeIndex(name)
+	return Themes[i], ok
 }
 
 // ThemeNames lists the built-in themes, for help text and errors.

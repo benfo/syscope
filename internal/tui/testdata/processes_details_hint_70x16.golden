@@ -13,4 +13,4 @@
  Parent --   Children 0   Threads 23   Handles 412                    
  CPU 0.0%   Memory 187.0 MiB   GPU 0.0%   VRAM 4.3 GiB                
  ℹ Holds 4.3 GiB of GPU memory while idle: cached graphics (textures, 
- / search d/D kill s/S sort z group t tree l/h fold c cpu% enter detai
+ / search d/D kill s/S sort z group t tree l/h fold c cpu% ? help

@@ -15,27 +15,30 @@ import (
 	"github.com/BurntSushi/toml"
 )
 
-// Prefs is everything taskman remembers. Adding a preference means adding a
-// field here; loading, saving and Merge handle it automatically.
+// Prefs is everything taskman remembers: the settings chosen in the settings
+// screen, and, only when RestoreSession is on, the last session. Adding a
+// setting means adding a field here; loading, saving and Merge handle it.
 type Prefs struct {
-	Theme   string   `toml:"theme"`
-	Refresh Duration `toml:"refresh"`
-	LastTab string   `toml:"last_tab"` // "processes" or "performance"
+	Theme          string   `toml:"theme"`
+	Refresh        Duration `toml:"refresh"`
+	PerCoreCPU     bool     `toml:"per_core_cpu"`
+	DefaultLayout  string   `toml:"default_layout"` // flat, grouped, tree
+	DefaultSort    string   `toml:"default_sort"`   // cpu, mem, gpu, vram, pid, name
+	RestoreSession bool     `toml:"restore_session"`
 
-	Processes   Processes   `toml:"processes"`
-	Performance Performance `toml:"performance"`
+	Session Session `toml:"session"`
 }
 
-type Processes struct {
-	Sort        string `toml:"sort"` // cpu, mem, gpu, vram, pid, name
+// Session is what the user was doing when taskman closed. It's only saved
+// and restored when Prefs.RestoreSession is on.
+type Session struct {
+	Tab         string `toml:"tab"` // processes, performance
+	Sort        string `toml:"sort"`
 	Descending  bool   `toml:"descending"`
-	Layout      string `toml:"layout"` // flat, grouped, tree
+	Layout      string `toml:"layout"`
 	PerCoreCPU  bool   `toml:"per_core_cpu"`
 	DetailsOpen bool   `toml:"details_open"`
-}
-
-type Performance struct {
-	ShowHidden bool `toml:"show_hidden"`
+	ShowHidden  bool   `toml:"show_hidden"`
 }
 
 // Duration is a time.Duration written as text ("1s", "500ms").
@@ -55,10 +58,10 @@ func (d *Duration) UnmarshalText(b []byte) error {
 // Default is what a fresh install uses.
 func Default() Prefs {
 	return Prefs{
-		Theme:     "default",
-		Refresh:   Duration{time.Second},
-		LastTab:   "processes",
-		Processes: Processes{Sort: "cpu", Descending: true, Layout: "flat"},
+		Theme:         "default",
+		Refresh:       Duration{time.Second},
+		DefaultLayout: "flat",
+		DefaultSort:   "cpu",
 	}
 }
 

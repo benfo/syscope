@@ -81,7 +81,7 @@ func newRootCmd() *cobra.Command {
 				start.Refresh = prefs.Duration{Duration: refresh}
 			}
 			if f.Changed("per-core") || f.Changed("irix") {
-				start.Processes.PerCoreCPU = perCore
+				start.PerCoreCPU = perCore
 			}
 			if f.Changed("theme") {
 				start.Theme = themeName
@@ -107,7 +107,7 @@ func newRootCmd() *cobra.Command {
 	}
 	root.Flags().DurationVar(&refresh, "refresh", time.Second, "dashboard refresh interval (saved preference if not given)")
 	addPerCoreFlag(root.Flags(), &perCore)
-	root.Flags().StringVar(&themeName, "theme", "default", "colour theme (see `taskman themes`; T picks live)")
+	root.Flags().StringVar(&themeName, "theme", "default", "colour theme (see `taskman themes`; , opens Settings)")
 	root.PersistentFlags().StringVar(&configPath, "config", "", "preferences file (default: see `taskman config path`)")
 	root.AddCommand(newPsCmd(), newKillCmd(), newThemesCmd(), newConfigCmd(&configPath))
 	return root

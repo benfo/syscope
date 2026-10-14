@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/x/ansi"
 )
 
@@ -38,10 +39,14 @@ func (m model) View() string {
 		b.WriteString(m.table.render(m.width))
 	}
 	b.WriteString(m.renderFooter())
-	if m.picker != nil {
-		return overlay(b.String(), m.picker.box(), m.width, m.height)
+	screen := b.String()
+	if m.settingsUI != nil {
+		screen = overlay(screen, m.settingsUI.box(m), m.width, m.height)
 	}
-	return b.String()
+	if m.picker != nil { // the theme list opens over Settings
+		screen = overlay(screen, m.picker.box(), m.width, m.height)
+	}
+	return screen
 }
 
 func (m model) renderTabs() string {
@@ -101,10 +106,25 @@ func (m model) renderFooter() string {
 	if s := t.search.Value(); s != "" && m.tab == tabProcesses {
 		b.WriteString(ui.prompt.Render(" filter: "+s) + ui.muted.Render(" (esc clears) "))
 	}
+	// "? help" lists every key, so it always shows; other hints are dropped
+	// from the end when the line is too narrow.
+	hint := func(h binding) string { return " " + ui.key.Render(h.label) + " " + ui.muted.Render(h.short) }
+	var help string
+	var others []string
 	for _, h := range hints(m.scope()) {
-		b.WriteString(" " + ui.key.Render(h.label) + " " + ui.muted.Render(h.short))
+		if _, isHelp := h.keys["?"]; isHelp {
+			help = hint(h)
+		} else {
+			others = append(others, hint(h))
+		}
 	}
-	return ansi.Truncate(b.String(), m.width, "")
+	for _, h := range others {
+		if lipgloss.Width(b.String()+h+help) > m.width {
+			break
+		}
+		b.WriteString(h)
+	}
+	return ansi.Truncate(b.String()+help, m.width, "")
 }
 
 // helpFooter shows scroll keys and position while the ? screen is open.

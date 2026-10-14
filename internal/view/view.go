@@ -21,6 +21,9 @@ const (
 	SortVRAM
 	SortPID
 	SortName
+
+	// NumSortKeys is how many sort columns there are, for cycling through them.
+	NumSortKeys = int(SortName) + 1
 )
 
 var sortNames = []string{"cpu", "mem", "gpu", "vram", "pid", "name"}

@@ -18,9 +18,8 @@ func TestLoadMissingFileGivesDefaults(t *testing.T) {
 func TestSaveLoadRoundTrip(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "sub", "config.toml") // directory created on save
 	want := Default()
-	want.Theme, want.Refresh.Duration, want.LastTab = "nord", 500*time.Millisecond, "performance"
-	want.Processes = Processes{Sort: "vram", Descending: true, Layout: "tree", PerCoreCPU: true, DetailsOpen: true}
-	want.Performance.ShowHidden = true
+	want.Theme, want.Refresh.Duration, want.DefaultLayout, want.RestoreSession = "nord", 500*time.Millisecond, "tree", true
+	want.Session = Session{Tab: "performance", Sort: "vram", Descending: true, Layout: "grouped", DetailsOpen: true, ShowHidden: true}
 	if err := Save(path, want); err != nil {
 		t.Fatal(err)
 	}
@@ -41,7 +40,7 @@ func TestPartialFileKeepsDefaults(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "config.toml")
 	os.WriteFile(path, []byte("theme = \"dracula\"\n"), 0o644)
 	p, err := Load(path)
-	if err != nil || p.Theme != "dracula" || p.Refresh.Duration != time.Second || p.Processes.Sort != "cpu" {
+	if err != nil || p.Theme != "dracula" || p.Refresh.Duration != time.Second || p.DefaultSort != "cpu" {
 		t.Errorf("got %+v, %v", p, err)
 	}
 }
@@ -65,16 +64,16 @@ func TestMergeKeepsOnlyChangedFields(t *testing.T) {
 
 	// This run started with --theme dracula and --per-core (not saved)...
 	before := file
-	before.Theme, before.Processes.PerCoreCPU = "dracula", true
-	// ...and the user then changed the sort.
+	before.Theme, before.PerCoreCPU = "dracula", true
+	// ...and the user then changed the default sort in settings.
 	after := before
-	after.Processes.Sort = "mem"
+	after.DefaultSort = "mem"
 
 	got := Merge(file, before, after)
-	if got.Processes.Sort != "mem" {
+	if got.DefaultSort != "mem" {
 		t.Error("the user's change should be saved")
 	}
-	if got.Theme != "nord" || got.Processes.PerCoreCPU {
+	if got.Theme != "nord" || got.PerCoreCPU {
 		t.Errorf("flag overrides must not be saved: %+v", got)
 	}
 	after.Refresh.Duration = 2 * time.Second

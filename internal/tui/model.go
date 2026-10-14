@@ -36,8 +36,8 @@ func Run(ctx context.Context, o Options) error {
 	final, err := p.Run()
 	// A change made just before quitting may not have finished saving in the
 	// background; save it synchronously.
-	if m, ok := final.(model); ok && m.save != nil && m.settings() != m.saved {
-		if serr := m.save(m.saved, m.settings()); serr != nil && err == nil {
+	if m, ok := final.(model); ok && m.save != nil && m.target() != m.saved {
+		if serr := m.save(m.saved, m.target()); serr != nil && err == nil {
 			err = serr
 		}
 	}
@@ -70,9 +70,11 @@ type model struct {
 	perfKey    string // selected Performance device
 	showHidden bool   // list hidden devices (e.g. idle virtual adapters)
 	showHelp   bool
-	helpOff    int          // scroll offset of the ? screen
-	theme      int          // index into Themes
-	picker     *themePicker // theme popover; nil when closed
+	helpOff    int             // scroll offset of the ? screen
+	theme      int             // index into Themes
+	settingsUI *settingsScreen // settings popover; nil when closed
+	picker     *themePicker    // theme popover; nil when closed
+	prefs      prefs.Prefs     // current settings (the file plus one-run flag overrides)
 
 	save  savePrefsFunc
 	saved prefs.Prefs // settings as last saved (or loaded)
@@ -95,16 +97,13 @@ func newModel(o Options) model {
 	m := model{
 		sampler:   o.Sampler,
 		cpuInfo:   o.CPUInfo,
-		refresh:   s.Refresh.Duration,
 		save:      o.Save,
 		histories: histories{},
 		table:     newProcessTable(o.Details, o.Now),
 	}
-	if m.refresh <= 0 {
-		m.refresh = prefs.Default().Refresh.Duration
-	}
-	m.applySettings(s)
-	m.saved = m.settings()
+	m.applyPrefs(s)
+	m.saved = s // so target() keeps the saved session when not restoring
+	m.saved = m.target()
 	if o.Notice != "" {
 		m.setStatus(o.Notice, false)
 	}
@@ -205,6 +204,8 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, cmd
 	case m.picker != nil:
 		return m.pickerKey(key), nil
+	case m.settingsUI != nil:
+		return m.settingsKey(key), nil
 	case m.showHelp:
 		return m.helpAction(lookup(scopeGlobal, key)), nil
 	}
@@ -218,8 +219,8 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case actTab1, actTab2, actNextTab, actPrevTab:
 		return m.switchTab(act), nil
-	case actThemePicker:
-		return m.openThemePicker(), nil
+	case actSettings:
+		return m.openSettings(), nil
 	}
 	if m.tab == tabPerformance {
 		return m.perfAction(act), nil

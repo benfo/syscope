@@ -13,9 +13,9 @@ func newThemesCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "themes",
 		Short: "List colour themes with a preview",
-		Long: "List the built-in colour themes. Use one with `taskman --theme <name>`, or press T in\n" +
-			"the dashboard to cycle through them live. Themes colour text only; they look best with\n" +
-			"a matching terminal background.",
+		Long: "List the built-in colour themes. Use one with `taskman --theme <name>` for one run, or\n" +
+			"press , in the dashboard for Settings, where themes preview live and are saved.\n" +
+			"Themes colour text only; they look best with a matching terminal background.",
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			for _, t := range tui.Themes {

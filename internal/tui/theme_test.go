@@ -23,9 +23,9 @@ func TestThemeDefinesEveryRole(t *testing.T) {
 func TestThemePickerPreviewKeepRevert(t *testing.T) {
 	t.Cleanup(func() { applyTheme(DefaultTheme) })
 	m := sampled(t, &fakeSampler{})
-	m = drive(t, m, key("T"))
+	m = drive(t, m, key(","), keyMsg("enter"))
 	if m.picker == nil || !strings.Contains(m.View(), "j/k preview") {
-		t.Fatal("T should open the theme picker over the screen")
+		t.Fatal("Enter on Settings' Theme row should open the theme list over the screen")
 	}
 	before := ui.accent.GetForeground()
 	m = drive(t, m, key("j"))
@@ -37,7 +37,7 @@ func TestThemePickerPreviewKeepRevert(t *testing.T) {
 	if m.picker != nil || m.theme != 1 || !strings.Contains(m.renderFooter(), "theme: dracula") {
 		t.Errorf("enter should keep the previewed theme: theme %d", m.theme)
 	}
-	m = drive(t, m, key("T"), key("G"), keyMsg("esc"))
+	m = drive(t, m, keyMsg("enter"), key("G"), keyMsg("esc")) // Settings is still open: reopen the list
 	if m.picker != nil || m.theme != 1 {
 		t.Errorf("esc should revert to the theme before the picker opened: %d", m.theme)
 	}
@@ -55,7 +55,7 @@ func TestPickerHonoursGlobalKeys(t *testing.T) {
 		for k := range b.keys {
 			effect := false
 			for _, tab := range []string{"1", "2"} {
-				open := drive(t, m, key(tab), key("T"), key("j"), key("j")) // mid-list so up and down both move
+				open := drive(t, m, key(tab), key(","), keyMsg("enter"), key("j"), key("j")) // mid-list so up and down both move
 				next, cmd := open.Update(keyMsg(k))
 				after := next.(model)
 				if cmd != nil || after.picker == nil || after.tab != open.tab || after.picker.sel != open.picker.sel {

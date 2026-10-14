@@ -7,8 +7,9 @@ import (
 	"github.com/charmbracelet/x/ansi"
 )
 
-// themePicker is the popover opened with T: moving previews each theme live
-// on the real screen, Enter keeps it, Esc reverts to the starting theme.
+// themePicker is the theme list opened from Settings (Enter on Theme): moving
+// previews each theme live on the real screen, Enter keeps it, Esc reverts to
+// the starting theme. Settings stay open underneath.
 type themePicker struct {
 	sel  int // highlighted (and previewed) theme
 	orig int // theme when the picker opened, restored on cancel
@@ -37,7 +38,7 @@ func (m model) pickerKey(key string) model {
 		p.sel = 0
 	case actBottom:
 		p.sel = last
-	case actThemePicker: // T again: keep the previewed theme
+	case actSettings: // , : keep the previewed theme
 		return m.closePicker(p.sel)
 	case actCancel, actQuit:
 		return m.closePicker(p.orig)

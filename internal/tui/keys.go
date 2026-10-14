@@ -31,7 +31,7 @@ const (
 	actCPUMode
 	actShowHidden
 	actDetails
-	actThemePicker
+	actSettings
 	actTree
 	actExpand
 	actCollapse
@@ -71,7 +71,7 @@ var keymap = []binding{
 	{scopeGlobal, "1-2", "jump to tab", "tabs", map[string]action{"1": actTab1, "2": actTab2}},
 	{scopeGlobal, "tab", "next / previous tab", "", map[string]action{"tab": actNextTab, "shift+tab": actPrevTab}},
 	{scopeGlobal, "esc", "close pane / cancel / clear search", "", map[string]action{"esc": actCancel}},
-	{scopeGlobal, "T", "colour theme picker (live preview; --theme sets it at start)", "", map[string]action{"T": actThemePicker}},
+	{scopeGlobal, ",", "settings: theme, refresh, defaults, restore session", "settings", map[string]action{",": actSettings}},
 	{scopeGlobal, "?", "help", "help", map[string]action{"?": actHelp}},
 	{scopeGlobal, "q", "quit", "quit", map[string]action{"q": actQuit, "ctrl+c": actQuit}},
 
