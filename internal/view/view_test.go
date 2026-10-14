@@ -96,6 +96,15 @@ func TestMatchesName(t *testing.T) {
 	}
 }
 
+func TestShortUser(t *testing.T) {
+	if got := ShortUser(`CORP\sam`); got != "sam" {
+		t.Errorf("got %q", got)
+	}
+	if got := ShortUser("root"); got != "root" {
+		t.Errorf("got %q", got)
+	}
+}
+
 func TestParseSortKey(t *testing.T) {
 	if k, err := ParseSortKey("MEM"); err != nil || k != SortMem {
 		t.Errorf("got %v, %v", k, err)

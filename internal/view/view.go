@@ -243,3 +243,11 @@ func FormatUptime(d time.Duration) string {
 	}
 	return fmt.Sprintf("%dh %dm", h, m)
 }
+
+// ShortUser drops a Windows "DOMAIN\" prefix from a user name.
+func ShortUser(u string) string {
+	if i := strings.LastIndexByte(u, '\\'); i >= 0 {
+		return u[i+1:]
+	}
+	return u
+}
