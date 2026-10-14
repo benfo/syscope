@@ -113,14 +113,14 @@ func hints(sc scope) []binding {
 func helpLines(sc scope) []string {
 	var out []string
 	for _, want := range []scope{sc, scopeGlobal} {
-		out = append(out, labelStyle.Render("Keys: "+scopeTitles[want]))
+		out = append(out, ui.label.Render("Keys: "+scopeTitles[want]))
 		for _, b := range keymap {
 			if b.scope == want {
-				out = append(out, "  "+helpKeyStyle.Render(fit(b.label, 8))+" "+b.desc)
+				out = append(out, "  "+ui.key.Render(fit(b.label, 8))+" "+b.desc)
 			}
 		}
 		out = append(out, "")
 	}
-	out = append(out, dimStyle.Render("Arrows, PgUp/PgDn and Home/End always work too."))
+	out = append(out, ui.muted.Render("Arrows, PgUp/PgDn and Home/End always work too."))
 	return out
 }

@@ -68,19 +68,19 @@ func (m model) renderStrip() string {
 		keep int
 	}
 	items := []item{
-		{labelStyle.Render("CPU ") + loadStyle(s.CPUTotal).Render(cpuText+" "+sparkline(m.cpuHist.values(), 8)), 9},
-		{labelStyle.Render("MEM ") + loadStyle(memPct).Render(fmt.Sprintf("%.0f%%", memPct)) +
-			dimStyle.Render(" "+view.FormatUsedTotal(s.MemUsed, s.MemTotal)), 8},
+		{ui.label.Render("CPU ") + loadStyle(s.CPUTotal).Render(cpuText+" "+sparkline(m.cpuHist.values(), 8)), 9},
+		{ui.label.Render("MEM ") + loadStyle(memPct).Render(fmt.Sprintf("%.0f%%", memPct)) +
+			ui.muted.Render(" "+view.FormatUsedTotal(s.MemUsed, s.MemTotal)), 8},
 	}
 	if len(s.GPUs) > 0 {
-		items = append(items, item{labelStyle.Render("GPU ") + m.stripGPU(), 7})
+		items = append(items, item{ui.label.Render("GPU ") + m.stripGPU(), 7})
 	}
 	items = append(items,
-		item{labelStyle.Render("DISK ") + m.stripDisk(), 5},
-		item{labelStyle.Render("NET ") + m.stripNet(), 6},
-		item{labelStyle.Render("SWAP ") + dimStyle.Render(view.FormatUsedTotal(s.SwapUsed, s.SwapTotal)), 3},
-		item{labelStyle.Render("PROCS ") + strconv.Itoa(s.ProcCount), 2},
-		item{labelStyle.Render("UP ") + view.FormatUptime(s.Uptime), 1},
+		item{ui.label.Render("DISK ") + m.stripDisk(), 5},
+		item{ui.label.Render("NET ") + m.stripNet(), 6},
+		item{ui.label.Render("SWAP ") + ui.muted.Render(view.FormatUsedTotal(s.SwapUsed, s.SwapTotal)), 3},
+		item{ui.label.Render("PROCS ") + strconv.Itoa(s.ProcCount), 2},
+		item{ui.label.Render("UP ") + view.FormatUptime(s.Uptime), 1},
 	)
 	join := func() string {
 		parts := make([]string, len(items))
@@ -106,9 +106,9 @@ func (m model) renderTabs() string {
 	for i, n := range tabNames {
 		t := fmt.Sprintf(" %d %s ", i+1, n)
 		if i == m.tab {
-			left.WriteString(tabActiveStyle.Render(t))
+			left.WriteString(ui.inverse.Render(t))
 		} else {
-			left.WriteString(tabInactiveStyle.Render(t))
+			left.WriteString(ui.muted.Render(t))
 		}
 		left.WriteString(" ")
 	}
@@ -126,7 +126,7 @@ func (m model) renderTabs() string {
 		if m.desc {
 			dir = "▼"
 		}
-		right = dimStyle.Render(fmt.Sprintf("sort %s%s · CPU%% %s · %s ", m.sortKey, dir, mode, layout))
+		right = ui.muted.Render(fmt.Sprintf("sort %s%s · CPU%% %s · %s ", m.sortKey, dir, mode, layout))
 	}
 	return spread(left.String(), right, m.width)
 }
@@ -153,7 +153,7 @@ func (m model) renderTable() string {
 		fitRight(arrow(view.SortMem, "MEM"), colMem)
 
 	var b strings.Builder
-	b.WriteString(headStyle.Render(fit(head, m.width)) + "\n")
+	b.WriteString(ui.inverse.Render(fit(head, m.width)) + "\n")
 
 	h := m.bodyHeight()
 	for i := m.offset; i < m.offset+h; i++ {
@@ -172,7 +172,7 @@ func (m model) renderTable() string {
 			fitRight(view.FormatMem(r.RSS, r.RSSKnown), colMem)
 		line = fit(line, m.width)
 		if i == m.cursor {
-			line = selStyle.Render(line)
+			line = ui.selected.Render(line)
 		}
 		b.WriteString(line + "\n")
 	}
@@ -202,23 +202,23 @@ func (m model) renderFooter() string {
 		if m.confirm.force {
 			verb = "Force kill"
 		}
-		return confirmStyle.Render(fit(fmt.Sprintf(" %s %s? [y/N]", verb, rowDesc(m.confirm.row)), m.width))
+		return ui.prompt.Render(fit(fmt.Sprintf(" %s %s? [y/N]", verb, rowDesc(m.confirm.row)), m.width))
 	case m.filtering:
 		return ansi.Truncate(" "+m.filter.View(), m.width, "")
 	case m.status != "" && time.Since(m.statusAt) < 5*time.Second:
-		st := dimStyle
+		st := ui.muted
 		if !m.statusOK {
-			st = errStyle
+			st = ui.bad
 		}
 		return st.Render(fit(" "+m.status, m.width))
 	}
 
 	var b strings.Builder
 	if f := m.filter.Value(); f != "" && m.tab == tabProcesses {
-		b.WriteString(confirmStyle.Render(" filter: "+f) + helpTextStyle.Render(" (esc clears) "))
+		b.WriteString(ui.prompt.Render(" filter: "+f) + ui.muted.Render(" (esc clears) "))
 	}
 	for _, h := range hints(m.scope()) {
-		b.WriteString(" " + helpKeyStyle.Render(h.label) + " " + helpTextStyle.Render(h.short))
+		b.WriteString(" " + ui.key.Render(h.label) + " " + ui.muted.Render(h.short))
 	}
 	return ansi.Truncate(b.String(), m.width, "")
 }
@@ -254,7 +254,7 @@ func (m model) stripDisk() string {
 		return loadStyle(busiest).Render(fmt.Sprintf("%.0f%%", busiest))
 	}
 	if len(m.snap.Disks) == 0 {
-		return dimStyle.Render("--")
+		return ui.muted.Render("--")
 	}
 	return view.FormatByteRate(rate)
 }
@@ -274,10 +274,10 @@ func (m model) stripNet() string {
 // helpFooter shows scroll keys and position while the ? screen is open.
 func (m model) helpFooter() string {
 	total, page := len(m.helpContent()), max(1, m.height-chromeLines)
-	s := " " + helpKeyStyle.Render("esc") + " " + helpTextStyle.Render("close")
+	s := " " + ui.key.Render("esc") + " " + ui.muted.Render("close")
 	if total > page {
-		s += " " + helpKeyStyle.Render("j/k") + " " + helpTextStyle.Render("scroll") +
-			dimStyle.Render(fmt.Sprintf("  lines %d–%d of %d", m.helpOff+1, min(total, m.helpOff+page), total))
+		s += " " + ui.key.Render("j/k") + " " + ui.muted.Render("scroll") +
+			ui.muted.Render(fmt.Sprintf("  lines %d–%d of %d", m.helpOff+1, min(total, m.helpOff+page), total))
 	}
 	return ansi.Truncate(s, m.width, "")
 }

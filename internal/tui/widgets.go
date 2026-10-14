@@ -58,17 +58,17 @@ func bar(pct float64, width int) string {
 	filled := int(pct/100*float64(width) + 0.5)
 	filled = max(0, min(filled, width))
 	return loadStyle(pct).Render(strings.Repeat("█", filled)) +
-		dimStyle.Render(strings.Repeat("░", width-filled))
+		ui.muted.Render(strings.Repeat("░", width-filled))
 }
 
 func loadStyle(pct float64) lipgloss.Style {
 	switch {
 	case pct >= 85:
-		return hotStyle
+		return ui.bad
 	case pct >= 60:
-		return warmStyle
+		return ui.warn
 	}
-	return coolStyle
+	return ui.good
 }
 
 // fit pads or truncates s to exactly w display cells.
@@ -86,20 +86,6 @@ func fitRight(s string, w int) string {
 	}
 	return runewidth.FillLeft(runewidth.Truncate(s, w, "…"), w)
 }
-
-var (
-	labelStyle    = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("6"))
-	dimStyle      = lipgloss.NewStyle().Foreground(lipgloss.Color("8"))
-	coolStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("2"))
-	warmStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("3"))
-	hotStyle      = lipgloss.NewStyle().Foreground(lipgloss.Color("1"))
-	headStyle     = lipgloss.NewStyle().Bold(true).Reverse(true)
-	selStyle      = lipgloss.NewStyle().Background(lipgloss.Color("4")).Foreground(lipgloss.Color("15"))
-	confirmStyle  = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("3"))
-	errStyle      = lipgloss.NewStyle().Foreground(lipgloss.Color("1"))
-	helpKeyStyle  = lipgloss.NewStyle().Bold(true)
-	helpTextStyle = dimStyle
-)
 
 var graphLevels = []rune(" ▁▂▃▄▅▆▇█")
 
@@ -135,28 +121,6 @@ func areaGraph(vals []float64, w, h int) []string {
 	}
 	return out
 }
-
-var (
-	tabActiveStyle   = lipgloss.NewStyle().Bold(true).Reverse(true)
-	tabInactiveStyle = dimStyle
-	selMarkerStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("6"))
-	cpuGraphStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("6"))
-	memGraphStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("5"))
-	cachedStyle      = lipgloss.NewStyle().Foreground(lipgloss.Color("4"))
-	pCoreStyle       = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("5"))
-	eCoreStyle       = lipgloss.NewStyle().Foreground(lipgloss.Color("6"))
-)
-
-var (
-	diskGraphStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("2"))
-	readStyle      = lipgloss.NewStyle().Foreground(lipgloss.Color("2"))
-	writeStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("3"))
-	netGraphStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("3"))
-	rxStyle        = lipgloss.NewStyle().Foreground(lipgloss.Color("6"))
-	txStyle        = lipgloss.NewStyle().Foreground(lipgloss.Color("5"))
-)
-
-var gpuGraphStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("4"))
 
 // meterCell is a usage-grid cell: "label ███░░  42%".
 func meterCell(label string, pct float64) string {

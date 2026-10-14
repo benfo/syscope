@@ -152,7 +152,7 @@ func (m model) helpContent() []string {
 	title, terms := m.about()
 	textW := max(20, m.width-nameW-4)
 
-	lines := []string{labelStyle.Render("About: " + title)}
+	lines := []string{ui.label.Render("About: " + title)}
 	for _, t := range terms {
 		wrapped := strings.Split(ansi.Wordwrap(t.text, textW, ""), "\n")
 		for i, w := range wrapped {
@@ -160,7 +160,7 @@ func (m model) helpContent() []string {
 			if i == 0 {
 				name = t.name
 			}
-			lines = append(lines, "  "+helpKeyStyle.Render(fit(name, nameW))+w)
+			lines = append(lines, "  "+ui.key.Render(fit(name, nameW))+w)
 		}
 	}
 	lines = append(lines, "")

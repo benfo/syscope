@@ -143,7 +143,7 @@ func (m model) renderPerf() string {
 
 	side := m.sidebar(devs, selIdx, h)
 	var b strings.Builder
-	sep := dimStyle.Render("│")
+	sep := ui.muted.Render("│")
 	for i := 0; i < h; i++ {
 		var l, r string
 		if i < len(side) {
@@ -170,7 +170,7 @@ func (m model) sidebar(devs []perfDevice, selIdx, h int) []string {
 	}
 	var out []string
 	if first > 0 {
-		out = append(out, dimStyle.Render("  ▲ more"))
+		out = append(out, ui.muted.Render("  ▲ more"))
 	}
 	for i := first; i < len(devs); i++ {
 		out = append(out, m.sidebarEntry(devs[i], i == selIdx)...)
@@ -179,7 +179,7 @@ func (m model) sidebar(devs []perfDevice, selIdx, h int) []string {
 		}
 	}
 	if len(out) > h {
-		out = append(out[:h-1], dimStyle.Render("  ▼ more"))
+		out = append(out[:h-1], ui.muted.Render("  ▼ more"))
 	}
 	return out
 }
@@ -187,7 +187,7 @@ func (m model) sidebar(devs []perfDevice, selIdx, h int) []string {
 func (m model) sidebarEntry(d perfDevice, selected bool) []string {
 	var name, value string
 	var hist []float64
-	style := cpuGraphStyle
+	style := ui.cpu
 	switch d.kind {
 	case devCPU:
 		name, hist = "CPU", m.cpuHist.values()
@@ -199,12 +199,12 @@ func (m model) sidebarEntry(d perfDevice, selected bool) []string {
 			value += fmt.Sprintf("  %.2f GHz", m.cpuInfo.BaseMHz/1000)
 		}
 	case devMemory:
-		name, hist, style = "Memory", m.memHist.values(), memGraphStyle
+		name, hist, style = "Memory", m.memHist.values(), ui.memory
 		value = fmt.Sprintf("%s/%s (%.0f%%)", view.FormatBytesCompact(m.snap.MemUsed), view.FormatBytesCompact(m.snap.MemTotal),
 			view.Percent(m.snap.MemUsed, m.snap.MemTotal))
 	case devDisk:
 		dk := m.snap.Disks[d.idx]
-		name, style = diskTitle(dk), diskGraphStyle
+		name, style = diskTitle(dk), ui.disk
 		value = view.FormatByteRate(dk.ReadBps + dk.WriteBps)
 		if dk.ActiveKnown {
 			value = fmt.Sprintf("%.0f%%  %s", dk.ActivePct, value)
@@ -214,22 +214,22 @@ func (m model) sidebarEntry(d perfDevice, selected bool) []string {
 		}
 	case devNet:
 		n := m.snap.Nets[d.idx]
-		name, style = n.Name, netGraphStyle
+		name, style = n.Name, ui.network
 		value = "↓" + view.FormatBitRate(n.RecvBps) + " ↑" + view.FormatBitRate(n.SentBps)
 		hist, _ = scaled(netRateFloor, sumSeries(m.histVals(d.key+":rx"), m.histVals(d.key+":tx")))
 	case devGPU:
 		g := m.snap.GPUs[d.idx]
-		name, value, hist, style = gpuTitle(g), gpuSummary(g), m.histVals(d.key+":util"), gpuGraphStyle
+		name, value, hist, style = gpuTitle(g), gpuSummary(g), m.histVals(d.key+":util"), ui.gpu
 	}
 	marker := "  "
 	title := name
 	if selected {
-		marker = selMarkerStyle.Render("▌ ")
-		title = lipgloss.NewStyle().Bold(true).Render(name)
+		marker = ui.accent.Render("▌ ")
+		title = ui.bold.Render(name)
 	}
 	return []string{
 		marker + title,
-		marker + dimStyle.Render(value),
+		marker + ui.muted.Render(value),
 		marker + style.Render(sparkline(hist, sideW-3)),
 	}
 }
@@ -252,12 +252,12 @@ func (m model) cpuDetail(w, h int) []string {
 		kv("Processes", strconv.Itoa(m.snap.ProcCount)), kv("Up", view.FormatUptime(m.snap.Uptime)),
 	}, statSep, w)
 	head := []string{
-		spread(labelStyle.Render("CPU"), dimStyle.Render(m.cpuInfo.Model), w),
-		dimStyle.Render("% Utilization · " + m.graphSpan(w-2)),
+		spread(ui.label.Render("CPU"), ui.muted.Render(m.cpuInfo.Model), w),
+		ui.muted.Render("% Utilization · " + m.graphSpan(w-2)),
 	}
 	tail := append(append([]string{""}, stats...), "")
 	tail = append(tail, m.coreGrid(w)...)
-	return withGraphs(head, tail, []graphSpec{{vals: m.cpuHist.values(), style: cpuGraphStyle}}, w, h)
+	return withGraphs(head, tail, []graphSpec{{vals: m.cpuHist.values(), style: ui.cpu}}, w, h)
 }
 
 func (m model) memDetail(w, h int) []string {
@@ -277,12 +277,12 @@ func (m model) memDetail(w, h int) []string {
 	stats = packLine(second, statSep, w)
 
 	head := []string{
-		spread(labelStyle.Render("Memory"), dimStyle.Render(view.FormatBytes(s.MemTotal)), w),
-		dimStyle.Render("% In use · " + m.graphSpan(w-2)),
+		spread(ui.label.Render("Memory"), ui.muted.Render(view.FormatBytes(s.MemTotal)), w),
+		ui.muted.Render("% In use · " + m.graphSpan(w-2)),
 	}
-	tail := []string{"", dimStyle.Render("Composition"), m.memComposition(w), ""}
+	tail := []string{"", ui.muted.Render("Composition"), m.memComposition(w), ""}
 	tail = append(tail, stats...)
-	return withGraphs(head, tail, []graphSpec{{vals: m.memHist.values(), style: memGraphStyle}}, w, h)
+	return withGraphs(head, tail, []graphSpec{{vals: m.memHist.values(), style: ui.memory}}, w, h)
 }
 
 func (m model) diskDetail(d metrics.DiskStat, w, h int) []string {
@@ -298,11 +298,11 @@ func (m model) diskDetail(d metrics.DiskStat, w, h int) []string {
 	sub := "Transfer rate · " + m.graphSpan(w-2)
 	if d.ActiveKnown {
 		sub = "% Active time · " + m.graphSpan(w-2)
-		graphs = append(graphs, graphSpec{vals: m.histVals(key + ":active"), style: diskGraphStyle})
+		graphs = append(graphs, graphSpec{vals: m.histVals(key + ":active"), style: ui.disk})
 	}
 	graphs = append(graphs,
-		graphSpec{title: "Read · scale " + view.FormatByteRate(readMax), vals: read, style: readStyle},
-		graphSpec{title: "Write · scale " + view.FormatByteRate(writeMax), vals: write, style: writeStyle},
+		graphSpec{title: "Read · scale " + view.FormatByteRate(readMax), vals: read, style: ui.read},
+		graphSpec{title: "Write · scale " + view.FormatByteRate(writeMax), vals: write, style: ui.write},
 	)
 
 	var stats []string
@@ -319,7 +319,7 @@ func (m model) diskDetail(d metrics.DiskStat, w, h int) []string {
 		tail = append(tail, fmt.Sprintf("%-6s ", v.Mount)+bar(p, 20)+
 			fmt.Sprintf(" %s/%s (%.0f%%)", view.FormatBytesCompact(v.Used), view.FormatBytesCompact(v.Total), p))
 	}
-	head := []string{spread(labelStyle.Render(diskTitle(d)), dimStyle.Render(desc), w), dimStyle.Render(sub)}
+	head := []string{spread(ui.label.Render(diskTitle(d)), ui.muted.Render(desc), w), ui.muted.Render(sub)}
 	return withGraphs(head, tail, graphs, w, h)
 }
 
@@ -331,8 +331,8 @@ func (m model) netDetail(n metrics.NetStat, w, h int) []string {
 	rxs, _ := scaled(top, rx)
 	txs, _ := scaled(top, tx)
 	graphs := []graphSpec{
-		{title: "Receive", vals: rxs, style: rxStyle},
-		{title: "Send", vals: txs, style: txStyle},
+		{title: "Receive", vals: rxs, style: ui.receive},
+		{title: "Send", vals: txs, style: ui.send},
 	}
 
 	kind := "Virtual"
@@ -355,8 +355,8 @@ func (m model) netDetail(n metrics.NetStat, w, h int) []string {
 		tail = append(tail, kv("Address", strings.Join(n.Addrs, "  ")))
 	}
 	head := []string{
-		spread(labelStyle.Render(n.Name), dimStyle.Render(n.Desc), w),
-		dimStyle.Render("Throughput · scale " + view.FormatBitRate(top) + " · " + m.graphSpan(w-2)),
+		spread(ui.label.Render(n.Name), ui.muted.Render(n.Desc), w),
+		ui.muted.Render("Throughput · scale " + view.FormatBitRate(top) + " · " + m.graphSpan(w-2)),
 	}
 	return withGraphs(head, tail, graphs, w, h)
 }
@@ -381,7 +381,6 @@ type graphSpec struct {
 // withGraphs stacks head, framed graphs sharing the spare height, and tail.
 // Graphs that can't get at least one row are dropped. Output is cut to h.
 func withGraphs(head, tail []string, graphs []graphSpec, w, h int) []string {
-	frame := lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("8"))
 	avail := h - len(head) - len(tail)
 	for len(graphs) > 1 && avail/len(graphs) < 4 {
 		graphs = graphs[:len(graphs)-1]
@@ -394,10 +393,10 @@ func withGraphs(head, tail []string, graphs []graphSpec, w, h int) []string {
 		}
 		gh := share - 2 // frame
 		if g.title != "" {
-			lines = append(lines, dimStyle.Render(g.title))
+			lines = append(lines, ui.muted.Render(g.title))
 			gh--
 		}
-		graph := frame.Render(g.style.Render(strings.Join(areaGraph(g.vals, w-2, max(1, gh)), "\n")))
+		graph := ui.frame.Render(g.style.Render(strings.Join(areaGraph(g.vals, w-2, max(1, gh)), "\n")))
 		lines = append(lines, strings.Split(graph, "\n")...)
 	}
 	lines = append(lines, tail...)
@@ -450,9 +449,9 @@ func (m model) coreGrid(w int) []string {
 		label := fmt.Sprintf("%3d", i)
 		switch kind {
 		case metrics.CorePerformance:
-			label += pCoreStyle.Render("P")
+			label += ui.pCore.Render("P")
 		case metrics.CoreEfficiency:
-			label += eCoreStyle.Render("E")
+			label += ui.eCore.Render("E")
 		default:
 			label += " "
 		}
@@ -470,9 +469,9 @@ func (m model) memComposition(w int) string {
 	used := int(float64(w) * float64(s.MemUsed) / float64(s.MemTotal))
 	cached := min(w-used, int(float64(w)*float64(s.MemCached)/float64(s.MemTotal)))
 	free := max(0, w-used-cached)
-	return memGraphStyle.Render(strings.Repeat("█", used)) +
-		cachedStyle.Render(strings.Repeat("▓", cached)) +
-		dimStyle.Render(strings.Repeat("░", free))
+	return ui.memory.Render(strings.Repeat("█", used)) +
+		ui.cached.Render(strings.Repeat("▓", cached)) +
+		ui.muted.Render(strings.Repeat("░", free))
 }
 
 // graphSpan describes how much time a graph of width w covers.
@@ -480,4 +479,4 @@ func (m model) graphSpan(w int) string {
 	return (time.Duration(min(w, historyLen)) * m.refresh).Round(time.Second).String()
 }
 
-func kv(k, v string) string { return dimStyle.Render(k+" ") + v }
+func kv(k, v string) string { return ui.muted.Render(k+" ") + v }

@@ -51,11 +51,11 @@ func gpuSummary(g metrics.GPUStat) string {
 
 func (m model) gpuDetail(g metrics.GPUStat, w, h int) []string {
 	key := "gpu:" + g.ID
-	graphs := []graphSpec{{vals: m.histVals(key + ":util"), style: gpuGraphStyle}}
+	graphs := []graphSpec{{vals: m.histVals(key + ":util"), style: ui.gpu}}
 	if g.MemKnown && g.MemTotal > 0 {
 		graphs = append(graphs, graphSpec{
 			title: "Dedicated memory · " + view.FormatBytesCompact(g.MemUsed) + " / " + view.FormatBytesCompact(g.MemTotal),
-			vals:  m.histVals(key + ":vram"), style: memGraphStyle,
+			vals:  m.histVals(key + ":vram"), style: ui.memory,
 		})
 	}
 
@@ -113,8 +113,8 @@ func (m model) gpuDetail(g metrics.GPUStat, w, h int) []string {
 	}
 
 	head := []string{
-		spread(labelStyle.Render("GPU "+g.ID), dimStyle.Render(g.Name), w),
-		dimStyle.Render("Utilization (busiest engine) · " + m.graphSpan(w-2)),
+		spread(ui.label.Render("GPU "+g.ID), ui.muted.Render(g.Name), w),
+		ui.muted.Render("Utilization (busiest engine) · " + m.graphSpan(w-2)),
 	}
 	return withGraphs(head, tail, graphs, w, h)
 }
@@ -123,15 +123,15 @@ func (m model) gpuDetail(g metrics.GPUStat, w, h int) []string {
 // are highlighted because they cost performance under load.
 func throttleText(reasons []string) string {
 	if len(reasons) == 0 {
-		return coolStyle.Render("nothing (running at full speed when busy)")
+		return ui.good.Render("nothing (running at full speed when busy)")
 	}
 	var parts []string
 	for _, r := range reasons {
 		switch {
 		case strings.Contains(r, "thermal"), strings.Contains(r, "slowdown"), strings.Contains(r, "brake"):
-			parts = append(parts, hotStyle.Render(r))
+			parts = append(parts, ui.bad.Render(r))
 		case strings.Contains(r, "power"):
-			parts = append(parts, warmStyle.Render(r))
+			parts = append(parts, ui.warn.Render(r))
 		default:
 			parts = append(parts, r)
 		}
@@ -166,14 +166,14 @@ func (m model) stripGPU() string {
 		}
 	}
 	if busiest == nil {
-		return dimStyle.Render("--")
+		return ui.muted.Render("--")
 	}
 	s := loadStyle(busiest.Util).Render(fmt.Sprintf("%.0f%%", busiest.Util))
 	if busiest.TempKnown {
 		s += " " + tempStyle(busiest.TempC).Render(fmt.Sprintf("%.0f°C", busiest.TempC))
 	}
 	if vram != nil && vram.MemTotal >= 1<<30 {
-		s += dimStyle.Render(" VRAM " + view.FormatUsedTotal(vram.MemUsed, vram.MemTotal))
+		s += ui.muted.Render(" VRAM " + view.FormatUsedTotal(vram.MemUsed, vram.MemTotal))
 	}
 	return s
 }
@@ -181,11 +181,11 @@ func (m model) stripGPU() string {
 func tempStyle(c float64) lipgloss.Style {
 	switch {
 	case c >= 85:
-		return hotStyle
+		return ui.bad
 	case c >= 75:
-		return warmStyle
+		return ui.warn
 	}
-	return coolStyle
+	return ui.good
 }
 
 var mainEngines = map[string]bool{
