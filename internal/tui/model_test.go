@@ -23,7 +23,7 @@ func (f *fakeSampler) Sample(context.Context) (metrics.SystemSnapshot, []metrics
 		Disks: []metrics.DiskStat{{ID: "0", Name: "Disk 0", Model: "Test SSD", Bus: "NVMe", RatesKnown: true,
 			ReadBps: 5e6, WriteBps: 1e6, ActivePct: 30, ActiveKnown: true, RespMs: 0.2, RespKnown: true,
 			Volumes: []metrics.VolumeStat{{Mount: "C:", Total: 1000, Used: 400}}}},
-		Nets: f.netsOrDefault()}, f.procs, nil
+		Nets: f.netsOrDefault(), GPUs: fakeGPUs()}, f.procs, nil
 }
 
 func p(pid int32, name string, cpu float64) metrics.ProcInfo {
@@ -251,11 +251,11 @@ func TestPerfDisksAndNets(t *testing.T) {
 		!strings.Contains(v, "192.0.2.106") {
 		t.Error("network page incomplete")
 	}
-	if devs := m.perfDevices(); len(devs) != 4 {
+	if devs := m.perfDevices(); len(devs) != 6 { // cpu, mem, disk, wi-fi, 2 gpus
 		t.Errorf("hidden VPN should not be listed by default: %d devices", len(devs))
 	}
 	m = drive(t, m, key("."))
-	if devs := m.perfDevices(); len(devs) != 5 {
+	if devs := m.perfDevices(); len(devs) != 7 {
 		t.Errorf(". should show all adapters: %d devices", len(devs))
 	}
 

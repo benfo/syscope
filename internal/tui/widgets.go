@@ -154,3 +154,5 @@ var (
 	rxStyle        = lipgloss.NewStyle().Foreground(lipgloss.Color("6"))
 	txStyle        = lipgloss.NewStyle().Foreground(lipgloss.Color("5"))
 )
+
+var gpuGraphStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("4"))

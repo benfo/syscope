@@ -26,8 +26,52 @@ func (m model) about() (string, []term) {
 		return diskTitle(m.snap.Disks[sel.idx]), m.diskTerms(m.snap.Disks[sel.idx])
 	case devNet:
 		return m.snap.Nets[sel.idx].Name, netTerms
+	case devGPU:
+		g := m.snap.GPUs[sel.idx]
+		return "GPU " + g.ID + " · " + g.Name, gpuTerms(g)
 	}
 	return "CPU", m.cpuTerms()
+}
+
+func gpuTerms(g metrics.GPUStat) []term {
+	t := []term{
+		{"Utilization", "How busy the GPU is: the busiest engine, as in Task Manager. Games show up as 3D; AI and CUDA work as 3D or Compute. " +
+			"High utilization is normal while gaming or running a model."},
+	}
+	if len(g.Engines) > 0 {
+		t = append(t, term{"Engines", "3D: games, the desktop, some AI. Compute: CUDA / AI work. Copy: moving data between RAM and the GPU, " +
+			"high while loading a game or model. Video Decode / Encode: watching, streaming or recording video, done by dedicated hardware."})
+	}
+	if g.MemKnown {
+		t = append(t, term{"Dedicated", "The GPU's own memory (VRAM). A local LLM must fit here to run fast; when it's full, data spills into " +
+			"shared memory over PCIe and tokens per second drop sharply. Games stutter when they run out."})
+	}
+	if g.SharedTotal > 0 {
+		t = append(t, term{"Shared", "System RAM the GPU can borrow. Integrated GPUs use only this. On a discrete GPU, heavy use means VRAM has run out."})
+	}
+	if g.TempKnown {
+		t = append(t, term{"Temperature", "GPU core temperature. 30–50 °C idle is normal; laptops often run 70–87 °C under load. " +
+			"Near the GPU's limit (about 87 °C for NVIDIA) clocks drop to cool down."})
+	}
+	if g.PowerKnown || g.PowerPct > 0 {
+		t = append(t, term{"Power", "Current power draw, and the limit when the driver reports one. On laptops the limit is set by the manufacturer " +
+			"and is often what caps performance."})
+	}
+	if g.ClockKnown {
+		t = append(t, term{"Clock", "Current vs maximum graphics clock. Low clocks while idle are normal; low clocks under load mean something is limiting the GPU (see Limited by)."})
+	}
+	if g.FanKnown || g.FanRPM > 0 {
+		t = append(t, term{"Fan", "Cooling fan speed. Laptop GPUs often report none; the laptop's own fans cool them."})
+	}
+	if g.PState >= 0 {
+		t = append(t, term{"P-state", "Performance state: P0 is full performance, higher numbers (P8, P12) are power-saving idle states."})
+	}
+	if g.ThrottleKnown {
+		t = append(t, term{"Limited by", "Why clocks are below maximum right now. idle: nothing to do. power cap: hit the power limit (usual on laptops under load). " +
+			"thermal: too hot, so improve cooling. reliability: the driver is keeping voltage in a safe range (normal). " +
+			"hardware slowdown / power brake: an emergency limit, worth investigating."})
+	}
+	return t
 }
 
 var processTerms = []term{

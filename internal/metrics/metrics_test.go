@@ -253,18 +253,6 @@ func TestDecodeClockReasons(t *testing.T) {
 	}
 }
 
-func TestShortGPUName(t *testing.T) {
-	for in, want := range map[string]string{
-		"NVIDIA GeForce RTX 3080 Ti Laptop GPU": "RTX 3080 Ti Laptop",
-		"Intel(R) Graphics":                     "Intel Graphics",
-		"AMD Radeon(TM) RX 7900 XTX":            "RX 7900 XTX",
-	} {
-		if got := shortGPUName(in); got != want {
-			t.Errorf("shortGPUName(%q) = %q, want %q", in, got, want)
-		}
-	}
-}
-
 func TestNVMLLive(t *testing.T) {
 	n := openNVML()
 	if n == nil {

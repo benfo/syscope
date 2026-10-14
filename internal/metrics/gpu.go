@@ -98,13 +98,6 @@ func vendorName(id uint32) string {
 	return ""
 }
 
-// shortGPUName trims vendor boilerplate for narrow places like the sidebar:
-// "NVIDIA GeForce RTX 3080 Ti Laptop GPU" → "RTX 3080 Ti Laptop".
-func shortGPUName(name string) string {
-	r := strings.NewReplacer("NVIDIA ", "", "GeForce ", "", "(R)", "", "(TM)", "", "AMD ", "", "Radeon(TM) ", "")
-	return strings.TrimSuffix(strings.TrimSpace(r.Replace(name)), " GPU")
-}
-
 var engineInstanceRE = regexp.MustCompile(`(?i)luid_(0x[0-9a-f]+_0x[0-9a-f]+)_phys_\d+_eng_(\d+)_engtype_(.*)$`)
 
 // aggregateEngines turns Windows "GPU Engine" counter instances

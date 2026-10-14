@@ -62,17 +62,43 @@ func (m model) renderStrip() string {
 	}
 	memPct := pct(s.MemUsed, s.MemTotal)
 
-	parts := []string{
-		labelStyle.Render("CPU ") + loadStyle(s.CPUTotal).Render(cpuText+" "+sparkline(m.cpuHist.values(), 10)),
-		labelStyle.Render("MEM ") + loadStyle(memPct).Render(fmt.Sprintf("%4.1f%%", memPct)) +
-			dimStyle.Render(" "+shortBytes(s.MemUsed)+"/"+shortBytes(s.MemTotal)),
-		labelStyle.Render("DISK ") + m.stripDisk(),
-		labelStyle.Render("NET ") + m.stripNet(),
-		labelStyle.Render("SWAP ") + dimStyle.Render(shortBytes(s.SwapUsed)+"/"+shortBytes(s.SwapTotal)),
-		labelStyle.Render("PROCS ") + strconv.Itoa(s.ProcCount),
-		labelStyle.Render("UP ") + view.FormatUptime(s.Uptime),
+	// keep is the drop priority when the line is too wide: lowest goes first.
+	type item struct {
+		text string
+		keep int
 	}
-	return ansi.Truncate(" "+strings.Join(parts, "   "), m.width, "")
+	items := []item{
+		{labelStyle.Render("CPU ") + loadStyle(s.CPUTotal).Render(cpuText+" "+sparkline(m.cpuHist.values(), 8)), 9},
+		{labelStyle.Render("MEM ") + loadStyle(memPct).Render(fmt.Sprintf("%.0f%%", memPct)) +
+			dimStyle.Render(" "+gibPair(s.MemUsed, s.MemTotal)), 8},
+	}
+	if len(s.GPUs) > 0 {
+		items = append(items, item{labelStyle.Render("GPU ") + m.stripGPU(), 7})
+	}
+	items = append(items,
+		item{labelStyle.Render("DISK ") + m.stripDisk(), 5},
+		item{labelStyle.Render("NET ") + m.stripNet(), 6},
+		item{labelStyle.Render("SWAP ") + dimStyle.Render(gibPair(s.SwapUsed, s.SwapTotal)), 3},
+		item{labelStyle.Render("PROCS ") + strconv.Itoa(s.ProcCount), 2},
+		item{labelStyle.Render("UP ") + view.FormatUptime(s.Uptime), 1},
+	)
+	join := func() string {
+		parts := make([]string, len(items))
+		for i, it := range items {
+			parts[i] = it.text
+		}
+		return " " + strings.Join(parts, "  ")
+	}
+	for line := join(); lipgloss.Width(line) > m.width && len(items) > 1; line = join() {
+		low := 0
+		for i, it := range items {
+			if it.keep < items[low].keep {
+				low = i
+			}
+		}
+		items = append(items[:low], items[low+1:]...)
+	}
+	return ansi.Truncate(join(), m.width, "")
 }
 
 func (m model) renderTabs() string {
@@ -266,4 +292,36 @@ func (m model) helpFooter() string {
 			dimStyle.Render(fmt.Sprintf("  lines %d–%d of %d", m.helpOff+1, min(total, m.helpOff+page), total))
 	}
 	return ansi.Truncate(s, m.width, "")
+}
+
+// gibPair renders used/total compactly for the top line: "12.3/31.7G".
+func gibPair(used, total uint64) string {
+	const gib = 1 << 30
+	if total < gib {
+		return fmt.Sprintf("%.0f/%.0fM", float64(used)/(1<<20), float64(total)/(1<<20))
+	}
+	return fmt.Sprintf("%.1f/%.1fG", float64(used)/gib, float64(total)/gib)
+}
+
+// packLine lays out stat items ("Label value") separated by spaces,
+// wrapping onto more lines rather than overflowing width w.
+func packLine(items []string, w int) []string {
+	const sep = "   "
+	var lines []string
+	cur := ""
+	for _, it := range items {
+		switch {
+		case cur == "":
+			cur = it
+		case lipgloss.Width(cur)+len(sep)+lipgloss.Width(it) <= w:
+			cur += sep + it
+		default:
+			lines = append(lines, cur)
+			cur = it
+		}
+	}
+	if cur != "" {
+		lines = append(lines, cur)
+	}
+	return lines
 }

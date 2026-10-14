@@ -19,6 +19,7 @@ const (
 	devMemory
 	devDisk
 	devNet
+	devGPU
 )
 
 // perfDevice is one entry in the Performance sidebar. key is stable across
@@ -45,6 +46,9 @@ func (m model) perfDevices() []perfDevice {
 		if n.Default || m.showAllNets {
 			devs = append(devs, perfDevice{kind: devNet, key: "net:" + n.Name, idx: i})
 		}
+	}
+	for i, g := range m.snap.GPUs {
+		devs = append(devs, perfDevice{kind: devGPU, key: "gpu:" + g.ID, idx: i})
 	}
 	return devs
 }
@@ -98,6 +102,7 @@ func (m model) recordHistory() {
 			m.push("net:"+n.Name+":tx", n.SentBps)
 		}
 	}
+	m.recordGPUHistory()
 }
 
 func (m model) push(key string, v float64) {
@@ -132,6 +137,8 @@ func (m model) renderPerf() string {
 		detail = m.diskDetail(m.snap.Disks[sel.idx], detailW, h)
 	case devNet:
 		detail = m.netDetail(m.snap.Nets[sel.idx], detailW, h)
+	case devGPU:
+		detail = m.gpuDetail(m.snap.GPUs[sel.idx], detailW, h)
 	}
 
 	side := m.sidebar(devs, selIdx, h)
@@ -210,6 +217,9 @@ func (m model) sidebarEntry(d perfDevice, selected bool) []string {
 		name, style = n.Name, netGraphStyle
 		value = "↓" + view.FormatBitRate(n.RecvBps) + " ↑" + view.FormatBitRate(n.SentBps)
 		hist, _ = scaled(netRateFloor, sumSeries(m.histVals(d.key+":rx"), m.histVals(d.key+":tx")))
+	case devGPU:
+		g := m.snap.GPUs[d.idx]
+		name, value, hist, style = gpuTitle(g), gpuSummary(g), m.histVals(d.key+":util"), gpuGraphStyle
 	}
 	marker := "  "
 	title := name
@@ -237,11 +247,10 @@ func (m model) cpuDetail(w, h int) []string {
 	if m.cpu.BaseMHz > 0 {
 		base = fmt.Sprintf("%.2f GHz", m.cpu.BaseMHz/1000)
 	}
-	stats := []string{
-		kv("Utilization", util) + "   " + kv("Base speed", base) + "   " +
-			kv("Cores", cores) + "   " + kv("Logical", strconv.Itoa(m.cpu.Logical)),
-		kv("Processes", strconv.Itoa(m.snap.ProcCount)) + "   " + kv("Up", view.FormatUptime(m.snap.Uptime)),
-	}
+	stats := packLine([]string{
+		kv("Utilization", util), kv("Base speed", base), kv("Cores", cores), kv("Logical", strconv.Itoa(m.cpu.Logical)),
+		kv("Processes", strconv.Itoa(m.snap.ProcCount)), kv("Up", view.FormatUptime(m.snap.Uptime)),
+	}, w)
 	head := []string{
 		spread(labelStyle.Render("CPU"), dimStyle.Render(m.cpu.Model), w),
 		dimStyle.Render("% Utilization · " + m.graphSpan(w-2)),
@@ -254,10 +263,10 @@ func (m model) cpuDetail(w, h int) []string {
 func (m model) memDetail(w, h int) []string {
 	s := m.snap
 	stats := []string{
-		kv("In use", fmt.Sprintf("%s (%.0f%%)", view.FormatBytes(s.MemUsed), pct(s.MemUsed, s.MemTotal))) + "   " +
-			kv("Available", view.FormatBytes(s.MemAvailable)),
+		kv("In use", fmt.Sprintf("%s (%.0f%%)", view.FormatBytes(s.MemUsed), pct(s.MemUsed, s.MemTotal))),
+		kv("Available", view.FormatBytes(s.MemAvailable)),
 	}
-	var second []string
+	second := stats
 	if s.MemCached > 0 {
 		second = append(second, kv("Cached", view.FormatBytes(s.MemCached)))
 	}
@@ -265,7 +274,7 @@ func (m model) memDetail(w, h int) []string {
 		second = append(second, kv("Committed", shortBytes(s.CommitUsed)+"/"+shortBytes(s.CommitLimit)))
 	}
 	second = append(second, kv("Swap", shortBytes(s.SwapUsed)+"/"+shortBytes(s.SwapTotal)))
-	stats = append(stats, strings.Join(second, "   "))
+	stats = packLine(second, w)
 
 	head := []string{
 		spread(labelStyle.Render("Memory"), dimStyle.Render(view.FormatBytes(s.MemTotal)), w),
@@ -304,7 +313,7 @@ func (m model) diskDetail(d metrics.DiskStat, w, h int) []string {
 	if d.RespKnown {
 		stats = append(stats, kv("Response", fmt.Sprintf("%.2f ms", d.RespMs)))
 	}
-	tail := []string{"", strings.Join(stats, "   ")}
+	tail := append([]string{""}, packLine(stats, w)...)
 	for _, v := range d.Volumes {
 		p := pct(v.Used, v.Total)
 		tail = append(tail, fmt.Sprintf("%-6s ", v.Mount)+bar(p, 20)+
@@ -338,11 +347,10 @@ func (m model) netDetail(n metrics.NetStat, w, h int) []string {
 	if !n.Up {
 		state = "Down"
 	}
-	tail := []string{
-		"",
-		kv("Receive", view.FormatBitRate(n.RecvBps)) + "   " + kv("Send", view.FormatBitRate(n.SentBps)) + "   " +
-			kv("Link", link) + "   " + kv("Type", kind) + "   " + kv("State", state),
-	}
+	tail := append([]string{""}, packLine([]string{
+		kv("Receive", view.FormatBitRate(n.RecvBps)), kv("Send", view.FormatBitRate(n.SentBps)),
+		kv("Link", link), kv("Type", kind), kv("State", state),
+	}, w)...)
 	if len(n.Addrs) > 0 {
 		tail = append(tail, kv("Address", strings.Join(n.Addrs, "  ")))
 	}
