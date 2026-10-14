@@ -1,4 +1,4 @@
- CPU 43.0% ▆▂▅▇▃▅▁▄  MEM 59% 0/0M  GPU 31% 79°C VRAM 9.0/12.0G
+ CPU 43.0% ▆▂▅▇▃▅▁▄  MEM 77% 49.0/64.0G  GPU 31% 79°C VRAM 9.0/12.0G
  1 Processes  ╭───────────────────────────────────────╮malized · flat 
     PID NAME  │ Theme                                 │GPU%       VRAM
    4120 ollama│   default            ■■■■■■■■■        │88.0    7.0 GiB
@@ -7,7 +7,7 @@
   47768 chrome│   tokyo-night        ■■■■■■■■■        │ 0.0        0 B
   55916 Micros│   nord               ■■■■■■■■■        │ 0.0        0 B
       4 System│   gruvbox-dark       ■■■■■■■■■        │  --         --
-              │   solarized-dark     ■■■■■■■■■        │               
+  21772 SongPl│   solarized-dark     ■■■■■■■■■        │ 0.0    4.3 GiB
               │   github-light       ■■■■■■■■■        │               
               │   high-contrast      ■■■■■■■■■        │               
               │   colorblind         ■■■■■■■■■        │               

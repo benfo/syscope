@@ -17,10 +17,11 @@ import (
 // processTable is the Processes tab: the filtered, sorted, optionally
 // grouped process list with its cursor, search box and kill confirmation.
 type processTable struct {
-	procs  []metrics.ProcInfo
-	numCPU int
-	rows   []view.Row
-	bodyH  int // lines below the heading: rows, plus the details pane when open
+	procs    []metrics.ProcInfo
+	numCPU   int
+	memTotal uint64
+	rows     []view.Row
+	bodyH    int // lines below the heading: rows, plus the details pane when open
 
 	sortKey    view.SortKey
 	desc       bool
@@ -64,8 +65,10 @@ func newProcessTable(perCoreCPU bool, fetch detailsFetcher, now func() time.Time
 	return processTable{sortKey: view.SortCPU, desc: true, perCoreCPU: perCoreCPU, search: ti, details: detailsPane{fetch: fetch, now: now}}
 }
 
-func (t *processTable) setProcs(procs []metrics.ProcInfo, numCPU int, showGPU bool) {
-	t.procs, t.numCPU, t.showGPU = procs, numCPU, showGPU
+// setProcs takes a new sample; system figures from snap give the table
+// context (core count for CPU%, whether to show GPU columns, RAM for hints).
+func (t *processTable) setProcs(procs []metrics.ProcInfo, snap metrics.SystemSnapshot) {
+	t.procs, t.numCPU, t.memTotal, t.showGPU = procs, snap.NumCPU, snap.MemTotal, len(snap.GPUs) > 0
 	t.rebuild()
 }
 

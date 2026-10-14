@@ -30,7 +30,7 @@ func goldenModel(t *testing.T, w, h int) model {
 		snap, procs, _ := f.Sample(context.Background())
 		v := float64((i * 37) % 100)
 		snap.CPUTotal = v
-		snap.MemUsed = uint64(40 + i%20)
+		snap.MemUsed = uint64(30+i%20) << 30
 		snap.Disks[0].ActivePct = float64((i * 13) % 100)
 		snap.Disks[0].ReadBps = float64((i * 7 % 10)) * 1e6
 		snap.Nets[0].RecvBps = float64((i * 11 % 17)) * 1e5
@@ -52,6 +52,7 @@ func TestGoldenScreens(t *testing.T) {
 		{"processes_help", []tea.KeyMsg{key("?")}, false},
 		{"processes_details", []tea.KeyMsg{keyMsg("enter")}, true},
 		{"processes_details_group", []tea.KeyMsg{key("z"), keyMsg("enter")}, true},
+		{"processes_details_hint", []tea.KeyMsg{key("s"), key("s"), key("s"), key("j"), keyMsg("enter")}, true},
 		{"theme_picker", []tea.KeyMsg{key("T"), key("j"), key("j")}, false},
 		{"perf_cpu", []tea.KeyMsg{key("2")}, false},
 		{"perf_memory", []tea.KeyMsg{key("2"), key("j")}, false},
@@ -131,6 +132,8 @@ func goldenProcs() []metrics.ProcInfo {
 			GPUKnown: true, VRAMKnown: true},
 		{PID: 55916, Name: "Example.TextEditor.Language.ServiceHost.exe", User: `CORP\sam`, CPU: 0.1, CPUKnown: true,
 			RSS: 542 << 20, RSSKnown: true, GPUKnown: true, VRAMKnown: true},
+		{PID: 21772, Name: "SongPlayer.exe", CPU: 0, CPUKnown: true, RSS: 187 << 20, RSSKnown: true,
+			GPU: 0, GPUKnown: true, VRAM: 4400 << 20, VRAMKnown: true},
 		{PID: 72244, Name: "Meet.exe", User: `CORP\sam`, CPU: 1.2, CPUKnown: true, RSS: 1 * gib, RSSKnown: true,
 			GPU: 3.1, GPUKnown: true, VRAM: 412 << 20, VRAMKnown: true},
 	}

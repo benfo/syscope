@@ -20,7 +20,7 @@ type fakeSampler struct {
 
 func (f *fakeSampler) Sample(context.Context) (metrics.SystemSnapshot, []metrics.ProcInfo, error) {
 	return metrics.SystemSnapshot{NumCPU: 4, CPUKnown: true, CPUTotal: 40, CPUPerCore: []float64{10, 90, 40, 20},
-		MemTotal: 100, MemUsed: 50, MemCached: 10, ProcCount: len(f.procs),
+		MemTotal: 64 << 30, MemUsed: 32 << 30, MemCached: 6 << 30, MemAvailable: 26 << 30, ProcCount: len(f.procs),
 		Disks: []metrics.DiskStat{{ID: "0", Name: "Disk 0", Model: "Test SSD", Bus: "NVMe", RatesKnown: true,
 			ReadBps: 5e6, WriteBps: 1e6, ActivePct: 30, ActiveKnown: true, RespMs: 0.2, RespKnown: true,
 			Volumes: []metrics.VolumeStat{{Mount: "C:", Total: 1000, Used: 400}}}},
@@ -269,7 +269,7 @@ func TestPerfDisksAndNets(t *testing.T) {
 }
 
 func TestStripShowsDiskAndNet(t *testing.T) {
-	v := sampled(t, &fakeSampler{}).renderStrip()
+	v := drive(t, sampled(t, &fakeSampler{}), tea.WindowSizeMsg{Width: 140, Height: 30}).renderStrip()
 	if !strings.Contains(v, "DISK") || !strings.Contains(v, "30%") || !strings.Contains(v, "↓2.0 Mbps") {
 		t.Errorf("strip missing disk/net: %q", v)
 	}
@@ -304,10 +304,17 @@ func fakeDetails(_ context.Context, pid int32) (metrics.ProcDetails, error) {
 	fakeReads++
 	return metrics.ProcDetails{
 		PID: pid, ReadAt: fakeNow().Add(time.Duration(fakeReads) * time.Second),
-		Cmdline: `"C:\Program Files\Ollama\ollama.exe" serve`,
+		Cmdline: fakeCmdlines[pid],
 		Threads: 23, ThreadsKnown: true, Handles: 412, HandlesKnown: true,
 		IORead: uint64(fakeReads) * 2_000_000, IOWrite: uint64(fakeReads) * 40_000, IOKnown: true,
 	}, nil
 }
 
 var fakeReads int
+
+// fakeCmdlines are per-process command lines for the fake details reader.
+var fakeCmdlines = map[int32]string{
+	4120:  `"C:\Program Files\Ollama\ollama.exe" serve`,
+	21248: `"C:\Program Files\Google\Chrome\Application\chrome.exe" --type=gpu-process --gpu-preferences=UAAAAAAAAAD`,
+	21772: `"C:\Program Files\WindowsApps\Example1.SongPlayerWin\SongPlayer.exe"`,
+}

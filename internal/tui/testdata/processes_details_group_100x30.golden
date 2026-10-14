@@ -1,4 +1,4 @@
- CPU 43.0% ▆▂▅▇▃▅▁▄  MEM 59% 0/0M  GPU 31% 79°C VRAM 9.0/12.0G  DISK 7%  NET ↓3.2 Mbps ↑160 Kbps
+ CPU 43.0% ▆▂▅▇▃▅▁▄  MEM 77% 49.0/64.0G  GPU 31% 79°C VRAM 9.0/12.0G  NET ↓3.2 Mbps ↑160 Kbps
  1 Processes   2 Performance                                  sort cpu▼ · CPU% normalized · grouped 
   COUNT NAME                                    USER             CPU%▼         MEM   GPU%       VRAM
       2 chrome                                  sam                2.6   710.0 MiB    0.4  180.0 MiB
@@ -6,7 +6,7 @@
       1 Meet                                    sam                1.2     1.0 GiB    3.1  412.0 MiB
       1 Example.TextEditor.Language.ServiceHost sam                0.1   542.0 MiB    0.0        0 B
       1 System                                  SYSTEM              --          --     --         --
-
+      1 SongPlayer                                                 0.0   187.0 MiB    0.0    4.3 GiB
 
 
 

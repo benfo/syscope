@@ -28,6 +28,8 @@ var processTerms = []term{
 		"Per-core (c): 100% means one full core, so a busy process can exceed 100%. \"--\" means no permission to read it (run as admin / sudo)."},
 	{"MEM", "Resident memory (the working set on Windows): RAM the process is using right now, including shared libraries. " +
 		"It reads higher than Task Manager's \"private\" figure, and the column can add up to more than your RAM because shared pages count in every process."},
+	{"Details (Enter)", "A pane for the selected process: path, command line, parent and children, start time, threads, handles and live I/O. " +
+		"Hints explain its resource use: ℹ is an explanation, ⚠ is worth acting on."},
 	{"Top line", "CPU and MEM as on the Performance tab. DISK is the busiest disk's active time. NET is total download/upload on the adapters shown. " +
 		"SWAP is memory paged out to disk; if it keeps growing while MEM is high, you're short of RAM."},
 }

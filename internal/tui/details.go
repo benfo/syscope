@@ -10,7 +10,9 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/x/ansi"
 
+	"taskman/internal/insight"
 	"taskman/internal/metrics"
 	"taskman/internal/view"
 )
@@ -175,7 +177,10 @@ func (t processTable) processLines(r view.Row, w int) []string {
 		}
 		use = append(use, kv("GPU", gpu), kv("VRAM", view.FormatMem(p.VRAM, p.VRAMKnown)))
 	}
-	return append(lines, packLine(use, statSep, w-1)...)
+	lines = append(lines, packLine(use, statSep, w-1)...)
+	return append(lines, hintLines(insight.For(insight.Context{
+		Proc: p, Details: d, SameName: t.sameName(p.Name), NumCPU: t.numCPU, MemTotal: t.memTotal,
+	}), w-1)...)
 }
 
 func (t processTable) groupLines(r view.Row, w int) []string {
@@ -197,7 +202,11 @@ func (t processTable) groupLines(r view.Row, w int) []string {
 	}
 	lines := packLine([]string{kv("PIDs", strings.Join(pids, " "))}, statSep, w-1)
 	lines = append(lines, ui.muted.Render("Totals for the group:"))
-	return append(lines, packLine(total, statSep, w-1)...)
+	lines = append(lines, packLine(total, statSep, w-1)...)
+	// The group's totals behave like one big process for hints.
+	group := metrics.ProcInfo{Name: r.Name, CPU: r.CPU, CPUKnown: r.CPUKnown, RSS: r.RSS, RSSKnown: r.RSSKnown,
+		GPU: r.GPU, GPUKnown: r.GPUKnown, VRAM: r.VRAM, VRAMKnown: r.VRAMKnown}
+	return append(lines, hintLines(insight.For(insight.Context{Proc: group, NumCPU: t.numCPU, MemTotal: t.memTotal}), w-1)...)
 }
 
 // childCount is how many processes have pid as their parent.
@@ -216,4 +225,35 @@ func handlesLabel() string {
 		return "Handles"
 	}
 	return "Open files"
+}
+
+// sameName counts processes with this executable name.
+func (t processTable) sameName(name string) int {
+	n := 0
+	for _, p := range t.procs {
+		if view.MatchesName(p.Name, name) {
+			n++
+		}
+	}
+	return n
+}
+
+// hintLines renders insight hints, wrapped to w: ℹ explains, ⚠ suggests
+// acting.
+func hintLines(hints []insight.Hint, w int) []string {
+	var out []string
+	for _, h := range hints {
+		icon := ui.accent.Render("ℹ ")
+		if h.Level == insight.Warn {
+			icon = ui.warn.Render("⚠ ")
+		}
+		for i, l := range strings.Split(ansi.Wordwrap(h.Text, max(10, w-2), ""), "\n") {
+			if i == 0 {
+				out = append(out, icon+l)
+			} else {
+				out = append(out, "  "+l)
+			}
+		}
+	}
+	return out
 }
