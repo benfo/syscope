@@ -20,6 +20,7 @@ type processCollector struct {
 type procEntry struct {
 	proc    *process.Process
 	create  int64
+	ppid    int32
 	name    string
 	exe     string
 	user    string
@@ -27,6 +28,13 @@ type procEntry struct {
 	prevAt  time.Time
 	hasPrev bool
 	gen     uint64
+}
+
+// snapshotEntry is what a whole-system process snapshot knows about one
+// process (Windows only; see processSnapshot).
+type snapshotEntry struct {
+	name string
+	ppid int32
 }
 
 func newProcessCollector(numCPU int) *processCollector {
@@ -38,7 +46,7 @@ func (c *processCollector) collect(ctx context.Context, now time.Time) ([]ProcIn
 	if err != nil {
 		return nil, err
 	}
-	names := snapshotNames()
+	snapshot := processSnapshot()
 
 	c.gen++
 	out := make([]ProcInfo, 0, len(pids))
@@ -46,7 +54,7 @@ func (c *processCollector) collect(ctx context.Context, now time.Time) ([]ProcIn
 		if err := ctx.Err(); err != nil {
 			return nil, err
 		}
-		out = append(out, c.sample(ctx, pid, names[pid], now))
+		out = append(out, c.sample(ctx, pid, snapshot[pid], now))
 	}
 	for pid, e := range c.entries {
 		if e.gen != c.gen {
@@ -56,7 +64,7 @@ func (c *processCollector) collect(ctx context.Context, now time.Time) ([]ProcIn
 	return out, nil
 }
 
-func (c *processCollector) sample(ctx context.Context, pid int32, snapName string, now time.Time) ProcInfo {
+func (c *processCollector) sample(ctx context.Context, pid int32, snap snapshotEntry, now time.Time) ProcInfo {
 	fresh := &process.Process{Pid: pid}
 	create, _ := fresh.CreateTimeWithContext(ctx)
 
@@ -64,16 +72,22 @@ func (c *processCollector) sample(ctx context.Context, pid int32, snapName strin
 	if e == nil || staleEntry(e.create, create) {
 		e = &procEntry{proc: fresh, create: create}
 		e.exe, _ = fresh.ExeWithContext(ctx)
-		e.name = snapName
+		e.name = snap.name
 		if e.name == "" {
 			e.name, _ = fresh.NameWithContext(ctx)
+		}
+		if snap.name == "" { // no snapshot on this OS: look the parent up once
+			e.ppid, _ = fresh.PpidWithContext(ctx)
 		}
 		e.user, _ = fresh.UsernameWithContext(ctx)
 		c.entries[pid] = e
 	}
 	e.gen = c.gen
 
-	info := ProcInfo{PID: pid, Name: e.name, Exe: e.exe, User: e.user}
+	if snap.name != "" {
+		e.ppid = snap.ppid // the snapshot is free, so track re-parenting
+	}
+	info := ProcInfo{PID: pid, PPID: e.ppid, Name: e.name, Exe: e.exe, User: e.user}
 	if e.create != 0 {
 		info.CreateTime = time.UnixMilli(e.create)
 	}

@@ -34,6 +34,7 @@ type SystemSnapshot struct {
 // ProcInfo is a point-in-time view of one process.
 type ProcInfo struct {
 	PID        int32
+	PPID       int32 // parent; 0 when unknown
 	Name       string
 	Exe        string
 	User       string

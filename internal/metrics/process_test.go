@@ -1,7 +1,9 @@
 package metrics
 
 import (
+	"context"
 	"math"
+	"os"
 	"testing"
 	"time"
 )
@@ -41,4 +43,22 @@ func TestStaleEntry(t *testing.T) {
 	if staleEntry(0, 2000) || staleEntry(1000, 0) {
 		t.Error("unknown create time should not force a refresh")
 	}
+}
+
+func TestParentPIDs(t *testing.T) {
+	s := NewGopsutilSampler()
+	_, procs, err := s.Sample(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	self, parent := int32(os.Getpid()), int32(os.Getppid())
+	for _, p := range procs {
+		if p.PID == self {
+			if p.PPID != parent {
+				t.Errorf("own PPID %d, want %d", p.PPID, parent)
+			}
+			return
+		}
+	}
+	t.Error("own process not found")
 }
