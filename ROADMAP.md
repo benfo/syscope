@@ -34,7 +34,7 @@ The same rules on every tab; arrows / PgUp / PgDn / Home / End always work too.
 | Toggles | `z` group (fold) · `c` CPU% mode · `.` show hidden |
 | Tabs | `1`–`9` jump · `Tab` / `Shift+Tab` cycle |
 | Everywhere | `?` help · `Esc` cancel / clear · `q` quit · `y`/`n` confirm |
-| Appearance | `T` theme picker (popover: `j`/`k` preview live, `Enter` keep, `Esc` revert) — uppercase so it doesn't take a lowercase action letter |
+| Settings | `,` opens Settings (one place for every setting; `j`/`k` select, `h`/`l` change with live preview, `Enter` on Theme opens the theme list). Dashboard keys change only the current session. The footer drops hints when narrow but always keeps `? help` |
 | Overlays | Never swallow global keys: tab keys work in `?` help (it follows you to the new tab); `q`/`Esc` close an overlay first. Exceptions, as in vim: search input is like insert mode (keys type; `Enter`/`Esc` leave) and y/N treats any other key as no |
 | Reserved | `Enter` details · `t` tree · `p` suspend/resume · `+`/`-` priority · `o` open file location |
 
@@ -60,9 +60,6 @@ Stretch: `taskman record` (CSV/JSON logging), `taskman serve` (Prometheus endpoi
 Out of scope: per-process network rates, app history.
 
 ## To do
-
-### Next
-- [ ] **Settings screen + what persists** (user requests, 2026-10-14) — one place for settings instead of a dedicated key per setting (`T` doesn't scale once refresh rate, history, graph style etc. exist), and save only what the user wants permanent: separate **preferences** (theme, refresh, CPU% mode, default layout/sort, …) from **session state** (details pane, current tab, cursor, search, expanded rows). See brainstorm in conversation; decision pending.
 
 ### Phase 2 — Performance parity
 - [ ] **Disks: per-volume view** (user request, 2026-10-14) — Performance shows *physical* disks, so volumes on one disk (e.g. C: and G: on Disk 0) appear combined. Option: show each volume's own read/write and usage too (as sub-entries or a toggle). Windows has per-volume counters (the ones gopsutil reads per drive letter); Linux has per-partition counters in /proc/diskstats; active time stays per physical disk.
@@ -106,6 +103,7 @@ Out of scope: per-process network rates, app history.
 - [x] **"Why" hints, part 1** — `internal/insight` rule table shown in the details pane (ℹ explains, ⚠ act): idle cached VRAM, LLM fell back to CPU, big RAM share, video encode/decode, browser-engine child roles, many processes, svchost service names, protected processes (accurate for isolated ones like Secure System), notes on well-known system processes. Checked against real processes on Windows
 - [x] **Preferences** — auto-saved TOML in the OS config dir (`taskman config path`): theme, refresh, last tab, sort/direction, grouping, per-core CPU%, details pane, show-hidden devices. Only changed settings are saved (one-run flag overrides aren't); background atomic saves plus a final save on quit; a broken file starts on defaults without overwriting it; `taskman config show|path|reset`, `--config <file>`. `taskman ps` deliberately ignores preferences
 - [x] **Process tree + expandable groups** (Phase 3) — layouts flat / grouped (`z`) / tree (`t`); `l`/`h` (or →/←) expand/collapse or go to parent, `L`/`H` all; groups start closed, the tree open; search keeps matches' ancestors; processes in parent cycles are never hidden; group rows read `chrome (31)`; layout saved as a preference
+- [x] **Settings screen + what persists** — `,` opens Settings (Theme, Refresh, CPU%, Default layout, Default sort, Restore last session), saved as you change them; `T` removed. Only settings persist; dashboard keys are session-only unless "Restore last session" is on, which saves and restores tab, sort, layout, CPU% mode, details pane and hidden devices in a `[session]` section. Footer always keeps `? help`
 
 ### Phase 1 — POC
 - [x] Metrics sampler (gopsutil), CPU deltas, PID-reuse safe cache, Toolhelp names on Windows
