@@ -61,9 +61,12 @@ Out of scope: per-process network rates, app history.
 ## To do
 
 ### Phase 2 — Performance parity
-- [ ] **Refactor** apply Code standards: device pages behind an interface, sampler split into collectors, DRY formatting/grids, naming (irix→per-core, ring→history), process-tab state out of model, per-concern platform files and tests
+- [ ] **Refactor** apply Code standards: colours behind one Theme type (prepares theming), device pages behind an interface, sampler split into collectors, DRY formatting/grids, naming (irix→per-core, ring→history), process-tab state out of model, per-concern platform files and tests
 - [ ] **2d** Per-process GPU % and VRAM columns
 - [ ] **GPU: Linux Intel** (i915/xe sysfs: clock, power; usage needs root) and **macOS Apple Silicon** (IOKit performance statistics via purego)
+
+### Theming (user request, 2026-10-14)
+- [ ] **Themes** — built-in presets (e.g. default, light, high-contrast, colour-blind-safe, popular palettes like Dracula / Catppuccin / Gruvbox), user themes from a file in the config dir, and community themes (shareable files; maybe a themes folder in the repo). Prerequisite (in Refactor): all colours behind one `Theme` type of named roles. Open questions: file format (TOML/JSON), switching keys/flag (`--theme`), terminal colour support (16 / 256 / truecolor fallbacks).
 
 ### Investigate (user ideas; check viability on all OSes before committing to a design)
 - [ ] **Expandable groups** — in group mode (`z`), expand a group to see its individual processes, like Task Manager. First look: pure UI, the data is already there, so viable on every OS. Open questions: keys under the fold rules (e.g. `l`/`h` or `Enter` to expand/collapse one group, `zR`/`zM` all), and how it relates to the Phase 3 tree view (`t`). (2026-10-14)
