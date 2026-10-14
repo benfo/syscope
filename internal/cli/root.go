@@ -66,6 +66,7 @@ func newRootCmd() *cobra.Command {
 				PerCoreCPU: perCore,
 				Sampler:    metrics.NewGopsutilSampler(),
 				CPUInfo:    metrics.ReadCPUInfo(cmd.Context()),
+				Details:    metrics.ReadProcDetails,
 			})
 		},
 	}

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
@@ -19,7 +20,7 @@ type processTable struct {
 	procs  []metrics.ProcInfo
 	numCPU int
 	rows   []view.Row
-	height int // visible rows
+	bodyH  int // lines below the heading: rows, plus the details pane when open
 
 	sortKey    view.SortKey
 	desc       bool
@@ -35,6 +36,7 @@ type processTable struct {
 	selKey string // row the cursor follows across refreshes; "" until the user moves
 
 	confirm *pendingKill
+	details detailsPane
 }
 
 // pendingKill is a kill awaiting y/N confirmation.
@@ -52,11 +54,14 @@ type killDoneMsg struct {
 	err    error // last error
 }
 
-func newProcessTable(perCoreCPU bool) processTable {
+func newProcessTable(perCoreCPU bool, fetch detailsFetcher, now func() time.Time) processTable {
+	if now == nil {
+		now = time.Now
+	}
 	ti := textinput.New()
 	ti.Prompt = "/"
 	ti.Placeholder = "name or PID"
-	return processTable{sortKey: view.SortCPU, desc: true, perCoreCPU: perCoreCPU, search: ti}
+	return processTable{sortKey: view.SortCPU, desc: true, perCoreCPU: perCoreCPU, search: ti, details: detailsPane{fetch: fetch, now: now}}
 }
 
 func (t *processTable) setProcs(procs []metrics.ProcInfo, numCPU int, showGPU bool) {
@@ -65,13 +70,24 @@ func (t *processTable) setProcs(procs []metrics.ProcInfo, numCPU int, showGPU bo
 }
 
 func (t *processTable) setHeight(h int) {
-	t.height = max(1, h)
+	t.bodyH = max(1, h)
 	t.clampScroll()
 }
 
-// action applies a keymap action for the Processes scope.
+// action applies a keymap action for the Processes scope, then fetches
+// details when the pane is open and now shows a different process.
 func (t processTable) action(act action) (processTable, tea.Cmd) {
-	half := max(1, t.height/2)
+	before, _ := t.selected()
+	wasOpen := t.details.open
+	t, cmd := t.apply(act)
+	if after, _ := t.selected(); t.details.open && (!wasOpen || after.Key != before.Key) {
+		return t, tea.Batch(cmd, t.detailsCmd())
+	}
+	return t, cmd
+}
+
+func (t processTable) apply(act action) (processTable, tea.Cmd) {
+	half := max(1, t.rowsHeight()/2)
 	switch act {
 	case actDown:
 		t.move(1)
@@ -86,9 +102,9 @@ func (t processTable) action(act action) (processTable, tea.Cmd) {
 	case actHalfUp:
 		t.move(-half)
 	case actPageDown:
-		t.move(t.height)
+		t.move(t.rowsHeight())
 	case actPageUp:
-		t.move(-t.height)
+		t.move(-t.rowsHeight())
 	case actSortNext:
 		t.sortKey = t.sortKey.Next()
 		for t.sortKey.IsGPU() && !t.showGPU { // skip columns this machine doesn't show
@@ -102,8 +118,14 @@ func (t processTable) action(act action) (processTable, tea.Cmd) {
 	case actSearch:
 		t.searching = true
 		return t, t.search.Focus()
+	case actDetails:
+		t.details.open = !t.details.open
+		t.clampScroll()
 	case actCancel:
-		if t.search.Value() != "" {
+		if t.details.open { // Esc closes the pane first, then clears the search
+			t.details.open = false
+			t.clampScroll()
+		} else if t.search.Value() != "" {
 			t.search.SetValue("")
 			t.rebuild()
 		}
@@ -213,7 +235,7 @@ func (t *processTable) syncSelection() {
 }
 
 func (t *processTable) clampScroll() {
-	h := max(1, t.height)
+	h := t.rowsHeight()
 	if t.cursor < t.offset {
 		t.offset = t.cursor
 	}
@@ -349,7 +371,8 @@ func line(cols []column, widths []int, cells []string, w int) string {
 	return fit(strings.Join(parts, gap), w)
 }
 
-// render draws the heading and t.height rows at width w.
+// render draws the heading, the rows and, when open, the details pane at
+// width w.
 func (t processTable) render(w int) string {
 	cols := t.columns()
 	widths := columnWidths(cols, w)
@@ -369,7 +392,7 @@ func (t processTable) render(w int) string {
 	b.WriteString(ui.inverse.Render(line(cols, widths, titles, w)) + "\n")
 
 	cells := make([]string, len(cols))
-	for i := t.offset; i < t.offset+t.height; i++ {
+	for i := t.offset; i < t.offset+t.rowsHeight(); i++ {
 		if i >= len(t.rows) {
 			b.WriteString("\n")
 			continue
@@ -382,6 +405,9 @@ func (t processTable) render(w int) string {
 			row = ui.selected.Render(row)
 		}
 		b.WriteString(row + "\n")
+	}
+	if t.details.open {
+		b.WriteString(t.renderDetails(w))
 	}
 	return b.String()
 }

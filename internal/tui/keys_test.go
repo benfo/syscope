@@ -46,7 +46,7 @@ func TestEveryActionBound(t *testing.T) {
 			bound[a] = true
 		}
 	}
-	for a := actNone + 1; a <= actShowHidden; a++ {
+	for a := actNone + 1; a < numActions; a++ {
 		if !bound[a] {
 			t.Errorf("action %d has no key", a)
 		}
@@ -76,7 +76,7 @@ func TestVimNavigation(t *testing.T) {
 		t.Errorf("g should go to top without grouping: cursor %d group %v", m.table.cursor, m.table.group)
 	}
 	m = drive(t, m, keyMsg("ctrl+d"))
-	if want := m.table.height / 2; m.table.cursor != want {
+	if want := m.table.rowsHeight() / 2; m.table.cursor != want {
 		t.Errorf("ctrl+d: cursor %d, want %d", m.table.cursor, want)
 	}
 }

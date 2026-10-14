@@ -18,7 +18,9 @@ type Options struct {
 	Refresh    time.Duration
 	PerCoreCPU bool
 	Sampler    metrics.Sampler
-	CPUInfo    metrics.CPUInfo // static processor info for the Performance tab
+	CPUInfo    metrics.CPUInfo  // static processor info for the Performance tab
+	Details    detailsFetcher   // reads the details pane's per-process extras
+	Now        func() time.Time // clock; nil means time.Now
 }
 
 // Run blocks until the user quits.
@@ -72,7 +74,7 @@ func newModel(o Options) model {
 		cpuInfo:   o.CPUInfo,
 		refresh:   o.Refresh,
 		histories: histories{},
-		table:     newProcessTable(o.PerCoreCPU),
+		table:     newProcessTable(o.PerCoreCPU, o.Details, o.Now),
 	}
 }
 
@@ -114,7 +116,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if !m.snap.CPUKnown {
 			next = min(next, 300*time.Millisecond)
 		}
-		return m, tick(next, m.seq)
+		return m, tea.Batch(tick(next, m.seq), m.table.detailsCmd())
 
 	case tickMsg:
 		if msg.seq != m.seq || m.sampling {
@@ -122,6 +124,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		m.sampling = true
 		return m, m.sampleCmd()
+
+	case detailsMsg:
+		m.table.setDetails(msg)
+		return m, nil
 
 	case killDoneMsg:
 		m.showKillResult(msg)

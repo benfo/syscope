@@ -9,6 +9,7 @@ import (
 	"strings"
 	"taskman/internal/metrics"
 	"testing"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/x/ansi"
@@ -43,27 +44,34 @@ func TestGoldenScreens(t *testing.T) {
 	screens := []struct {
 		name string
 		keys []tea.KeyMsg
+		pump bool // run the keys' commands (details fetches)
 	}{
-		{"processes", nil},
-		{"processes_grouped_percore", []tea.KeyMsg{key("z"), key("c")}},
-		{"processes_filter_confirm", []tea.KeyMsg{key("/"), key("a"), keyMsg("enter"), key("D")}},
-		{"processes_help", []tea.KeyMsg{key("?")}},
-		{"perf_cpu", []tea.KeyMsg{key("2")}},
-		{"perf_memory", []tea.KeyMsg{key("2"), key("j")}},
-		{"perf_disk", []tea.KeyMsg{key("2"), key("j"), key("j")}},
-		{"perf_net", []tea.KeyMsg{key("2"), key("j"), key("j"), key("j")}},
-		{"perf_gpu", []tea.KeyMsg{key("2"), key("G"), key("k")}},
-		{"perf_igpu", []tea.KeyMsg{key("2"), key("G")}},
-		{"perf_hidden_adapters", []tea.KeyMsg{key("2"), key("."), key("G")}},
-		{"perf_gpu_help", []tea.KeyMsg{key("2"), key("G"), key("k"), key("?")}},
+		{"processes", nil, false},
+		{"processes_grouped_percore", []tea.KeyMsg{key("z"), key("c")}, false},
+		{"processes_filter_confirm", []tea.KeyMsg{key("/"), key("a"), keyMsg("enter"), key("D")}, false},
+		{"processes_help", []tea.KeyMsg{key("?")}, false},
+		{"processes_details", []tea.KeyMsg{keyMsg("enter")}, true},
+		{"processes_details_group", []tea.KeyMsg{key("z"), keyMsg("enter")}, true},
+		{"perf_cpu", []tea.KeyMsg{key("2")}, false},
+		{"perf_memory", []tea.KeyMsg{key("2"), key("j")}, false},
+		{"perf_disk", []tea.KeyMsg{key("2"), key("j"), key("j")}, false},
+		{"perf_net", []tea.KeyMsg{key("2"), key("j"), key("j"), key("j")}, false},
+		{"perf_gpu", []tea.KeyMsg{key("2"), key("G"), key("k")}, false},
+		{"perf_igpu", []tea.KeyMsg{key("2"), key("G")}, false},
+		{"perf_hidden_adapters", []tea.KeyMsg{key("2"), key("."), key("G")}, false},
+		{"perf_gpu_help", []tea.KeyMsg{key("2"), key("G"), key("k"), key("?")}, false},
 	}
 	for _, size := range []struct{ w, h int }{{100, 30}, {70, 16}} {
 		for _, s := range screens {
 			name := s.name + "_" + strconv.Itoa(size.w) + "x" + strconv.Itoa(size.h)
 			t.Run(name, func(t *testing.T) {
 				m := goldenModel(t, size.w, size.h)
-				for _, k := range s.keys {
-					m = drive(t, m, k)
+				if s.pump {
+					m = pump(t, m, s.keys...)
+				} else {
+					for _, k := range s.keys {
+						m = drive(t, m, k)
+					}
 				}
 				got := ansi.Strip(m.View())
 				path := filepath.Join("testdata", name+".golden")
@@ -113,8 +121,8 @@ func goldenProcs() []metrics.ProcInfo {
 	gib := uint64(1 << 30)
 	return []metrics.ProcInfo{
 		{PID: 4, Name: "System", User: "SYSTEM"},
-		{PID: 4120, Name: "ollama.exe", User: `CORP\sam`, CPU: 2.5, CPUKnown: true, RSS: 1 * gib, RSSKnown: true,
-			GPU: 88, GPUKnown: true, VRAM: 7 * gib, VRAMKnown: true},
+		{PID: 4120, PPID: 4, Name: "ollama.exe", User: `CORP\sam`, CreateTime: fakeNow().Add(-125 * time.Minute), CPU: 2.5, CPUKnown: true, RSS: 1 * gib, RSSKnown: true,
+			GPU: 88, GPUKnown: true, GPUEngine: "GPU 0 · Compute", VRAM: 7 * gib, VRAMKnown: true},
 		{PID: 21248, Name: "chrome.exe", User: `CORP\sam`, CPU: 1.9, CPUKnown: true, RSS: 535 << 20, RSSKnown: true,
 			GPU: 0.4, GPUKnown: true, VRAM: 180 << 20, VRAMKnown: true},
 		{PID: 47768, Name: "chrome.exe", User: `CORP\sam`, CPU: 0.7, CPUKnown: true, RSS: 175 << 20, RSSKnown: true,

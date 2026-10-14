@@ -55,7 +55,7 @@ func drive(t *testing.T, m model, msgs ...tea.Msg) model {
 }
 
 func sampled(t *testing.T, f *fakeSampler) model {
-	m := newModel(Options{Refresh: time.Second, Sampler: f, CPUInfo: metrics.CPUInfo{
+	m := newModel(Options{Refresh: time.Second, Sampler: f, Details: fakeDetails, Now: fakeNow, CPUInfo: metrics.CPUInfo{
 		Model: "Test CPU", Logical: 4, Physical: 4, BaseMHz: 2700,
 		Kinds: []metrics.CoreKind{metrics.CorePerformance, metrics.CorePerformance, metrics.CoreEfficiency, metrics.CoreEfficiency},
 	}})
@@ -294,3 +294,20 @@ func (f *fakeSampler) gpus() []metrics.GPUStat {
 	}
 	return fakeGPUs()
 }
+
+// fakeNow is a fixed clock so "started 2h ago" is reproducible.
+func fakeNow() time.Time { return time.Date(2026, 10, 14, 18, 30, 0, 0, time.UTC) }
+
+// fakeDetails returns fixed details, with I/O growing on every read so the
+// pane can show a rate.
+func fakeDetails(_ context.Context, pid int32) (metrics.ProcDetails, error) {
+	fakeReads++
+	return metrics.ProcDetails{
+		PID: pid, ReadAt: fakeNow().Add(time.Duration(fakeReads) * time.Second),
+		Cmdline: `"C:\Program Files\Ollama\ollama.exe" serve`,
+		Threads: 23, ThreadsKnown: true, Handles: 412, HandlesKnown: true,
+		IORead: uint64(fakeReads) * 2_000_000, IOWrite: uint64(fakeReads) * 40_000, IOKnown: true,
+	}, nil
+}
+
+var fakeReads int

@@ -30,6 +30,8 @@ const (
 	actGroup
 	actCPUMode
 	actShowHidden
+	actDetails
+	numActions // sentinel for tests
 )
 
 type scope int
@@ -62,7 +64,7 @@ var keymap = []binding{
 		"ctrl+d": actHalfDown, "ctrl+u": actHalfUp, "pgdown": actPageDown, "pgup": actPageUp}},
 	{scopeGlobal, "1-2", "jump to tab", "tabs", map[string]action{"1": actTab1, "2": actTab2}},
 	{scopeGlobal, "tab", "next / previous tab", "", map[string]action{"tab": actNextTab, "shift+tab": actPrevTab}},
-	{scopeGlobal, "esc", "cancel / clear search", "", map[string]action{"esc": actCancel}},
+	{scopeGlobal, "esc", "close pane / cancel / clear search", "", map[string]action{"esc": actCancel}},
 	{scopeGlobal, "?", "help", "help", map[string]action{"?": actHelp}},
 	{scopeGlobal, "q", "quit", "quit", map[string]action{"q": actQuit, "ctrl+c": actQuit}},
 
@@ -71,6 +73,7 @@ var keymap = []binding{
 	{scopeProcesses, "s/S", "next sort column / reverse", "sort", map[string]action{"s": actSortNext, "S": actSortReverse}},
 	{scopeProcesses, "z", "group by app (fold)", "group", map[string]action{"z": actGroup}},
 	{scopeProcesses, "c", "CPU% normalized / per-core", "cpu%", map[string]action{"c": actCPUMode}},
+	{scopeProcesses, "enter", "details pane (follows the cursor)", "details", map[string]action{"enter": actDetails}},
 
 	{scopePerformance, ".", "show hidden adapters", "hidden", map[string]action{".": actShowHidden}},
 }
