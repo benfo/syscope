@@ -6,4 +6,4 @@ package metrics
 // Apple Silicon via IOKit is on the roadmap).
 type gpuState struct{}
 
-func (g *gpuState) read() []GPUStat { return nil }
+func (g *gpuState) read() ([]GPUStat, gpuUsage) { return nil, nil }

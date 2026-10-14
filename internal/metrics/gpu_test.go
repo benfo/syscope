@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"sort"
 	"testing"
 	"time"
 )
@@ -127,4 +128,50 @@ func TestPrettyEngine(t *testing.T) {
 			t.Errorf("prettyEngine(%q) = %q, want %q", in, got, want)
 		}
 	}
+}
+
+func TestPerProcessGPU(t *testing.T) {
+	engines := map[string]float64{
+		"pid_100_luid_0x00000000_0x000142de_phys_0_eng_0_engtype_3D":          40,
+		"pid_100_luid_0x00000000_0x000142de_phys_0_eng_5_engtype_VideoDecode": 70,
+		"pid_200_luid_0x00000000_0x00013e7a_phys_0_eng_0_engtype_3D":          2,
+		"luid_0x00000000_0x000142de_phys_0_eng_0_engtype_3D":                  99, // no pid: ignored
+	}
+	vram := map[string]float64{
+		"pid_100_luid_0x00000000_0x000142de_phys_0": 7 << 30,
+		"pid_100_luid_0x00000000_0x00013e7a_phys_0": 1 << 20, // also on the iGPU: summed
+		"pid_300_luid_0x00000000_0x000142de_phys_0": 512 << 20,
+	}
+	got := perProcessGPU(engines, vram)
+	if u := got[100]; u.util != 70 || !u.utilKnown || u.vram != 7<<30+1<<20 || !u.vramKnown {
+		t.Errorf("pid 100: %+v", u)
+	}
+	if u := got[300]; u.utilKnown || u.vram != 512<<20 {
+		t.Errorf("pid 300 (VRAM only): %+v", u)
+	}
+	if len(got) != 3 {
+		t.Errorf("want 3 pids, got %d", len(got))
+	}
+}
+
+func TestPerProcessGPULive(t *testing.T) {
+	s := NewGopsutilSampler()
+	ctx := context.Background()
+	s.Sample(ctx)
+	time.Sleep(500 * time.Millisecond)
+	_, procs, err := s.Sample(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sort.Slice(procs, func(i, j int) bool { return procs[i].VRAM > procs[j].VRAM })
+	n := 0
+	for _, p := range procs {
+		if p.VRAMKnown || p.GPUKnown {
+			n++
+			if n <= 6 {
+				t.Logf("%6d %-28s gpu=%5.1f(%v) vram=%6d MiB", p.PID, p.Name, p.GPU, p.GPUKnown, p.VRAM>>20)
+			}
+		}
+	}
+	t.Logf("%d processes have GPU data", n)
 }

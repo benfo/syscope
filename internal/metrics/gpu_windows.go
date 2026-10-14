@@ -15,6 +15,7 @@ const (
 	gpuEngineCounter    = `\GPU Engine(*)\Utilization Percentage`
 	gpuDedicatedCounter = `\GPU Adapter Memory(*)\Dedicated Usage`
 	gpuSharedCounter    = `\GPU Adapter Memory(*)\Shared Usage`
+	gpuProcessVRAM      = `\GPU Process Memory(*)\Dedicated Usage`
 	adapterRefresh      = 30 * time.Second
 )
 
@@ -26,26 +27,27 @@ type gpuState struct {
 	adaptersAt time.Time
 }
 
-func (g *gpuState) read() []GPUStat {
+func (g *gpuState) read() ([]GPUStat, gpuUsage) {
 	if g.adapters == nil || time.Since(g.adaptersAt) > adapterRefresh {
 		g.adapters, g.adaptersAt = dxgiAdapters(), time.Now()
 	}
 	if len(g.adapters) == 0 {
-		return nil
+		return nil, nil
 	}
 	if g.query == nil {
-		if q, err := newPDHQuery(gpuEngineCounter, gpuDedicatedCounter, gpuSharedCounter); err == nil {
+		if q, err := newPDHQuery(gpuEngineCounter, gpuDedicatedCounter, gpuSharedCounter, gpuProcessVRAM); err == nil {
 			g.query = q
 			q.collect() // prime the rate counters
 		}
 	}
-	var engines map[string]map[string]float64
-	var dedicated, shared map[string]float64
+	var engineVals, dedicated, shared, processVRAM map[string]float64
 	if g.query != nil && g.query.collect() == nil {
-		engines = aggregateEngines(g.query.values(gpuEngineCounter))
+		engineVals = g.query.values(gpuEngineCounter)
 		dedicated = g.query.values(gpuDedicatedCounter)
 		shared = g.query.values(gpuSharedCounter)
+		processVRAM = g.query.values(gpuProcessVRAM)
 	}
+	engines := aggregateEngines(engineVals)
 
 	var nv []nvmlDevice
 	if n := openNVML(); n != nil {
@@ -82,7 +84,7 @@ func (g *gpuState) read() []GPUStat {
 		}
 		out = append(out, st)
 	}
-	return out
+	return out, perProcessGPU(engineVals, processVRAM)
 }
 
 // mergeNVML adds NVML-only metrics to a Windows adapter; usage and memory

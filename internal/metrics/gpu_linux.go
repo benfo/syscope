@@ -7,7 +7,7 @@ type gpuState struct{}
 
 // read lists NVIDIA GPUs via NVML and AMD GPUs via amdgpu sysfs. Intel
 // (i915/xe) needs root for usage and isn't supported yet.
-func (g *gpuState) read() []GPUStat {
+func (g *gpuState) read() ([]GPUStat, gpuUsage) {
 	var out []GPUStat
 	if n := openNVML(); n != nil {
 		for _, d := range n.read() {
@@ -20,5 +20,5 @@ func (g *gpuState) read() []GPUStat {
 	for i := range out {
 		out[i].ID = strconv.Itoa(i)
 	}
-	return out
+	return out, nil
 }

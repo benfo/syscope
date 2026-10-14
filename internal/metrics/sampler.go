@@ -17,6 +17,12 @@ type collector interface {
 	collect(ctx context.Context, now time.Time, snap *SystemSnapshot) error
 }
 
+// procEnricher is a collector that also gathered per-process data (e.g. GPU
+// use per PID from the GPU counters) and adds it to the process list.
+type procEnricher interface {
+	enrich(procs []ProcInfo)
+}
+
 // GopsutilSampler is the real Sampler: it runs the system-wide collectors,
 // then the process collector. Safe for concurrent use; calls are serialized.
 type GopsutilSampler struct {
@@ -54,6 +60,11 @@ func (s *GopsutilSampler) Sample(ctx context.Context) (SystemSnapshot, []ProcInf
 	procs, err := s.procs.collect(ctx, now)
 	if err != nil {
 		return snap, nil, err
+	}
+	for _, c := range s.collectors {
+		if e, ok := c.(procEnricher); ok {
+			e.enrich(procs)
+		}
 	}
 	snap.ProcCount = len(procs)
 	return snap, procs, nil

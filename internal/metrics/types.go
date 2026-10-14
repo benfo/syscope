@@ -47,6 +47,11 @@ type ProcInfo struct {
 
 	RSS      uint64 // resident set size; working set on Windows
 	RSSKnown bool
+
+	GPU       float64 // busiest GPU engine this process uses, 0–100
+	GPUKnown  bool
+	VRAM      uint64 // dedicated GPU memory
+	VRAMKnown bool
 }
 
 // Sampler produces snapshots. Rate-based fields (CPU) are computed from the

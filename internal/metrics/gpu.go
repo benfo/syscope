@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 	"unicode"
@@ -185,11 +186,68 @@ func luidKey(high int32, low uint32) string {
 	return fmt.Sprintf("0x%08x_0x%08x", uint32(high), low)
 }
 
-// gpuCollector reads every GPU. gpuState is the platform's between-sample
-// state (Windows keeps its performance-counter query open).
-type gpuCollector struct{ state gpuState }
+// gpuCollector reads every GPU, and remembers per-process usage gathered at
+// the same time to add to the process list. gpuState is the platform's
+// between-sample state (Windows keeps its performance-counter query open).
+type gpuCollector struct {
+	state gpuState
+	procs gpuUsage
+}
 
 func (c *gpuCollector) collect(_ context.Context, _ time.Time, snap *SystemSnapshot) error {
-	snap.GPUs = c.state.read()
+	snap.GPUs, c.procs = c.state.read()
 	return nil
+}
+
+func (c *gpuCollector) enrich(procs []ProcInfo) {
+	for i := range procs {
+		if u, ok := c.procs[procs[i].PID]; ok {
+			p := &procs[i]
+			p.GPU, p.GPUKnown = u.util, u.utilKnown
+			p.VRAM, p.VRAMKnown = u.vram, u.vramKnown
+		}
+	}
+}
+
+// procGPU is one process's GPU use across all GPUs.
+type procGPU struct {
+	util      float64 // busiest engine, 0–100
+	utilKnown bool
+	vram      uint64 // dedicated GPU memory
+	vramKnown bool
+}
+
+// gpuUsage is per-process GPU use keyed by PID.
+type gpuUsage map[int32]procGPU
+
+var pidInstanceRE = regexp.MustCompile(`^pid_(\d+)_`)
+
+// perProcessGPU reads per-process figures from Windows counter instances named
+// "pid_<pid>_luid_…": a process's GPU% is its busiest engine (as in Task
+// Manager) and its VRAM is the sum over adapters.
+func perProcessGPU(engines, vram map[string]float64) gpuUsage {
+	out := gpuUsage{}
+	pidOf := func(inst string) (int32, bool) {
+		m := pidInstanceRE.FindStringSubmatch(inst)
+		if m == nil {
+			return 0, false
+		}
+		pid, err := strconv.ParseInt(m[1], 10, 32)
+		return int32(pid), err == nil
+	}
+	for inst, v := range engines {
+		if pid, ok := pidOf(inst); ok {
+			u := out[pid]
+			u.util, u.utilKnown = max(u.util, min(v, 100)), true
+			out[pid] = u
+		}
+	}
+	for inst, v := range vram {
+		if pid, ok := pidOf(inst); ok {
+			u := out[pid]
+			u.vram, u.vramKnown = u.vram+uint64(v), true
+			out[pid] = u
+		}
+	}
+	return out
 }
