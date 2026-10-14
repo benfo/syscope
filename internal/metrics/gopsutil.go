@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/shirou/gopsutil/v4/cpu"
+	"github.com/shirou/gopsutil/v4/disk"
 	"github.com/shirou/gopsutil/v4/host"
 	"github.com/shirou/gopsutil/v4/mem"
 	"github.com/shirou/gopsutil/v4/process"
@@ -36,6 +37,9 @@ type GopsutilSampler struct {
 	gen     uint64
 	prevTot *cpu.TimesStat
 	prevPer []cpu.TimesStat
+
+	prevDisks  map[string]diskRaw
+	prevDiskAt time.Time
 }
 
 func NewGopsutilSampler() *GopsutilSampler {
@@ -55,6 +59,8 @@ func (s *GopsutilSampler) Sample(ctx context.Context) (SystemSnapshot, []ProcInf
 	if err != nil {
 		return snap, nil, err
 	}
+
+	snap.Disks = s.sampleDisks(ctx, now)
 
 	pids, err := process.PidsWithContext(ctx)
 	if err != nil {
@@ -154,4 +160,32 @@ func (s *GopsutilSampler) sampleProc(ctx context.Context, pid int32, snapName st
 		info.Status = strings.Join(st, ",")
 	}
 	return info
+}
+
+func (s *GopsutilSampler) sampleDisks(ctx context.Context, now time.Time) []DiskStat {
+	raws, err := readDisks()
+	if err != nil {
+		return nil
+	}
+	var wall time.Duration
+	if !s.prevDiskAt.IsZero() {
+		wall = now.Sub(s.prevDiskAt)
+	}
+	next := make(map[string]diskRaw, len(raws))
+	out := make([]DiskStat, 0, len(raws))
+	for _, r := range raws {
+		st := DiskStat{ID: r.ID, Name: r.Name, Model: r.Model, Bus: r.Bus}
+		if prev, ok := s.prevDisks[r.ID]; ok {
+			st = diskDelta(prev, r, wall)
+		}
+		for _, m := range r.Mounts {
+			if u, err := disk.UsageWithContext(ctx, m); err == nil {
+				st.Volumes = append(st.Volumes, VolumeStat{Mount: mountLabel(m), Total: u.Total, Used: u.Used})
+			}
+		}
+		next[r.ID] = r
+		out = append(out, st)
+	}
+	s.prevDisks, s.prevDiskAt = next, now
+	return out
 }
