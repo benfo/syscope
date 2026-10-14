@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"strconv"
+	"strings"
 	"text/tabwriter"
 	"time"
 
@@ -41,7 +42,7 @@ func newPsCmd() *cobra.Command {
 		},
 	}
 	f := cmd.Flags()
-	f.StringVarP(&o.sort, "sort", "s", "cpu", "sort by cpu, mem, pid or name")
+	f.StringVarP(&o.sort, "sort", "s", "cpu", "sort by cpu, mem, gpu, vram, pid or name")
 	f.BoolVarP(&o.reverse, "reverse", "r", false, "reverse the sort direction")
 	f.IntVarP(&o.top, "top", "n", 0, "show only the first N rows (0 = all)")
 	f.StringVarP(&o.filter, "filter", "f", "", "only processes whose name contains, or PID starts with, this text")
@@ -96,14 +97,23 @@ func writePsTable(w io.Writer, snap metrics.SystemSnapshot, rows []view.Row, o p
 	if o.group {
 		first = "COUNT"
 	}
-	fmt.Fprintf(tw, "%s\tNAME\tUSER\tCPU%%\tMEM\n", first)
+	hasGPU := len(snap.GPUs) > 0
+	head := []string{first, "NAME", "USER", "CPU%", "MEM"}
+	if hasGPU {
+		head = append(head, "GPU%", "VRAM")
+	}
+	fmt.Fprintln(tw, strings.Join(head, "\t"))
 	for _, r := range rows {
 		id := strconv.Itoa(int(r.PID))
 		if o.group {
 			id = strconv.Itoa(r.Count)
 		}
-		fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\n", id, r.Name, view.ShortUser(r.User),
-			view.FormatCPU(r.CPU, r.CPUKnown, snap.NumCPU, o.perCore), view.FormatMem(r.RSS, r.RSSKnown))
+		cells := []string{id, r.Name, view.ShortUser(r.User),
+			view.FormatCPU(r.CPU, r.CPUKnown, snap.NumCPU, o.perCore), view.FormatMem(r.RSS, r.RSSKnown)}
+		if hasGPU {
+			cells = append(cells, view.FormatGPU(r.GPU, r.GPUKnown), view.FormatMem(r.VRAM, r.VRAMKnown))
+		}
+		fmt.Fprintln(tw, strings.Join(cells, "\t"))
 	}
 	return tw.Flush()
 }
@@ -129,6 +139,17 @@ type jsonRow struct {
 	User       string   `json:"user"`
 	CPUPercent *float64 `json:"cpu_percent"`
 	MemBytes   *uint64  `json:"mem_bytes"`
+	// GPU fields are omitted when there's no data (no GPU, or unknown).
+	GPUPercent *float64 `json:"gpu_percent,omitempty"`
+	VRAMBytes  *uint64  `json:"vram_bytes,omitempty"`
+}
+
+// ifKnown returns a pointer to v, or nil (JSON null) when it isn't known.
+func ifKnown[T any](v T, known bool) *T {
+	if !known {
+		return nil
+	}
+	return &v
 }
 
 func writePsJSON(w io.Writer, snap metrics.SystemSnapshot, rows []view.Row, o psOptions) error {
@@ -160,14 +181,10 @@ func writePsJSON(w io.Writer, snap metrics.SystemSnapshot, rows []view.Row, o ps
 			pid := r.PID
 			jr.PID = &pid
 		}
-		if r.CPUKnown {
-			v := view.CPUValue(r.CPU, snap.NumCPU, o.perCore)
-			jr.CPUPercent = &v
-		}
-		if r.RSSKnown {
-			v := r.RSS
-			jr.MemBytes = &v
-		}
+		jr.CPUPercent = ifKnown(view.CPUValue(r.CPU, snap.NumCPU, o.perCore), r.CPUKnown)
+		jr.MemBytes = ifKnown(r.RSS, r.RSSKnown)
+		jr.GPUPercent = ifKnown(r.GPU, r.GPUKnown)
+		jr.VRAMBytes = ifKnown(r.VRAM, r.VRAMKnown)
 		out.Rows = append(out.Rows, jr)
 	}
 	enc := json.NewEncoder(w)
