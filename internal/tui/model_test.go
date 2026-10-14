@@ -66,15 +66,15 @@ func TestSelectionFollowsProcessAcrossRefresh(t *testing.T) {
 	f := &fakeSampler{procs: []metrics.ProcInfo{p(1, "a", 30), p(2, "b", 20), p(3, "c", 10)}}
 	m := sampled(t, f)
 	m = drive(t, m, key("down")) // select b (PID 2)
-	if r, _ := m.selected(); r.PID != 2 {
+	if r, _ := m.table.selected(); r.PID != 2 {
 		t.Fatalf("selected PID %d, want 2", r.PID)
 	}
 
 	f.procs = []metrics.ProcInfo{p(1, "a", 5), p(2, "b", 50), p(3, "c", 10)} // b jumps to top
 	snap, procs, _ := f.Sample(context.Background())
 	m = drive(t, m, sampleMsg{snap: snap, procs: procs})
-	if r, _ := m.selected(); r.PID != 2 || m.cursor != 0 {
-		t.Errorf("selection lost: PID %d at cursor %d", r.PID, m.cursor)
+	if r, _ := m.table.selected(); r.PID != 2 || m.table.cursor != 0 {
+		t.Errorf("selection lost: PID %d at cursor %d", r.PID, m.table.cursor)
 	}
 }
 
@@ -85,7 +85,7 @@ func TestCursorStaysOnTopUntilUserMoves(t *testing.T) {
 	f.procs = []metrics.ProcInfo{p(1, "a", 0), p(2, "b", 9)}
 	snap, procs, _ := f.Sample(context.Background())
 	m = drive(t, m, sampleMsg{snap: snap, procs: procs})
-	if r, _ := m.selected(); r.PID != 2 {
+	if r, _ := m.table.selected(); r.PID != 2 {
 		t.Errorf("cursor should stay on the top row, got PID %d", r.PID)
 	}
 }
@@ -106,23 +106,23 @@ func TestFilterAndGroup(t *testing.T) {
 	f := &fakeSampler{procs: []metrics.ProcInfo{p(1, "chrome.exe", 1), p(2, "chrome.exe", 2), p(3, "code.exe", 1)}}
 	m := sampled(t, f)
 	m = drive(t, m, key("/"), key("c"), key("h"), key("enter"))
-	if len(m.rows) != 2 || m.filtering {
-		t.Fatalf("filter: %d rows, filtering=%v", len(m.rows), m.filtering)
+	if len(m.table.rows) != 2 || m.table.searching {
+		t.Fatalf("filter: %d rows, filtering=%v", len(m.table.rows), m.table.searching)
 	}
 	m = drive(t, m, key("z"))
-	if len(m.rows) != 1 || m.rows[0].Count != 2 {
-		t.Fatalf("group: %+v", m.rows)
+	if len(m.table.rows) != 1 || m.table.rows[0].Count != 2 {
+		t.Fatalf("group: %+v", m.table.rows)
 	}
 	m = drive(t, m, keyMsg("esc"), key("z"))
-	if len(m.rows) != 3 {
-		t.Errorf("esc should clear filter: %d rows", len(m.rows))
+	if len(m.table.rows) != 3 {
+		t.Errorf("esc should clear filter: %d rows", len(m.table.rows))
 	}
 }
 
 func TestKillNeedsConfirmation(t *testing.T) {
 	m := sampled(t, &fakeSampler{procs: []metrics.ProcInfo{p(1, "a", 1)}})
 	m = drive(t, m, key("D"))
-	if m.confirm == nil || !m.confirm.force {
+	if m.table.confirm == nil || !m.table.confirm.force {
 		t.Fatal("D should ask to confirm a force kill")
 	}
 	if !strings.Contains(m.View(), "Force kill a (PID 1)? [y/N]") {
@@ -130,7 +130,7 @@ func TestKillNeedsConfirmation(t *testing.T) {
 	}
 	next, cmd := m.Update(key("n"))
 	m = next.(model)
-	if cmd != nil || m.confirm != nil {
+	if cmd != nil || m.table.confirm != nil {
 		t.Error("n should cancel without killing")
 	}
 }
@@ -175,7 +175,7 @@ func TestTabs(t *testing.T) {
 		t.Error("down should select Memory")
 	}
 	m = drive(t, m, key("D")) // process keys are inert on the Performance tab
-	if m.confirm != nil {
+	if m.table.confirm != nil {
 		t.Error("kill must not trigger from the Performance tab")
 	}
 	m = drive(t, m, keyMsg("tab"))
@@ -183,7 +183,7 @@ func TestTabs(t *testing.T) {
 		t.Error("tab should cycle back to Processes")
 	}
 	m = drive(t, m, key("/"), key("2"))
-	if m.tab != tabProcesses || m.filter.Value() != "2" {
+	if m.tab != tabProcesses || m.table.search.Value() != "2" {
 		t.Error("digits typed into the filter must not switch tabs")
 	}
 }

@@ -60,24 +60,24 @@ func TestVimNavigation(t *testing.T) {
 	}
 	m := sampled(t, &fakeSampler{procs: procs})
 	m = drive(t, m, key("j"), key("j"))
-	if m.cursor != 2 {
-		t.Errorf("jj: cursor %d", m.cursor)
+	if m.table.cursor != 2 {
+		t.Errorf("jj: cursor %d", m.table.cursor)
 	}
 	m = drive(t, m, key("k"))
-	if m.cursor != 1 || m.confirm != nil {
-		t.Errorf("k should move up, not kill: cursor %d", m.cursor)
+	if m.table.cursor != 1 || m.table.confirm != nil {
+		t.Errorf("k should move up, not kill: cursor %d", m.table.cursor)
 	}
 	m = drive(t, m, key("G"))
-	if m.cursor != 39 {
-		t.Errorf("G: cursor %d", m.cursor)
+	if m.table.cursor != 39 {
+		t.Errorf("G: cursor %d", m.table.cursor)
 	}
 	m = drive(t, m, key("g"))
-	if m.cursor != 0 || m.group {
-		t.Errorf("g should go to top without grouping: cursor %d group %v", m.cursor, m.group)
+	if m.table.cursor != 0 || m.table.group {
+		t.Errorf("g should go to top without grouping: cursor %d group %v", m.table.cursor, m.table.group)
 	}
 	m = drive(t, m, keyMsg("ctrl+d"))
-	if want := m.bodyHeight() / 2; m.cursor != want {
-		t.Errorf("ctrl+d: cursor %d, want %d", m.cursor, want)
+	if want := m.table.height / 2; m.table.cursor != want {
+		t.Errorf("ctrl+d: cursor %d, want %d", m.table.cursor, want)
 	}
 }
 

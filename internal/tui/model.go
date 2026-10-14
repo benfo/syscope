@@ -7,12 +7,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 
 	"taskman/internal/metrics"
-	"taskman/internal/proc"
-	"taskman/internal/view"
 )
 
 const historyLen = 300
@@ -42,72 +39,40 @@ type sampleMsg struct {
 
 type tickMsg struct{ seq int }
 
-type killDoneMsg struct {
-	desc   string
-	force  bool
-	failed int
-	total  int
-	err    error // last error
-}
-
-// pendingKill is a kill awaiting y/N confirmation.
-type pendingKill struct {
-	row   view.Row
-	force bool
-}
-
+// model is the Bubble Tea model: it owns sampling, the shared state both tabs
+// read (latest snapshot, histories), and routes keys to the active tab.
 type model struct {
 	sampler metrics.Sampler
 	refresh time.Duration
 	cpuInfo metrics.CPUInfo
+
+	snap      metrics.SystemSnapshot
+	histories histories
+	table     processTable
 
 	tab        int
 	perfKey    string // selected Performance device
 	showHidden bool   // list hidden devices (e.g. idle virtual adapters)
 	showHelp   bool
 	helpOff    int // scroll offset of the ? screen
-	histories  histories
 
-	snap  metrics.SystemSnapshot
-	procs []metrics.ProcInfo
-	rows  []view.Row
-
-	sortKey    view.SortKey
-	desc       bool
-	group      bool
-	perCoreCPU bool
-
-	filter    textinput.Model
-	filtering bool
-
-	cursor int
-	offset int
-	selKey string
-
-	confirm  *pendingKill
 	status   string
 	statusOK bool
 	statusAt time.Time
 
 	sampling bool
-	seq      int
+	seq      int // refresh chain; ticks from older chains are ignored
 	width    int
 	height   int
 }
 
 func newModel(o Options) model {
-	ti := textinput.New()
-	ti.Prompt = "/"
-	ti.Placeholder = "name or PID"
 	return model{
-		sampler:    o.Sampler,
-		cpuInfo:    o.CPUInfo,
-		refresh:    o.Refresh,
-		perCoreCPU: o.PerCoreCPU,
-		sortKey:    view.SortCPU,
-		desc:       true,
-		filter:     ti,
-		histories:  histories{},
+		sampler:   o.Sampler,
+		cpuInfo:   o.CPUInfo,
+		refresh:   o.Refresh,
+		histories: histories{},
+		table:     newProcessTable(o.PerCoreCPU),
 	}
 }
 
@@ -131,7 +96,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.width, m.height = msg.Width, msg.Height
-		m.clampScroll()
+		m.table.setHeight(m.tableHeight())
 		return m, nil
 
 	case sampleMsg:
@@ -141,9 +106,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.setStatus("sample failed: "+msg.err.Error(), false)
 			return m, tick(m.refresh, m.seq)
 		}
-		m.snap, m.procs = msg.snap, msg.procs
+		m.snap = msg.snap
 		m.recordHistory()
-		m.rebuild()
+		m.table.setProcs(msg.procs, msg.snap.NumCPU)
 		// The first sample only primes CPU deltas; follow up quickly.
 		next := m.refresh
 		if !m.snap.CPUKnown {
@@ -172,42 +137,27 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
+// handleKey routes a key: modal states first (kill prompt, search input,
+// help), then global actions, then the active tab.
 func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	key := msg.String()
 	if key == "ctrl+c" {
 		return m, tea.Quit
 	}
 
-	if m.confirm != nil {
-		pk := *m.confirm
-		m.confirm = nil
-		if key == "y" || key == "Y" {
-			return m, killCmd(pk)
+	var cmd tea.Cmd
+	switch {
+	case m.table.confirm != nil:
+		var cancelled bool
+		m.table, cmd, cancelled = m.table.confirmKey(key)
+		if cancelled {
+			m.setStatus("cancelled", true)
 		}
-		m.setStatus("cancelled", true)
-		return m, nil
-	}
-
-	if m.filtering {
-		switch key {
-		case "enter":
-			m.filtering = false
-			m.filter.Blur()
-		case "esc":
-			m.filtering = false
-			m.filter.Blur()
-			m.filter.SetValue("")
-		default:
-			var cmd tea.Cmd
-			m.filter, cmd = m.filter.Update(msg)
-			m.rebuild()
-			return m, cmd
-		}
-		m.rebuild()
-		return m, nil
-	}
-
-	if m.showHelp {
+		return m, cmd
+	case m.table.searching:
+		m.table, cmd = m.table.searchKey(msg)
+		return m, cmd
+	case m.showHelp:
 		return m.helpAction(lookup(scopeGlobal, key)), nil
 	}
 
@@ -224,68 +174,22 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	if m.tab == tabPerformance {
 		return m.perfAction(act), nil
 	}
-	return m.processAction(act)
+	m.table, cmd = m.table.action(act)
+	return m, cmd
 }
 
-func (m model) processAction(act action) (tea.Model, tea.Cmd) {
-	half := max(1, m.bodyHeight()/2)
+// switchTab handles the tab actions. It's shared by every mode that shows
+// the tab bar, so tab keys work the same everywhere (including ? help).
+func (m model) switchTab(act action) model {
 	switch act {
-	case actDown:
-		m.move(1)
-	case actUp:
-		m.move(-1)
-	case actTop:
-		m.move(-len(m.rows))
-	case actBottom:
-		m.move(len(m.rows))
-	case actHalfDown:
-		m.move(half)
-	case actHalfUp:
-		m.move(-half)
-	case actPageDown:
-		m.move(m.bodyHeight())
-	case actPageUp:
-		m.move(-m.bodyHeight())
-	case actSortNext:
-		m.sortKey = m.sortKey.Next()
-		m.desc = m.sortKey.DefaultDesc()
-		m.rebuild()
-	case actSortReverse:
-		m.desc = !m.desc
-		m.rebuild()
-	case actSearch:
-		m.filtering = true
-		return m, m.filter.Focus()
-	case actCancel:
-		if m.filter.Value() != "" {
-			m.filter.SetValue("")
-			m.rebuild()
-		}
-	case actGroup:
-		m.group = !m.group
-		m.resetSelection()
-		m.rebuild()
-	case actCPUMode:
-		m.perCoreCPU = !m.perCoreCPU
-	case actEndTask, actForceKill:
-		if r, ok := m.selected(); ok {
-			m.confirm = &pendingKill{row: r, force: act == actForceKill}
-		}
+	case actTab1, actTab2:
+		m.tab = int(act - actTab1)
+	case actNextTab:
+		m.tab = (m.tab + 1) % numTabs
+	case actPrevTab:
+		m.tab = (m.tab + numTabs - 1) % numTabs
 	}
-	return m, nil
-}
-
-func killCmd(pk pendingKill) tea.Cmd {
-	return func() tea.Msg {
-		res := killDoneMsg{desc: rowDesc(pk.row), force: pk.force, total: len(pk.row.PIDs)}
-		for _, pid := range pk.row.PIDs {
-			if err := proc.Kill(pid, pk.force); err != nil {
-				res.failed++
-				res.err = err
-			}
-		}
-		return res
-	}
+	return m
 }
 
 func (m *model) showKillResult(r killDoneMsg) {
@@ -305,85 +209,4 @@ func (m *model) showKillResult(r killDoneMsg) {
 
 func (m *model) setStatus(s string, ok bool) {
 	m.status, m.statusOK, m.statusAt = s, ok, time.Now()
-}
-
-// rebuild derives the visible rows. Once the user has moved the cursor, the
-// selection follows that process or group across refreshes; until then the
-// cursor stays put so the top consumer stays highlighted.
-func (m *model) rebuild() {
-	m.rows = view.Rows(view.Filter(m.procs, m.filter.Value()), m.group)
-	view.Sort(m.rows, m.sortKey, m.desc)
-
-	found := false
-	if m.selKey != "" {
-		for i, r := range m.rows {
-			if r.Key == m.selKey {
-				m.cursor, found = i, true
-				break
-			}
-		}
-	}
-	if !found {
-		m.cursor = max(0, min(m.cursor, len(m.rows)-1))
-		if m.selKey != "" {
-			m.syncSelection() // selected process exited: follow its replacement row
-		}
-	}
-	m.clampScroll()
-}
-
-func (m *model) move(delta int) {
-	m.cursor = max(0, min(m.cursor+delta, len(m.rows)-1))
-	m.syncSelection()
-	m.clampScroll()
-}
-
-// resetSelection returns the cursor to the top and stops following a row.
-func (m *model) resetSelection() {
-	m.cursor, m.offset, m.selKey = 0, 0, ""
-}
-
-func (m *model) syncSelection() {
-	if r, ok := m.selected(); ok {
-		m.selKey = r.Key
-	}
-}
-
-func (m *model) clampScroll() {
-	h := m.bodyHeight()
-	if m.cursor < m.offset {
-		m.offset = m.cursor
-	}
-	if m.cursor >= m.offset+h {
-		m.offset = m.cursor - h + 1
-	}
-	m.offset = max(0, min(m.offset, len(m.rows)-h))
-}
-
-func (m model) selected() (view.Row, bool) {
-	if m.cursor < 0 || m.cursor >= len(m.rows) {
-		return view.Row{}, false
-	}
-	return m.rows[m.cursor], true
-}
-
-func rowDesc(r view.Row) string {
-	if r.Count > 1 {
-		return fmt.Sprintf("%s (%d processes)", r.Name, r.Count)
-	}
-	return fmt.Sprintf("%s (PID %d)", r.Name, r.PID)
-}
-
-// switchTab handles the tab actions. It's shared by every mode that shows
-// the tab bar, so tab keys work the same everywhere (including ? help).
-func (m model) switchTab(act action) model {
-	switch act {
-	case actTab1, actTab2:
-		m.tab = int(act - actTab1)
-	case actNextTab:
-		m.tab = (m.tab + 1) % numTabs
-	case actPrevTab:
-		m.tab = (m.tab + numTabs - 1) % numTabs
-	}
-	return m
 }

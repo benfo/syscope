@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/x/ansi"
 	"github.com/mattn/go-runewidth"
 )
 
@@ -191,4 +192,48 @@ func sumSeries(a, b []float64) []float64 {
 		out[off+i] += v
 	}
 	return out
+}
+
+// spread places left and right on one line of width w, dropping right if
+// there is no room.
+func spread(left, right string, w int) string {
+	gap := w - lipgloss.Width(left) - lipgloss.Width(right)
+	if right == "" || gap < 1 {
+		return ansi.Truncate(left, w, "")
+	}
+	return left + strings.Repeat(" ", gap) + right
+}
+
+// padANSI truncates or pads a styled string to exactly w cells.
+func padANSI(s string, w int) string {
+	s = ansi.Truncate(s, w, "")
+	return s + strings.Repeat(" ", max(0, w-lipgloss.Width(s)))
+}
+
+// Separators for packLine: between "Label value" stats, and between grid cells.
+const (
+	statSep = "   "
+	gridSep = " "
+)
+
+// packLine lays items out left to right separated by sep, wrapping onto
+// more lines rather than overflowing width w.
+func packLine(items []string, sep string, w int) []string {
+	var lines []string
+	cur := ""
+	for _, it := range items {
+		switch {
+		case cur == "":
+			cur = it
+		case lipgloss.Width(cur)+len(sep)+lipgloss.Width(it) <= w:
+			cur += sep + it
+		default:
+			lines = append(lines, cur)
+			cur = it
+		}
+	}
+	if cur != "" {
+		lines = append(lines, cur)
+	}
+	return lines
 }

@@ -189,32 +189,6 @@ func tempStyle(c float64) lipgloss.Style {
 	return ui.good
 }
 
-// stripGPU is the top-line entry: the busiest GPU's load and temperature,
-// and the largest card's VRAM use.
-func (m model) stripGPU() string {
-	var busiest, vram *metrics.GPUStat
-	for i := range m.snap.GPUs {
-		g := &m.snap.GPUs[i]
-		if g.UtilKnown && (busiest == nil || g.Util > busiest.Util) {
-			busiest = g
-		}
-		if g.MemKnown && (vram == nil || g.MemTotal > vram.MemTotal) {
-			vram = g
-		}
-	}
-	if busiest == nil {
-		return ui.muted.Render("--")
-	}
-	s := loadStyle(busiest.Util).Render(fmt.Sprintf("%.0f%%", busiest.Util))
-	if busiest.TempKnown {
-		s += " " + tempStyle(busiest.TempC).Render(fmt.Sprintf("%.0f°C", busiest.TempC))
-	}
-	if vram != nil && hasVRAM(*vram) {
-		s += ui.muted.Render(" VRAM " + view.FormatUsedTotal(vram.MemUsed, vram.MemTotal))
-	}
-	return s
-}
-
 func (p gpuPage) terms() []term {
 	g := p.g
 	t := []term{
