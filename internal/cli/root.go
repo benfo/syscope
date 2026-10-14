@@ -7,8 +7,13 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"time"
 
+	"github.com/charmbracelet/x/term"
 	"github.com/spf13/cobra"
+
+	"taskman/internal/metrics"
+	"taskman/internal/tui"
 )
 
 // exitError carries a specific process exit code out of a command.
@@ -38,16 +43,32 @@ func Execute() int {
 }
 
 func newRootCmd() *cobra.Command {
+	var refresh time.Duration
+	var irix bool
 	root := &cobra.Command{
-		Use:           "taskman",
-		Short:         "Cross-platform process manager and performance monitor",
+		Use:   "taskman",
+		Short: "Cross-platform process manager and performance monitor",
+		Long: "Run without a command for the live dashboard, or use a command for scripting.\n" +
+			"CPU% is normalized like Task Manager (100% = all cores busy) unless --irix is set.",
 		Args:          cobra.NoArgs,
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			return cmd.Help()
+			if !term.IsTerminal(os.Stdout.Fd()) {
+				return errors.New("the dashboard needs a terminal; use `taskman ps` for scripting")
+			}
+			if refresh < 250*time.Millisecond {
+				return errors.New("--refresh must be at least 250ms")
+			}
+			return tui.Run(cmd.Context(), tui.Options{
+				Refresh: refresh,
+				Irix:    irix,
+				Sampler: metrics.NewGopsutilSampler(),
+			})
 		},
 	}
+	root.Flags().DurationVar(&refresh, "refresh", time.Second, "dashboard refresh interval")
+	root.Flags().BoolVar(&irix, "irix", false, "per-core CPU% (100% = one core)")
 	root.AddCommand(newPsCmd(), newKillCmd())
 	return root
 }
