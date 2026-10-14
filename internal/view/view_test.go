@@ -1,0 +1,125 @@
+package view
+
+import (
+	"reflect"
+	"testing"
+	"time"
+
+	"taskman/internal/metrics"
+)
+
+func procs() []metrics.ProcInfo {
+	return []metrics.ProcInfo{
+		{PID: 10, Name: "chrome.exe", User: "sam", CPU: 3, CPUKnown: true, RSS: 300, RSSKnown: true},
+		{PID: 4, Name: "System", User: "SYSTEM", CPU: 1, CPUKnown: true},
+		{PID: 22, Name: "Chrome.exe", User: "sam", CPU: 2, CPUKnown: true, RSS: 200, RSSKnown: true},
+		{PID: 7, Name: "code.exe", User: "sam", CPU: 3, CPUKnown: true, RSS: 900, RSSKnown: true},
+	}
+}
+
+func pids(rows []Row) []int32 {
+	out := make([]int32, len(rows))
+	for i, r := range rows {
+		out[i] = r.PID
+	}
+	return out
+}
+
+func TestSort(t *testing.T) {
+	tests := []struct {
+		key  SortKey
+		desc bool
+		want []int32
+	}{
+		{SortCPU, true, []int32{7, 10, 22, 4}}, // tie 7/10 broken by PID asc
+		{SortMem, true, []int32{7, 10, 22, 4}},
+		{SortPID, false, []int32{4, 7, 10, 22}},
+		{SortPID, true, []int32{22, 10, 7, 4}},
+		{SortName, false, []int32{10, 22, 7, 4}},
+	}
+	for _, tt := range tests {
+		rows := Rows(procs(), false)
+		Sort(rows, tt.key, tt.desc)
+		if got := pids(rows); !reflect.DeepEqual(got, tt.want) {
+			t.Errorf("%v desc=%v: got %v, want %v", tt.key, tt.desc, got, tt.want)
+		}
+	}
+}
+
+func TestFilter(t *testing.T) {
+	if got := len(Filter(procs(), "CHROME")); got != 2 {
+		t.Errorf("name filter: got %d, want 2", got)
+	}
+	if got := Filter(procs(), "2"); len(got) != 1 || got[0].PID != 22 {
+		t.Errorf("pid prefix filter: got %+v", got)
+	}
+	if got := len(Filter(procs(), "  ")); got != 4 {
+		t.Errorf("blank filter: got %d, want 4", got)
+	}
+}
+
+func TestGroup(t *testing.T) {
+	rows := Rows(procs(), true)
+	if len(rows) != 3 {
+		t.Fatalf("got %d groups, want 3", len(rows))
+	}
+	var chrome Row
+	for _, r := range rows {
+		if r.Key == "g:chrome" {
+			chrome = r
+		}
+	}
+	if chrome.Count != 2 || chrome.CPU != 5 || chrome.RSS != 500 || chrome.Name != "chrome" ||
+		!reflect.DeepEqual(chrome.PIDs, []int32{10, 22}) || chrome.PID != 10 {
+		t.Errorf("chrome group wrong: %+v", chrome)
+	}
+	for _, r := range rows {
+		if r.Name == "System" && r.RSSKnown {
+			t.Error("group with no known RSS should stay unknown")
+		}
+	}
+}
+
+func TestMatchesName(t *testing.T) {
+	for _, c := range []struct {
+		proc, want string
+		ok         bool
+	}{
+		{"notepad.exe", "notepad", true},
+		{"Notepad.exe", "NOTEPAD.EXE", true},
+		{"sleep", "sleep", true},
+		{"notepad++.exe", "notepad", false},
+	} {
+		if got := MatchesName(c.proc, c.want); got != c.ok {
+			t.Errorf("MatchesName(%q, %q) = %v", c.proc, c.want, got)
+		}
+	}
+}
+
+func TestParseSortKey(t *testing.T) {
+	if k, err := ParseSortKey("MEM"); err != nil || k != SortMem {
+		t.Errorf("got %v, %v", k, err)
+	}
+	if _, err := ParseSortKey("disk"); err == nil {
+		t.Error("expected error")
+	}
+}
+
+func TestFormat(t *testing.T) {
+	cases := [][2]string{
+		{FormatBytes(512), "512 B"},
+		{FormatBytes(1536), "1.5 KiB"},
+		{FormatBytes(3 << 30), "3.0 GiB"},
+		{FormatMem(0, false), "--"},
+		{FormatCPU(25, true, 8, false), "25.0"},
+		{FormatCPU(25, true, 8, true), "200.0"},
+		{FormatCPU(0, false, 8, true), "--"},
+		{FormatUptime(50 * time.Minute), "0h 50m"},
+		{FormatUptime(76*time.Hour + time.Hour), "3d 5h 0m"},
+	}
+	for _, c := range cases {
+		if got, want := c[0], c[1]; got != want {
+			t.Errorf("got %q, want %q", got, want)
+		}
+	}
+}
