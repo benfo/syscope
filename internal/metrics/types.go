@@ -17,6 +17,9 @@ type SystemSnapshot struct {
 	MemTotal     uint64
 	MemUsed      uint64
 	MemAvailable uint64
+	MemCached    uint64 // page cache (Linux/macOS); 0 where not reported
+	CommitUsed   uint64 // Windows commit charge; 0 elsewhere
+	CommitLimit  uint64
 	SwapTotal    uint64
 	SwapUsed     uint64
 

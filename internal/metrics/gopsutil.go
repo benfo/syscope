@@ -87,6 +87,8 @@ func (s *GopsutilSampler) system(ctx context.Context, now time.Time) (SystemSnap
 		return snap, err
 	}
 	snap.MemTotal, snap.MemUsed, snap.MemAvailable = vm.Total, vm.Used, vm.Available
+	snap.MemCached = vm.Cached
+	snap.CommitUsed, snap.CommitLimit = commitCharge()
 	if sw, err := mem.SwapMemoryWithContext(ctx); err == nil {
 		snap.SwapTotal, snap.SwapUsed = sw.Total, sw.Used
 	}
