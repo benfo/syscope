@@ -64,7 +64,6 @@ Out of scope: per-process network rates, app history.
 ## To do
 
 ### Phase 2 — Performance parity
-- [ ] **Disks: per-volume view** (user request, 2026-10-14) — Performance shows *physical* disks, so volumes on one disk (e.g. C: and G: on Disk 0) appear combined. Option: show each volume's own read/write and usage too (as sub-entries or a toggle). Windows has per-volume counters (the ones gopsutil reads per drive letter); Linux has per-partition counters in /proc/diskstats; active time stays per physical disk.
 - [ ] **GPU: Linux Intel** (i915/xe sysfs: clock, power; usage needs root) and **macOS Apple Silicon** (IOKit performance statistics via purego)
 
 
@@ -107,6 +106,7 @@ Out of scope: per-process network rates, app history.
 - [x] **Process tree + expandable groups** (Phase 3) — layouts flat / grouped (`z`) / tree (`t`); `l`/`h` (or →/←) expand/collapse or go to parent, `L`/`H` all; groups start closed, the tree open; search keeps matches' ancestors; processes in parent cycles are never hidden; group rows read `chrome (31)`; layout saved as a preference
 - [x] **Settings screen + what persists** — `,` opens Settings (Theme, Refresh, CPU%, Default layout, Default sort, Restore last session), saved as you change them; `T` removed. Only settings persist; dashboard keys are session-only unless "Restore last session" is on, which saves and restores tab, sort, layout, CPU% mode, details pane and hidden devices in a `[session]` section. Footer always keeps `? help`
 - [x] **Wrap-around in menus** — Settings, theme list and Performance devices wrap; processes and help don't (one shared `menuMove` helper; rule in Key rules)
+- [x] **Per-volume disks** — volumes of a multi-volume disk appear indented under it in the Performance sidebar with their own read/write graphs and usage (Windows per-volume IOCTL counters, Linux partition counters; macOS and virtual drives show usage only, and say so). Active and response time stay on the physical disk's page. Nested sidebar entries via an optional `nested` interface
 
 ### Phase 1 — POC
 - [x] Metrics sampler (gopsutil), CPU deltas, PID-reuse safe cache, Toolhelp names on Windows
