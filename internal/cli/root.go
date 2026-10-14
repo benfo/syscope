@@ -46,6 +46,7 @@ func Execute() int {
 func newRootCmd() *cobra.Command {
 	var refresh time.Duration
 	var perCore bool
+	var themeName string
 	root := &cobra.Command{
 		Use:   "taskman",
 		Short: "Cross-platform process manager and performance monitor",
@@ -55,11 +56,15 @@ func newRootCmd() *cobra.Command {
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			if !term.IsTerminal(os.Stdout.Fd()) {
-				return errors.New("the dashboard needs a terminal; use `taskman ps` for scripting")
-			}
 			if refresh < 250*time.Millisecond {
 				return errors.New("--refresh must be at least 250ms")
+			}
+			theme, err := themeFlag(themeName)
+			if err != nil {
+				return err
+			}
+			if !term.IsTerminal(os.Stdout.Fd()) {
+				return errors.New("the dashboard needs a terminal; use `taskman ps` for scripting")
 			}
 			return tui.Run(cmd.Context(), tui.Options{
 				Refresh:    refresh,
@@ -67,12 +72,14 @@ func newRootCmd() *cobra.Command {
 				Sampler:    metrics.NewGopsutilSampler(),
 				CPUInfo:    metrics.ReadCPUInfo(cmd.Context()),
 				Details:    metrics.ReadProcDetails,
+				Theme:      theme,
 			})
 		},
 	}
 	root.Flags().DurationVar(&refresh, "refresh", time.Second, "dashboard refresh interval")
 	addPerCoreFlag(root.Flags(), &perCore)
-	root.AddCommand(newPsCmd(), newKillCmd())
+	root.Flags().StringVar(&themeName, "theme", "default", "colour theme (see `taskman themes`; T cycles live)")
+	root.AddCommand(newPsCmd(), newKillCmd(), newThemesCmd())
 	return root
 }
 

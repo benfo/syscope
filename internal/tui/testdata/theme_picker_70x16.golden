@@ -1,0 +1,16 @@
+ CPU 43.0% ▆▂▅▇▃▅▁▄  MEM 59% 0/0M  GPU 31% 79°C VRAM 9.0/12.0G
+ 1 Processes  ╭───────────────────────────────────────╮malized · flat 
+    PID NAME  │ Theme                                 │GPU%       VRAM
+   4120 ollama│   default            ■■■■■■■■■        │88.0    7.0 GiB
+  21248 chrome│   dracula            ■■■■■■■■■        │ 0.4  180.0 MiB
+  72244 Meet.e│ ▸ catppuccin-mocha   ■■■■■■■■■        │ 3.1  412.0 MiB
+  47768 chrome│   tokyo-night        ■■■■■■■■■        │ 0.0        0 B
+  55916 Micros│   nord               ■■■■■■■■■        │ 0.0        0 B
+      4 System│   gruvbox-dark       ■■■■■■■■■        │  --         --
+              │   solarized-dark     ■■■■■■■■■        │               
+              │   github-light       ■■■■■■■■■        │               
+              │   high-contrast      ■■■■■■■■■        │               
+              │   colorblind         ■■■■■■■■■        │               
+              │ j/k preview · enter keep · esc revert │               
+              ╰───────────────────────────────────────╯               
+ / search d/D kill s/S sort z group c cpu% enter details j/k move 1-2 

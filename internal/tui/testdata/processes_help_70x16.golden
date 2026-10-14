@@ -13,4 +13,4 @@
    CPU%            Share of total CPU capacity used since the last    
                    refresh. Normalized (default): 100% means every    
                    core is busy, like Task Manager. Per-core (c):     
- esc close j/k scroll  lines 1–13 of 57
+ esc close j/k scroll  lines 1–13 of 58

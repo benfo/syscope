@@ -112,6 +112,7 @@ func TestFooterFromKeymap(t *testing.T) {
 // TestHelpHonoursGlobalKeys: overlays must not swallow global keys. Every
 // global action changes something while help is open.
 func TestHelpHonoursGlobalKeys(t *testing.T) {
+	t.Cleanup(func() { applyTheme(DefaultTheme) })
 	m := sampled(t, &fakeSampler{})
 	m = drive(t, m, tea.WindowSizeMsg{Width: 70, Height: 12})
 	for _, b := range keymap {
@@ -124,7 +125,7 @@ func TestHelpHonoursGlobalKeys(t *testing.T) {
 				open := drive(t, m, key(tab), key("?"), key("j")) // scrolled, so up/top have an effect
 				next, cmd := open.Update(keyMsg(k))
 				after := next.(model)
-				if cmd != nil || after.showHelp != open.showHelp || after.tab != open.tab || after.helpOff != open.helpOff {
+				if cmd != nil || after.showHelp != open.showHelp || after.tab != open.tab || after.helpOff != open.helpOff || after.theme != open.theme {
 					effect = true
 				}
 			}

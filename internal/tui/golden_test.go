@@ -52,6 +52,7 @@ func TestGoldenScreens(t *testing.T) {
 		{"processes_help", []tea.KeyMsg{key("?")}, false},
 		{"processes_details", []tea.KeyMsg{keyMsg("enter")}, true},
 		{"processes_details_group", []tea.KeyMsg{key("z"), keyMsg("enter")}, true},
+		{"theme_picker", []tea.KeyMsg{key("T"), key("j"), key("j")}, false},
 		{"perf_cpu", []tea.KeyMsg{key("2")}, false},
 		{"perf_memory", []tea.KeyMsg{key("2"), key("j")}, false},
 		{"perf_disk", []tea.KeyMsg{key("2"), key("j"), key("j")}, false},
@@ -65,6 +66,7 @@ func TestGoldenScreens(t *testing.T) {
 		for _, s := range screens {
 			name := s.name + "_" + strconv.Itoa(size.w) + "x" + strconv.Itoa(size.h)
 			t.Run(name, func(t *testing.T) {
+				t.Cleanup(func() { applyTheme(DefaultTheme) })
 				m := goldenModel(t, size.w, size.h)
 				if s.pump {
 					m = pump(t, m, s.keys...)

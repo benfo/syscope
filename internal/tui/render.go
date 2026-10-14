@@ -38,6 +38,9 @@ func (m model) View() string {
 		b.WriteString(m.table.render(m.width))
 	}
 	b.WriteString(m.renderFooter())
+	if m.picker != nil {
+		return overlay(b.String(), m.picker.box(), m.width, m.height)
+	}
 	return b.String()
 }
 

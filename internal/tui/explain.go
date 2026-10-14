@@ -78,6 +78,9 @@ func (m model) helpAction(act action) model {
 		// Stay in help and explain the new tab.
 		m = m.switchTab(act)
 		m.helpOff = 0
+	case actThemePicker:
+		m.showHelp = false
+		m = m.openThemePicker()
 	case actCancel, actHelp, actQuit:
 		m.showHelp = false
 	}

@@ -21,6 +21,7 @@ type Options struct {
 	CPUInfo    metrics.CPUInfo  // static processor info for the Performance tab
 	Details    detailsFetcher   // reads the details pane's per-process extras
 	Now        func() time.Time // clock; nil means time.Now
+	Theme      Theme            // zero value means DefaultTheme
 }
 
 // Run blocks until the user quits.
@@ -56,7 +57,9 @@ type model struct {
 	perfKey    string // selected Performance device
 	showHidden bool   // list hidden devices (e.g. idle virtual adapters)
 	showHelp   bool
-	helpOff    int // scroll offset of the ? screen
+	helpOff    int          // scroll offset of the ? screen
+	theme      int          // index into Themes
+	picker     *themePicker // theme popover; nil when closed
 
 	status   string
 	statusOK bool
@@ -69,7 +72,15 @@ type model struct {
 }
 
 func newModel(o Options) model {
+	theme := 0
+	for i, t := range Themes {
+		if t.Name == o.Theme.Name {
+			theme = i
+		}
+	}
+	applyTheme(Themes[theme])
 	return model{
+		theme:     theme,
 		sampler:   o.Sampler,
 		cpuInfo:   o.CPUInfo,
 		refresh:   o.Refresh,
@@ -163,6 +174,8 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case m.table.searching:
 		m.table, cmd = m.table.searchKey(msg)
 		return m, cmd
+	case m.picker != nil:
+		return m.pickerKey(key), nil
 	case m.showHelp:
 		return m.helpAction(lookup(scopeGlobal, key)), nil
 	}
@@ -176,6 +189,8 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case actTab1, actTab2, actNextTab, actPrevTab:
 		return m.switchTab(act), nil
+	case actThemePicker:
+		return m.openThemePicker(), nil
 	}
 	if m.tab == tabPerformance {
 		return m.perfAction(act), nil

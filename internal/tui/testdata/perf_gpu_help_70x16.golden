@@ -13,4 +13,4 @@
    Dedicated       The GPU's own memory (VRAM). A local LLM must fit  
                    here to run fast; when it's full, data spills into 
                    shared memory over PCIe and tokens per second drop 
- esc close j/k scroll  lines 1–13 of 51
+ esc close j/k scroll  lines 1–13 of 52
