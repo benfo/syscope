@@ -64,6 +64,12 @@ type Row struct {
 	GPUKnown  bool
 	VRAM      uint64
 	VRAMKnown bool
+
+	// Nesting, for grouped and tree layouts (see Build).
+	Depth      int    // 0 for top-level rows
+	Parent     string // key of the row this one is nested under
+	Expandable bool   // has children that can be shown
+	Expanded   bool   // its children are shown below it
 }
 
 // Filter keeps processes whose name contains q (case-insensitive) or whose
@@ -89,7 +95,7 @@ func Rows(procs []metrics.ProcInfo, group bool) []Row {
 		rows := make([]Row, len(procs))
 		for i, p := range procs {
 			rows[i] = Row{
-				Key: "p:" + strconv.Itoa(int(p.PID)), PID: p.PID, PIDs: []int32{p.PID},
+				Key: ProcessKey(p.PID), PID: p.PID, PIDs: []int32{p.PID},
 				Name: p.Name, User: p.User, Count: 1,
 				CPU: p.CPU, CPUKnown: p.CPUKnown, RSS: p.RSS, RSSKnown: p.RSSKnown,
 				GPU: p.GPU, GPUKnown: p.GPUKnown, VRAM: p.VRAM, VRAMKnown: p.VRAMKnown,
