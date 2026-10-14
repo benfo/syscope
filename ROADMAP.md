@@ -47,6 +47,7 @@ The codebase must stay easy to maintain:
 - **Naming**: code names match the concept users see (e.g. "per-core CPU%", not internal jargon).
 - **Tests**: behaviour covered by unit tests; golden screen tests (`internal/tui/testdata`) catch any visual change; refactors land in their own commits with behaviour unchanged.
 - **Platforms**: OS-specific code in `*_windows.go` / `*_linux.go` / `*_other.go` files grouped per concern.
+- **Privacy**: the repo is public. Test fixtures, golden screens, examples, comments and docs use **synthetic data only** — fictional names, `example.com` emails, documentation IPs (192.0.2.x, 198.51.100.x, 203.0.113.x, 2001:db8::), generic apps and hardware. Never copy values from a real machine (user names, IPs, running apps, exact hardware). `internal/repocheck` fails the build on real-looking IPs or emails; names need review.
 
 ### Phases
 1. **POC** — process table, CPU/MEM header, `ps`, `kill`
@@ -60,6 +61,9 @@ Stretch: `taskman record` (CSV/JSON logging), `taskman serve` (Prometheus endpoi
 Out of scope: per-process network rates, app history.
 
 ## To do
+
+### Next
+- [ ] **Wrap-around in lists** (user request, 2026-10-14) — in popover lists (Settings, theme list, and the Performance device sidebar), pressing up on the first item jumps to the last and down on the last jumps to the first. Decide whether the process table should wrap too (it has `g`/`G`; vim buffers don't wrap) — consistency rule needed.
 
 ### Phase 2 — Performance parity
 - [ ] **Disks: per-volume view** (user request, 2026-10-14) — Performance shows *physical* disks, so volumes on one disk (e.g. C: and G: on Disk 0) appear combined. Option: show each volume's own read/write and usage too (as sub-entries or a toggle). Windows has per-volume counters (the ones gopsutil reads per drive letter); Linux has per-partition counters in /proc/diskstats; active time stays per physical disk.

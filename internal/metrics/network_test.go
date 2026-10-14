@@ -31,8 +31,8 @@ func TestPickAddrs(t *testing.T) {
 		ipn.IP = ip
 		return ipn
 	}
-	got := pickAddrs([]net.Addr{mk("fe80::1/64"), mk("2001:db8::5/64"), mk("192.168.1.9/24"), mk("10.0.0.1/8")})
-	if want := []string{"192.168.1.9", "2001:db8::5"}; !reflect.DeepEqual(got, want) {
+	got := pickAddrs([]net.Addr{mk("fe80::1/64"), mk("2001:db8::5/64"), mk("198.51.100.9/24"), mk("203.0.113.1/24")})
+	if want := []string{"198.51.100.9", "2001:db8::5"}; !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v, want %v", got, want)
 	}
 }
