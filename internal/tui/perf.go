@@ -56,22 +56,13 @@ func (m model) selectedPage(pages []devicePage) (devicePage, int) {
 func (m model) perfAction(act action) model {
 	pages := m.visiblePages()
 	_, i := m.selectedPage(pages)
-	switch act {
-	case actUp, actHalfUp, actPageUp:
-		i = max(0, i-1)
-	case actDown, actHalfDown, actPageDown:
-		i = min(len(pages)-1, i+1)
-	case actTop:
-		i = 0
-	case actBottom:
-		i = len(pages) - 1
-	case actShowHidden:
+	if act == actShowHidden {
 		m.showHidden = !m.showHidden
 		return m
-	default:
-		return m
 	}
-	m.perfKey = pages[i].key()
+	if i, moved := menuMove(i, len(pages), act); moved {
+		m.perfKey = pages[i].key()
+	}
 	return m
 }
 

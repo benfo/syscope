@@ -109,16 +109,13 @@ func (m model) settingsKey(key string) model {
 		}
 		return row.step(m, +1)
 	}
-	last := len(settingRows) - 1
-	switch act := lookup(scopeGlobal, key); act {
-	case actDown, actHalfDown, actPageDown:
-		s.sel = min(last, s.sel+1)
-	case actUp, actHalfUp, actPageUp:
-		s.sel = max(0, s.sel-1)
-	case actTop:
-		s.sel = 0
-	case actBottom:
-		s.sel = last
+	act := lookup(scopeGlobal, key)
+	if sel, moved := menuMove(s.sel, len(settingRows), act); moved {
+		s.sel = sel
+		m.settingsUI = &s
+		return m
+	}
+	switch act {
 	case actCancel, actQuit, actSettings:
 		m.settingsUI = nil
 		return m
@@ -173,9 +170,6 @@ func arrowFor(desc bool) string {
 	}
 	return " ▲"
 }
-
-// wrap keeps i in [0, n), cycling past either end.
-func wrap(i, n int) int { return ((i % n) + n) % n }
 
 // clampIndex keeps i in [0, n) without cycling.
 func clampIndex(i, n int) int { return max(0, min(i, n-1)) }

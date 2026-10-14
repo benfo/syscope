@@ -148,3 +148,34 @@ func TestTabInHelpSwitchesExplanation(t *testing.T) {
 		t.Error("1 in help should jump to Processes and keep help open")
 	}
 }
+
+// Menus wrap; scrolling lists don't (see "Key rules" in ROADMAP.md).
+func TestMenusWrapScrollingListsDont(t *testing.T) {
+	t.Cleanup(func() { applyTheme(DefaultTheme) })
+	m := sampled(t, &fakeSampler{procs: goldenProcs()})
+
+	s := drive(t, m, key(","), key("k"))
+	if s.settingsUI.sel != len(settingRows)-1 {
+		t.Errorf("k on the first setting should wrap to the last: %d", s.settingsUI.sel)
+	}
+	s = drive(t, s, key("j"))
+	if s.settingsUI.sel != 0 {
+		t.Errorf("j on the last setting should wrap to the first: %d", s.settingsUI.sel)
+	}
+
+	p := drive(t, m, key(","), keyMsg("enter"), key("k"))
+	if p.picker.sel != len(Themes)-1 {
+		t.Errorf("theme list should wrap: %d", p.picker.sel)
+	}
+
+	perf := drive(t, m, key("2"), key("k"))
+	pages := perf.visiblePages()
+	if sel, _ := perf.selectedPage(pages); sel.key() != pages[len(pages)-1].key() {
+		t.Errorf("Performance devices should wrap to the last: %s", sel.key())
+	}
+
+	procs := drive(t, m, key("k"))
+	if procs.table.cursor != 0 {
+		t.Errorf("the process table must not wrap: cursor %d", procs.table.cursor)
+	}
+}

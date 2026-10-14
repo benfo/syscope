@@ -138,3 +138,28 @@ func helpLines(sc scope) []string {
 	out = append(out, ui.muted.Render("Arrows, PgUp/PgDn and Home/End always work too."))
 	return out
 }
+
+// menuMove applies a movement action to a menu: a short list shown in full
+// (Settings, the theme list, the Performance devices). Menus wrap around at
+// either end; long scrolling lists (processes, help) don't, and use g/G
+// instead. moved is false for actions that aren't movement.
+func menuMove(sel, n int, act action) (next int, moved bool) {
+	switch act {
+	case actDown, actHalfDown, actPageDown:
+		return wrap(sel+1, n), true
+	case actUp, actHalfUp, actPageUp:
+		return wrap(sel-1, n), true
+	case actTop:
+		return 0, true
+	case actBottom:
+		return n - 1, true
+	}
+	return sel, false
+}
+
+// wrap keeps i in [0, n), cycling past either end.
+func wrap(i, n int) int { return ((i % n) + n) % n }
+
+func isTabAction(a action) bool {
+	return a == actTab1 || a == actTab2 || a == actNextTab || a == actPrevTab
+}

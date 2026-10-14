@@ -28,25 +28,19 @@ func (m model) pickerKey(key string) model {
 	if key == "enter" {
 		return m.closePicker(p.sel)
 	}
-	last := len(Themes) - 1
-	switch act := lookup(scopeGlobal, key); act {
-	case actDown, actHalfDown, actPageDown:
-		p.sel = min(last, p.sel+1)
-	case actUp, actHalfUp, actPageUp:
-		p.sel = max(0, p.sel-1)
-	case actTop:
-		p.sel = 0
-	case actBottom:
-		p.sel = last
-	case actSettings: // , : keep the previewed theme
+	act := lookup(scopeGlobal, key)
+	switch sel, moved := menuMove(p.sel, len(Themes), act); {
+	case moved:
+		p.sel = sel
+	case act == actSettings: // , : keep the previewed theme
 		return m.closePicker(p.sel)
-	case actCancel, actQuit:
+	case act == actCancel || act == actQuit:
 		return m.closePicker(p.orig)
-	case actHelp:
+	case act == actHelp:
 		m = m.closePicker(p.orig)
 		m.showHelp, m.helpOff = true, 0
 		return m
-	case actTab1, actTab2, actNextTab, actPrevTab:
+	case isTabAction(act):
 		m = m.switchTab(act)
 	}
 	m.picker = &p
