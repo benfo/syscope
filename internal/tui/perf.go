@@ -200,8 +200,8 @@ func (m model) sidebarEntry(d perfDevice, selected bool) []string {
 		}
 	case devMemory:
 		name, hist, style = "Memory", m.memHist.values(), memGraphStyle
-		value = fmt.Sprintf("%s/%s (%.0f%%)", shortBytes(m.snap.MemUsed), shortBytes(m.snap.MemTotal),
-			pct(m.snap.MemUsed, m.snap.MemTotal))
+		value = fmt.Sprintf("%s/%s (%.0f%%)", view.FormatBytesCompact(m.snap.MemUsed), view.FormatBytesCompact(m.snap.MemTotal),
+			view.Percent(m.snap.MemUsed, m.snap.MemTotal))
 	case devDisk:
 		dk := m.snap.Disks[d.idx]
 		name, style = diskTitle(dk), diskGraphStyle
@@ -250,7 +250,7 @@ func (m model) cpuDetail(w, h int) []string {
 	stats := packLine([]string{
 		kv("Utilization", util), kv("Base speed", base), kv("Cores", cores), kv("Logical", strconv.Itoa(m.cpu.Logical)),
 		kv("Processes", strconv.Itoa(m.snap.ProcCount)), kv("Up", view.FormatUptime(m.snap.Uptime)),
-	}, w)
+	}, statSep, w)
 	head := []string{
 		spread(labelStyle.Render("CPU"), dimStyle.Render(m.cpu.Model), w),
 		dimStyle.Render("% Utilization · " + m.graphSpan(w-2)),
@@ -263,7 +263,7 @@ func (m model) cpuDetail(w, h int) []string {
 func (m model) memDetail(w, h int) []string {
 	s := m.snap
 	stats := []string{
-		kv("In use", fmt.Sprintf("%s (%.0f%%)", view.FormatBytes(s.MemUsed), pct(s.MemUsed, s.MemTotal))),
+		kv("In use", fmt.Sprintf("%s (%.0f%%)", view.FormatBytes(s.MemUsed), view.Percent(s.MemUsed, s.MemTotal))),
 		kv("Available", view.FormatBytes(s.MemAvailable)),
 	}
 	second := stats
@@ -271,10 +271,10 @@ func (m model) memDetail(w, h int) []string {
 		second = append(second, kv("Cached", view.FormatBytes(s.MemCached)))
 	}
 	if s.CommitLimit > 0 {
-		second = append(second, kv("Committed", shortBytes(s.CommitUsed)+"/"+shortBytes(s.CommitLimit)))
+		second = append(second, kv("Committed", view.FormatBytesCompact(s.CommitUsed)+"/"+view.FormatBytesCompact(s.CommitLimit)))
 	}
-	second = append(second, kv("Swap", shortBytes(s.SwapUsed)+"/"+shortBytes(s.SwapTotal)))
-	stats = packLine(second, w)
+	second = append(second, kv("Swap", view.FormatBytesCompact(s.SwapUsed)+"/"+view.FormatBytesCompact(s.SwapTotal)))
+	stats = packLine(second, statSep, w)
 
 	head := []string{
 		spread(labelStyle.Render("Memory"), dimStyle.Render(view.FormatBytes(s.MemTotal)), w),
@@ -313,11 +313,11 @@ func (m model) diskDetail(d metrics.DiskStat, w, h int) []string {
 	if d.RespKnown {
 		stats = append(stats, kv("Response", fmt.Sprintf("%.2f ms", d.RespMs)))
 	}
-	tail := append([]string{""}, packLine(stats, w)...)
+	tail := append([]string{""}, packLine(stats, statSep, w)...)
 	for _, v := range d.Volumes {
-		p := pct(v.Used, v.Total)
+		p := view.Percent(v.Used, v.Total)
 		tail = append(tail, fmt.Sprintf("%-6s ", v.Mount)+bar(p, 20)+
-			fmt.Sprintf(" %s/%s (%.0f%%)", shortBytes(v.Used), shortBytes(v.Total), p))
+			fmt.Sprintf(" %s/%s (%.0f%%)", view.FormatBytesCompact(v.Used), view.FormatBytesCompact(v.Total), p))
 	}
 	head := []string{spread(labelStyle.Render(diskTitle(d)), dimStyle.Render(desc), w), dimStyle.Render(sub)}
 	return withGraphs(head, tail, graphs, w, h)
@@ -350,7 +350,7 @@ func (m model) netDetail(n metrics.NetStat, w, h int) []string {
 	tail := append([]string{""}, packLine([]string{
 		kv("Receive", view.FormatBitRate(n.RecvBps)), kv("Send", view.FormatBitRate(n.SentBps)),
 		kv("Link", link), kv("Type", kind), kv("State", state),
-	}, w)...)
+	}, statSep, w)...)
 	if len(n.Addrs) > 0 {
 		tail = append(tail, kv("Address", strings.Join(n.Addrs, "  ")))
 	}
@@ -441,10 +441,7 @@ func sumSeries(a, b []float64) []float64 {
 
 // coreGrid renders one cell per logical CPU: index, P/E kind, meter, %.
 func (m model) coreGrid(w int) []string {
-	const cellW = 16
-	per := max(1, w/cellW)
-	var lines []string
-	var line strings.Builder
+	cells := make([]string, len(m.snap.CPUPerCore))
 	for i, v := range m.snap.CPUPerCore {
 		var kind metrics.CoreKind
 		if i < len(m.cpu.Kinds) {
@@ -459,16 +456,9 @@ func (m model) coreGrid(w int) []string {
 		default:
 			label += " "
 		}
-		line.WriteString(label + " " + bar(v, 5) + loadStyle(v).Render(fmt.Sprintf("%4.0f%%", v)) + " ")
-		if (i+1)%per == 0 {
-			lines = append(lines, line.String())
-			line.Reset()
-		}
+		cells[i] = meterCell(label, v)
 	}
-	if line.Len() > 0 {
-		lines = append(lines, line.String())
-	}
-	return lines
+	return packLine(cells, gridSep, w)
 }
 
 // memComposition is a single bar: in use | cached | free.

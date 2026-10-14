@@ -60,7 +60,7 @@ func (m model) renderStrip() string {
 	if s.CPUKnown {
 		cpuText = fmt.Sprintf("%4.1f%%", s.CPUTotal)
 	}
-	memPct := pct(s.MemUsed, s.MemTotal)
+	memPct := view.Percent(s.MemUsed, s.MemTotal)
 
 	// keep is the drop priority when the line is too wide: lowest goes first.
 	type item struct {
@@ -70,7 +70,7 @@ func (m model) renderStrip() string {
 	items := []item{
 		{labelStyle.Render("CPU ") + loadStyle(s.CPUTotal).Render(cpuText+" "+sparkline(m.cpuHist.values(), 8)), 9},
 		{labelStyle.Render("MEM ") + loadStyle(memPct).Render(fmt.Sprintf("%.0f%%", memPct)) +
-			dimStyle.Render(" "+gibPair(s.MemUsed, s.MemTotal)), 8},
+			dimStyle.Render(" "+view.FormatUsedTotal(s.MemUsed, s.MemTotal)), 8},
 	}
 	if len(s.GPUs) > 0 {
 		items = append(items, item{labelStyle.Render("GPU ") + m.stripGPU(), 7})
@@ -78,7 +78,7 @@ func (m model) renderStrip() string {
 	items = append(items,
 		item{labelStyle.Render("DISK ") + m.stripDisk(), 5},
 		item{labelStyle.Render("NET ") + m.stripNet(), 6},
-		item{labelStyle.Render("SWAP ") + dimStyle.Render(gibPair(s.SwapUsed, s.SwapTotal)), 3},
+		item{labelStyle.Render("SWAP ") + dimStyle.Render(view.FormatUsedTotal(s.SwapUsed, s.SwapTotal)), 3},
 		item{labelStyle.Render("PROCS ") + strconv.Itoa(s.ProcCount), 2},
 		item{labelStyle.Render("UP ") + view.FormatUptime(s.Uptime), 1},
 	)
@@ -239,18 +239,6 @@ func padANSI(s string, w int) string {
 	return s + strings.Repeat(" ", max(0, w-lipgloss.Width(s)))
 }
 
-func pct(used, total uint64) float64 {
-	if total == 0 {
-		return 0
-	}
-	return float64(used) / float64(total) * 100
-}
-
-// shortBytes is FormatBytes without the space, for dense layouts.
-func shortBytes(n uint64) string {
-	return strings.Replace(view.FormatBytes(n), " ", "", 1)
-}
-
 // stripDisk shows the busiest disk's active time, or total transfer rate
 // where active time isn't available.
 func (m model) stripDisk() string {
@@ -294,19 +282,15 @@ func (m model) helpFooter() string {
 	return ansi.Truncate(s, m.width, "")
 }
 
-// gibPair renders used/total compactly for the top line: "12.3/31.7G".
-func gibPair(used, total uint64) string {
-	const gib = 1 << 30
-	if total < gib {
-		return fmt.Sprintf("%.0f/%.0fM", float64(used)/(1<<20), float64(total)/(1<<20))
-	}
-	return fmt.Sprintf("%.1f/%.1fG", float64(used)/gib, float64(total)/gib)
-}
+// Separators for packLine: between "Label value" stats, and between grid cells.
+const (
+	statSep = "   "
+	gridSep = " "
+)
 
-// packLine lays out stat items ("Label value") separated by spaces,
-// wrapping onto more lines rather than overflowing width w.
-func packLine(items []string, w int) []string {
-	const sep = "   "
+// packLine lays items out left to right separated by sep, wrapping onto
+// more lines rather than overflowing width w.
+func packLine(items []string, sep string, w int) []string {
 	var lines []string
 	cur := ""
 	for _, it := range items {

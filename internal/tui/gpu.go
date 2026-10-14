@@ -7,6 +7,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 
 	"taskman/internal/metrics"
+	"taskman/internal/view"
 )
 
 func (m model) recordGPUHistory() {
@@ -16,7 +17,7 @@ func (m model) recordGPUHistory() {
 			m.push(k+":util", g.Util)
 		}
 		if g.MemKnown && g.MemTotal > 0 {
-			m.push(k+":vram", pct(g.MemUsed, g.MemTotal))
+			m.push(k+":vram", view.Percent(g.MemUsed, g.MemTotal))
 		}
 	}
 }
@@ -43,7 +44,7 @@ func gpuSummary(g metrics.GPUStat) string {
 		parts = append(parts, fmt.Sprintf("%.0f°C", g.TempC))
 	}
 	if g.MemKnown && g.MemTotal >= 1<<30 { // skip iGPUs' tiny carve-out
-		parts = append(parts, gibPair(g.MemUsed, g.MemTotal))
+		parts = append(parts, view.FormatUsedTotal(g.MemUsed, g.MemTotal))
 	}
 	return strings.Join(parts, "  ")
 }
@@ -53,7 +54,7 @@ func (m model) gpuDetail(g metrics.GPUStat, w, h int) []string {
 	graphs := []graphSpec{{vals: m.histVals(key + ":util"), style: gpuGraphStyle}}
 	if g.MemKnown && g.MemTotal > 0 {
 		graphs = append(graphs, graphSpec{
-			title: "Dedicated memory · " + shortBytes(g.MemUsed) + " / " + shortBytes(g.MemTotal),
+			title: "Dedicated memory · " + view.FormatBytesCompact(g.MemUsed) + " / " + view.FormatBytesCompact(g.MemTotal),
 			vals:  m.histVals(key + ":vram"), style: memGraphStyle,
 		})
 	}
@@ -64,10 +65,10 @@ func (m model) gpuDetail(g metrics.GPUStat, w, h int) []string {
 	}
 	line1 := []string{kv("Utilization", util)}
 	if g.MemKnown {
-		line1 = append(line1, kv("Dedicated", shortBytes(g.MemUsed)+"/"+shortBytes(g.MemTotal)))
+		line1 = append(line1, kv("Dedicated", view.FormatBytesCompact(g.MemUsed)+"/"+view.FormatBytesCompact(g.MemTotal)))
 	}
 	if g.SharedTotal > 0 {
-		line1 = append(line1, kv("Shared", shortBytes(g.SharedUsed)+"/"+shortBytes(g.SharedTotal)))
+		line1 = append(line1, kv("Shared", view.FormatBytesCompact(g.SharedUsed)+"/"+view.FormatBytesCompact(g.SharedTotal)))
 	}
 
 	var line2 []string
@@ -102,7 +103,7 @@ func (m model) gpuDetail(g metrics.GPUStat, w, h int) []string {
 		line2 = append(line2, kv("P-state", fmt.Sprintf("P%d", g.PState)))
 	}
 
-	tail := append([]string{""}, packLine(append(line1, line2...), w)...)
+	tail := append([]string{""}, packLine(append(line1, line2...), statSep, w)...)
 	if g.ThrottleKnown {
 		tail = append(tail, kv("Limited by", throttleText(g.Throttle)))
 	}
@@ -142,27 +143,13 @@ func throttleText(reasons []string) string {
 // The main engines always show; niche ones (JPEG, OFA, Security, …) only
 // while busy.
 func engineGrid(all []metrics.EngineStat, w int) []string {
-	var engines []metrics.EngineStat
+	var cells []string
 	for _, e := range all {
 		if mainEngines[e.Name] || e.Util >= 1 {
-			engines = append(engines, e)
+			cells = append(cells, meterCell(fit(e.Name, 14), e.Util))
 		}
 	}
-	const cellW = 28
-	per := max(1, w/cellW)
-	var lines []string
-	var line strings.Builder
-	for i, e := range engines {
-		line.WriteString(fit(e.Name, 14) + " " + bar(e.Util, 5) + loadStyle(e.Util).Render(fmt.Sprintf("%4.0f%%", e.Util)) + "   ")
-		if (i+1)%per == 0 {
-			lines = append(lines, line.String())
-			line.Reset()
-		}
-	}
-	if line.Len() > 0 {
-		lines = append(lines, line.String())
-	}
-	return lines
+	return packLine(cells, statSep, w)
 }
 
 // stripGPU shows the busiest GPU's load and the largest card's VRAM use.
@@ -186,7 +173,7 @@ func (m model) stripGPU() string {
 		s += " " + tempStyle(busiest.TempC).Render(fmt.Sprintf("%.0f°C", busiest.TempC))
 	}
 	if vram != nil && vram.MemTotal >= 1<<30 {
-		s += dimStyle.Render(" VRAM " + gibPair(vram.MemUsed, vram.MemTotal))
+		s += dimStyle.Render(" VRAM " + view.FormatUsedTotal(vram.MemUsed, vram.MemTotal))
 	}
 	return s
 }

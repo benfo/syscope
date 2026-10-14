@@ -279,3 +279,27 @@ func decimal(v float64, unit string) string {
 	}
 	return fmt.Sprintf("%.1f %s%s", v, prefixes[i], unit)
 }
+
+// Percent returns part as a percentage of total, or 0 when total is 0.
+func Percent(part, total uint64) float64 {
+	if total == 0 {
+		return 0
+	}
+	return float64(part) / float64(total) * 100
+}
+
+// FormatBytesCompact is FormatBytes without the space, for dense layouts:
+// "1.2GiB".
+func FormatBytesCompact(b uint64) string {
+	return strings.Replace(FormatBytes(b), " ", "", 1)
+}
+
+// FormatUsedTotal renders used/total in one unit for the densest layouts:
+// "12.3/31.7G", or "512/1024M" below a GiB.
+func FormatUsedTotal(used, total uint64) string {
+	const mib, gib = 1 << 20, 1 << 30
+	if total < gib {
+		return fmt.Sprintf("%.0f/%.0fM", float64(used)/mib, float64(total)/mib)
+	}
+	return fmt.Sprintf("%.1f/%.1fG", float64(used)/gib, float64(total)/gib)
+}

@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
@@ -156,3 +157,8 @@ var (
 )
 
 var gpuGraphStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("4"))
+
+// meterCell is a usage-grid cell: "label ███░░  42%".
+func meterCell(label string, pct float64) string {
+	return label + " " + bar(pct, 5) + loadStyle(pct).Render(fmt.Sprintf("%4.0f%%", pct))
+}

@@ -131,10 +131,19 @@ func TestFormat(t *testing.T) {
 		{FormatBitRate(1_050_000), "8.4 Mbps"},
 		{FormatBitRate(125), "1.0 Kbps"},
 		{FormatBitRate(100), "800 bps"},
+		{FormatBytesCompact(3 << 30), "3.0GiB"},
+		{FormatUsedTotal(9<<30, 12<<30), "9.0/12.0G"},
+		{FormatUsedTotal(300<<20, 512<<20), "300/512M"},
 	}
 	for _, c := range cases {
 		if got, want := c[0], c[1]; got != want {
 			t.Errorf("got %q, want %q", got, want)
 		}
+	}
+}
+
+func TestPercent(t *testing.T) {
+	if Percent(1, 4) != 25 || Percent(5, 0) != 0 {
+		t.Error("Percent")
 	}
 }
