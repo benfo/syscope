@@ -1,0 +1,16 @@
+ CPU 43.0% ▆▂▅▇▃▅▁▄  MEM 59% 0/0M  GPU 31% 79°C VRAM 9.0/12.0G
+ 1 Processes   2 Performance  
+ About: GPU 0 · NVIDIA GeForce RTX 3080 Ti Laptop GPU                 
+   Utilization     How busy the GPU is: the busiest engine, as in     
+                   Task Manager. Games show up as 3D; AI and CUDA     
+                   work as 3D or Compute. High utilization is normal  
+                   while gaming or running a model.                   
+   Engines         3D: games, the desktop, some AI. Compute: CUDA /   
+                   AI work. Copy: moving data between RAM and the     
+                   GPU, high while loading a game or model. Video     
+                   Decode / Encode: watching, streaming or recording  
+                   video, done by dedicated hardware.                 
+   Dedicated       The GPU's own memory (VRAM). A local LLM must fit  
+                   here to run fast; when it's full, data spills into 
+                   shared memory over PCIe and tokens per second drop 
+ esc close j/k scroll  lines 1–13 of 51

@@ -1,0 +1,16 @@
+ CPU 43.0% ▆▂▅▇▃▅▁▄  MEM 59% 0/0M  GPU 31% 79°C VRAM 9.0/12.0G
+ 1 Processes   2 Performance       sort cpu▼ · CPU% normalized · flat 
+ About: Processes                                                     
+   PID             Process ID, a number the OS gives each running     
+                   process. Use it with `taskman kill <pid>`. IDs are 
+                   reused after a process exits.                      
+   NAME            The program's executable name. Grouping (z)        
+                   combines processes with the same name, e.g.        
+                   "chrome (31)", summing their CPU and memory.       
+   USER            The account the process runs as. Blank usually     
+                   means a system account you can't inspect without   
+                   admin rights.                                      
+   CPU%            Share of total CPU capacity used since the last    
+                   refresh. Normalized (default): 100% means every    
+                   core is busy, like Task Manager. Per-core (c):     
+ esc close j/k scroll  lines 1–13 of 46
