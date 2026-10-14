@@ -2,7 +2,10 @@ package metrics
 
 import (
 	"fmt"
+	"regexp"
+	"sort"
 	"strings"
+	"unicode"
 )
 
 // GPUStat is one graphics adapter.
@@ -32,7 +35,9 @@ type GPUStat struct {
 	ClockKnown  bool
 	FanPct      uint32
 	FanKnown    bool
-	PState      int // 0 = max performance … 15 = idle; -1 unknown
+	FanRPM      uint32  // from Windows D3DKMT when NVML has no fan reading
+	PowerPct    float64 // share of max power, for drivers that don't report watts
+	PState      int     // 0 = max performance … 15 = idle; -1 unknown
 
 	Throttle      []string // active clock-limit reasons
 	ThrottleKnown bool
@@ -98,4 +103,89 @@ func vendorName(id uint32) string {
 func shortGPUName(name string) string {
 	r := strings.NewReplacer("NVIDIA ", "", "GeForce ", "", "(R)", "", "(TM)", "", "AMD ", "", "Radeon(TM) ", "")
 	return strings.TrimSuffix(strings.TrimSpace(r.Replace(name)), " GPU")
+}
+
+var engineInstanceRE = regexp.MustCompile(`(?i)luid_(0x[0-9a-f]+_0x[0-9a-f]+)_phys_\d+_eng_(\d+)_engtype_(.*)$`)
+
+// aggregateEngines turns Windows "GPU Engine" counter instances
+// (pid_<pid>_luid_<hi>_<lo>_phys_0_eng_<n>_engtype_<type>) into utilization
+// per adapter LUID and engine type, the way Task Manager does: processes are
+// summed per physical engine, and an engine type shows its busiest engine.
+func aggregateEngines(vals map[string]float64) map[string]map[string]float64 {
+	type engKey struct{ luid, idx, typ string }
+	perEngine := map[engKey]float64{}
+	for inst, v := range vals {
+		m := engineInstanceRE.FindStringSubmatch(inst)
+		if m == nil {
+			continue
+		}
+		perEngine[engKey{strings.ToLower(m[1]), m[2], m[3]}] += v
+	}
+	out := map[string]map[string]float64{}
+	for k, v := range perEngine {
+		if out[k.luid] == nil {
+			out[k.luid] = map[string]float64{}
+		}
+		out[k.luid][k.typ] = max(out[k.luid][k.typ], min(v, 100))
+	}
+	return out
+}
+
+// engineOrder lists the engines people care about first.
+var engineOrder = []string{"3D", "Compute", "Copy", "Video Decode", "Video Encode"}
+
+// engineStats converts per-type utilization to a sorted list with readable
+// names ("VideoDecode" → "Video Decode"), and returns the busiest value.
+func engineStats(types map[string]float64) ([]EngineStat, float64) {
+	byName := map[string]float64{}
+	busiest := 0.0
+	for typ, v := range types {
+		if name := prettyEngine(typ); name != "" {
+			byName[name] = max(byName[name], v) // e.g. Security and Security_1
+		}
+		busiest = max(busiest, v)
+	}
+	out := make([]EngineStat, 0, len(byName))
+	for name, v := range byName {
+		out = append(out, EngineStat{Name: name, Util: v})
+	}
+	rank := func(name string) int {
+		for i, n := range engineOrder {
+			if n == name {
+				return i
+			}
+		}
+		return len(engineOrder)
+	}
+	sort.Slice(out, func(i, j int) bool {
+		ri, rj := rank(out[i].Name), rank(out[j].Name)
+		if ri != rj {
+			return ri < rj
+		}
+		return out[i].Name < out[j].Name
+	})
+	return out, busiest
+}
+
+var engineIndexRE = regexp.MustCompile(`_\d+$`)
+
+// prettyEngine makes engine type names readable: "VideoDecode" → "Video
+// Decode", "JPEG_Decode_0" → "JPEG Decode", "3D" stays "3D".
+func prettyEngine(typ string) string {
+	typ = strings.ReplaceAll(engineIndexRE.ReplaceAllString(typ, ""), "_", " ")
+	var b strings.Builder
+	prev := ' '
+	for _, r := range typ {
+		if unicode.IsUpper(r) && unicode.IsLower(prev) {
+			b.WriteByte(' ')
+		}
+		b.WriteRune(r)
+		prev = r
+	}
+	return strings.TrimSpace(b.String())
+}
+
+// luidKey formats an adapter LUID the way PDH instance names do.
+func luidKey(high int32, low uint32) string {
+	return fmt.Sprintf("0x%08x_0x%08x", uint32(high), low)
 }

@@ -28,6 +28,7 @@ type SystemSnapshot struct {
 
 	Disks []DiskStat
 	Nets  []NetStat
+	GPUs  []GPUStat
 }
 
 // ProcInfo is a point-in-time view of one process.

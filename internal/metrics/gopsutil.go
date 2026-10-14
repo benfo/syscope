@@ -45,6 +45,8 @@ type GopsutilSampler struct {
 	prevNets  map[string]gnet.IOCountersStat
 	prevNetAt time.Time
 	netSeen   map[string]bool // interfaces that have carried traffic
+
+	gpu gpuState
 }
 
 func NewGopsutilSampler() *GopsutilSampler {
@@ -67,6 +69,7 @@ func (s *GopsutilSampler) Sample(ctx context.Context) (SystemSnapshot, []ProcInf
 
 	snap.Disks = s.sampleDisks(ctx, now)
 	snap.Nets = s.sampleNets(ctx, now)
+	snap.GPUs = s.gpu.read()
 
 	pids, err := process.PidsWithContext(ctx)
 	if err != nil {
