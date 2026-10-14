@@ -11,6 +11,7 @@ import (
 
 	"github.com/charmbracelet/x/term"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 
 	"taskman/internal/metrics"
 	"taskman/internal/tui"
@@ -44,12 +45,12 @@ func Execute() int {
 
 func newRootCmd() *cobra.Command {
 	var refresh time.Duration
-	var irix bool
+	var perCore bool
 	root := &cobra.Command{
 		Use:   "taskman",
 		Short: "Cross-platform process manager and performance monitor",
 		Long: "Run without a command for the live dashboard, or use a command for scripting.\n" +
-			"CPU% is normalized like Task Manager (100% = all cores busy) unless --irix is set.",
+			"CPU% is normalized like Task Manager (100% = all cores busy) unless --per-core is set.",
 		Args:          cobra.NoArgs,
 		SilenceUsage:  true,
 		SilenceErrors: true,
@@ -61,15 +62,23 @@ func newRootCmd() *cobra.Command {
 				return errors.New("--refresh must be at least 250ms")
 			}
 			return tui.Run(cmd.Context(), tui.Options{
-				Refresh: refresh,
-				Irix:    irix,
-				Sampler: metrics.NewGopsutilSampler(),
-				CPU:     metrics.ReadCPUInfo(cmd.Context()),
+				Refresh:    refresh,
+				PerCoreCPU: perCore,
+				Sampler:    metrics.NewGopsutilSampler(),
+				CPUInfo:    metrics.ReadCPUInfo(cmd.Context()),
 			})
 		},
 	}
 	root.Flags().DurationVar(&refresh, "refresh", time.Second, "dashboard refresh interval")
-	root.Flags().BoolVar(&irix, "irix", false, "per-core CPU% (100% = one core)")
+	addPerCoreFlag(root.Flags(), &perCore)
 	root.AddCommand(newPsCmd(), newKillCmd())
 	return root
+}
+
+// addPerCoreFlag registers --per-core, plus the old --irix name as a
+// deprecated alias so existing scripts keep working.
+func addPerCoreFlag(f *pflag.FlagSet, v *bool) {
+	f.BoolVar(v, "per-core", false, "per-core CPU% (100% = one full core, like top)")
+	f.BoolVar(v, "irix", false, "")
+	_ = f.MarkDeprecated("irix", "use --per-core")
 }

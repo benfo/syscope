@@ -92,7 +92,7 @@ func (m model) cpuTerms() []term {
 		{"Base speed", "The CPU's rated clock. Real clocks boost above it under load and drop below it when the chip is too hot (thermal throttling)."},
 		{"Cores / Logical", "Physical cores vs the threads the OS schedules on. With hyper-threading each core runs two threads, so Logical is double."},
 	}
-	if m.cpu.Count(metrics.CorePerformance) > 0 && m.cpu.Count(metrics.CoreEfficiency) > 0 {
+	if m.cpuInfo.Count(metrics.CorePerformance) > 0 && m.cpuInfo.Count(metrics.CoreEfficiency) > 0 {
 		t = append(t, term{"P / E cores", "Hybrid CPU: Performance cores are fast; Efficiency cores are smaller and save power. " +
 			"Background work on E cores is normal, but a game or build running mostly on E cores will be slower."})
 	}

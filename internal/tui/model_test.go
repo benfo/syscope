@@ -54,7 +54,7 @@ func drive(t *testing.T, m model, msgs ...tea.Msg) model {
 }
 
 func sampled(t *testing.T, f *fakeSampler) model {
-	m := newModel(Options{Refresh: time.Second, Sampler: f, CPU: metrics.CPUInfo{
+	m := newModel(Options{Refresh: time.Second, Sampler: f, CPUInfo: metrics.CPUInfo{
 		Model: "Test CPU", Logical: 4, Physical: 4, BaseMHz: 2700,
 		Kinds: []metrics.CoreKind{metrics.CorePerformance, metrics.CorePerformance, metrics.CoreEfficiency, metrics.CoreEfficiency},
 	}})

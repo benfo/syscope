@@ -116,7 +116,7 @@ func (m model) renderTabs() string {
 	var right string
 	if m.tab == tabProcesses {
 		mode, layout := "normalized", "flat"
-		if m.irix {
+		if m.perCoreCPU {
 			mode = "per-core"
 		}
 		if m.group {
@@ -168,7 +168,7 @@ func (m model) renderTable() string {
 		}
 		line := fitRight(id, colID) + gap + fit(r.Name, nameW) + gap +
 			fit(view.ShortUser(r.User), colUser) + gap +
-			fitRight(view.FormatCPU(r.CPU, r.CPUKnown, m.snap.NumCPU, m.irix), colCPU) + gap +
+			fitRight(view.FormatCPU(r.CPU, r.CPUKnown, m.snap.NumCPU, m.perCoreCPU), colCPU) + gap +
 			fitRight(view.FormatMem(r.RSS, r.RSSKnown), colMem)
 		line = fit(line, m.width)
 		if i == m.cursor {

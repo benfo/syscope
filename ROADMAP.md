@@ -15,7 +15,7 @@ This file is updated in the same commit as each feature.
 | Stack | Go + gopsutil v4 + Bubble Tea / Lip Gloss + Cobra |
 | Interaction | `taskman` = live TUI; subcommands (`ps`, `kill`, …) for scripting |
 | TUI layout | Tabs (`1` Processes, `2` Performance, …) + one-line summary strip on every tab |
-| CPU % | Normalized to 100% total (Task Manager); `--irix` / `i` for per-core |
+| CPU % | Normalized to 100% total (Task Manager); `--per-core` / `c` for per-core |
 | Memory column | RSS (working set on Windows) |
 | Kill | Graceful (`k`) + force (`K`), confirm first; never self-elevate |
 | `ps` sampling | Two samples, 1s window (`--interval`) |

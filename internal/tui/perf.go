@@ -108,7 +108,7 @@ func (m model) recordHistory() {
 func (m model) push(key string, v float64) {
 	r := m.hist[key]
 	if r == nil {
-		r = newRing(historyLen)
+		r = newHistory(historyLen)
 		m.hist[key] = r
 	}
 	r.push(v)
@@ -195,8 +195,8 @@ func (m model) sidebarEntry(d perfDevice, selected bool) []string {
 		if m.snap.CPUKnown {
 			value = fmt.Sprintf("%.0f%%", m.snap.CPUTotal)
 		}
-		if m.cpu.BaseMHz > 0 {
-			value += fmt.Sprintf("  %.2f GHz", m.cpu.BaseMHz/1000)
+		if m.cpuInfo.BaseMHz > 0 {
+			value += fmt.Sprintf("  %.2f GHz", m.cpuInfo.BaseMHz/1000)
 		}
 	case devMemory:
 		name, hist, style = "Memory", m.memHist.values(), memGraphStyle
@@ -235,24 +235,24 @@ func (m model) sidebarEntry(d perfDevice, selected bool) []string {
 }
 
 func (m model) cpuDetail(w, h int) []string {
-	cores := strconv.Itoa(m.cpu.Physical)
-	if p, e := m.cpu.Count(metrics.CorePerformance), m.cpu.Count(metrics.CoreEfficiency); p > 0 && e > 0 {
-		cores = fmt.Sprintf("%d (%dP + %dE)", m.cpu.Physical, p, e)
+	cores := strconv.Itoa(m.cpuInfo.Physical)
+	if p, e := m.cpuInfo.Count(metrics.CorePerformance), m.cpuInfo.Count(metrics.CoreEfficiency); p > 0 && e > 0 {
+		cores = fmt.Sprintf("%d (%dP + %dE)", m.cpuInfo.Physical, p, e)
 	}
 	util := "--"
 	if m.snap.CPUKnown {
 		util = fmt.Sprintf("%.1f%%", m.snap.CPUTotal)
 	}
 	base := "--"
-	if m.cpu.BaseMHz > 0 {
-		base = fmt.Sprintf("%.2f GHz", m.cpu.BaseMHz/1000)
+	if m.cpuInfo.BaseMHz > 0 {
+		base = fmt.Sprintf("%.2f GHz", m.cpuInfo.BaseMHz/1000)
 	}
 	stats := packLine([]string{
-		kv("Utilization", util), kv("Base speed", base), kv("Cores", cores), kv("Logical", strconv.Itoa(m.cpu.Logical)),
+		kv("Utilization", util), kv("Base speed", base), kv("Cores", cores), kv("Logical", strconv.Itoa(m.cpuInfo.Logical)),
 		kv("Processes", strconv.Itoa(m.snap.ProcCount)), kv("Up", view.FormatUptime(m.snap.Uptime)),
 	}, statSep, w)
 	head := []string{
-		spread(labelStyle.Render("CPU"), dimStyle.Render(m.cpu.Model), w),
+		spread(labelStyle.Render("CPU"), dimStyle.Render(m.cpuInfo.Model), w),
 		dimStyle.Render("% Utilization · " + m.graphSpan(w-2)),
 	}
 	tail := append(append([]string{""}, stats...), "")
@@ -444,8 +444,8 @@ func (m model) coreGrid(w int) []string {
 	cells := make([]string, len(m.snap.CPUPerCore))
 	for i, v := range m.snap.CPUPerCore {
 		var kind metrics.CoreKind
-		if i < len(m.cpu.Kinds) {
-			kind = m.cpu.Kinds[i]
+		if i < len(m.cpuInfo.Kinds) {
+			kind = m.cpuInfo.Kinds[i]
 		}
 		label := fmt.Sprintf("%3d", i)
 		switch kind {

@@ -195,19 +195,19 @@ func cmpInt(a, b int32) int {
 }
 
 // CPUValue converts a normalized CPU% to the requested display mode.
-func CPUValue(normalized float64, numCPU int, irix bool) float64 {
-	if irix && numCPU > 0 {
+func CPUValue(normalized float64, numCPU int, perCore bool) float64 {
+	if perCore && numCPU > 0 {
 		return normalized * float64(numCPU)
 	}
 	return normalized
 }
 
 // FormatCPU renders a CPU% cell, "--" when unknown.
-func FormatCPU(normalized float64, known bool, numCPU int, irix bool) string {
+func FormatCPU(normalized float64, known bool, numCPU int, perCore bool) string {
 	if !known {
 		return "--"
 	}
-	return strconv.FormatFloat(CPUValue(normalized, numCPU, irix), 'f', 1, 64)
+	return strconv.FormatFloat(CPUValue(normalized, numCPU, perCore), 'f', 1, 64)
 }
 
 // FormatBytes renders a byte count with binary units, e.g. "1.2 GiB".

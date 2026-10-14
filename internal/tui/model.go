@@ -18,10 +18,10 @@ import (
 const historyLen = 300
 
 type Options struct {
-	Refresh time.Duration
-	Irix    bool
-	Sampler metrics.Sampler
-	CPU     metrics.CPUInfo // static processor info for the Performance tab
+	Refresh    time.Duration
+	PerCoreCPU bool
+	Sampler    metrics.Sampler
+	CPUInfo    metrics.CPUInfo // static processor info for the Performance tab
 }
 
 // Run blocks until the user quits.
@@ -59,25 +59,25 @@ type pendingKill struct {
 type model struct {
 	sampler metrics.Sampler
 	refresh time.Duration
-	cpu     metrics.CPUInfo
+	cpuInfo metrics.CPUInfo
 
 	tab         int
 	perfKey     string // selected Performance device
 	showAllNets bool
 	showHelp    bool
-	helpOff     int              // scroll offset of the ? screen
-	hist        map[string]*ring // per-device histories, keyed "disk:0:read" etc.
+	helpOff     int                 // scroll offset of the ? screen
+	hist        map[string]*history // per-device histories, keyed "disk:0:read" etc.
 
 	snap    metrics.SystemSnapshot
 	procs   []metrics.ProcInfo
 	rows    []view.Row
-	cpuHist *ring
-	memHist *ring
+	cpuHist *history
+	memHist *history
 
-	sortKey view.SortKey
-	desc    bool
-	group   bool
-	irix    bool
+	sortKey    view.SortKey
+	desc       bool
+	group      bool
+	perCoreCPU bool
 
 	filter    textinput.Model
 	filtering bool
@@ -102,16 +102,16 @@ func newModel(o Options) model {
 	ti.Prompt = "/"
 	ti.Placeholder = "name or PID"
 	return model{
-		sampler: o.Sampler,
-		cpu:     o.CPU,
-		refresh: o.Refresh,
-		irix:    o.Irix,
-		sortKey: view.SortCPU,
-		desc:    true,
-		filter:  ti,
-		cpuHist: newRing(historyLen),
-		hist:    map[string]*ring{},
-		memHist: newRing(historyLen),
+		sampler:    o.Sampler,
+		cpuInfo:    o.CPUInfo,
+		refresh:    o.Refresh,
+		perCoreCPU: o.PerCoreCPU,
+		sortKey:    view.SortCPU,
+		desc:       true,
+		filter:     ti,
+		cpuHist:    newHistory(historyLen),
+		hist:       map[string]*history{},
+		memHist:    newHistory(historyLen),
 	}
 }
 
@@ -276,7 +276,7 @@ func (m model) processAction(act action) (tea.Model, tea.Cmd) {
 		m.resetSelection()
 		m.rebuild()
 	case actCPUMode:
-		m.irix = !m.irix
+		m.perCoreCPU = !m.perCoreCPU
 	case actEndTask, actForceKill:
 		if r, ok := m.selected(); ok {
 			m.confirm = &pendingKill{row: r, force: act == actForceKill}

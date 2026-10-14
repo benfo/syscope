@@ -24,7 +24,7 @@ type psOptions struct {
 	group    bool
 	json     bool
 	interval time.Duration
-	irix     bool
+	perCore  bool
 }
 
 func newPsCmd() *cobra.Command {
@@ -34,7 +34,7 @@ func newPsCmd() *cobra.Command {
 		Short: "List processes with CPU and memory usage",
 		Long: "List processes. CPU% is measured over --interval, so the command takes that long to run.\n" +
 			"By default CPU% is normalized so 100% means every core is busy (like Task Manager);\n" +
-			"--irix shows it per core instead (100% = one full core, like top).",
+			"--per-core shows it per core instead (100% = one full core, like top).",
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			return runPs(cmd.Context(), cmd.OutOrStdout(), o)
@@ -48,7 +48,7 @@ func newPsCmd() *cobra.Command {
 	f.BoolVarP(&o.group, "group", "g", false, "group processes by executable name")
 	f.BoolVar(&o.json, "json", false, "output JSON")
 	f.DurationVarP(&o.interval, "interval", "i", time.Second, "CPU measurement window")
-	f.BoolVar(&o.irix, "irix", false, "per-core CPU% (100% = one core)")
+	addPerCoreFlag(f, &o.perCore)
 	return cmd
 }
 
@@ -103,7 +103,7 @@ func writePsTable(w io.Writer, snap metrics.SystemSnapshot, rows []view.Row, o p
 			id = strconv.Itoa(r.Count)
 		}
 		fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\n", id, r.Name, view.ShortUser(r.User),
-			view.FormatCPU(r.CPU, r.CPUKnown, snap.NumCPU, o.irix), view.FormatMem(r.RSS, r.RSSKnown))
+			view.FormatCPU(r.CPU, r.CPUKnown, snap.NumCPU, o.perCore), view.FormatMem(r.RSS, r.RSSKnown))
 	}
 	return tw.Flush()
 }
@@ -133,8 +133,8 @@ type jsonRow struct {
 
 func writePsJSON(w io.Writer, snap metrics.SystemSnapshot, rows []view.Row, o psOptions) error {
 	mode := "normalized"
-	if o.irix {
-		mode = "irix"
+	if o.perCore {
+		mode = "per-core"
 	}
 	out := struct {
 		System  jsonSystem `json:"system"`
@@ -161,7 +161,7 @@ func writePsJSON(w io.Writer, snap metrics.SystemSnapshot, rows []view.Row, o ps
 			jr.PID = &pid
 		}
 		if r.CPUKnown {
-			v := view.CPUValue(r.CPU, snap.NumCPU, o.irix)
+			v := view.CPUValue(r.CPU, snap.NumCPU, o.perCore)
 			jr.CPUPercent = &v
 		}
 		if r.RSSKnown {

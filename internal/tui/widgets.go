@@ -8,16 +8,16 @@ import (
 	"github.com/mattn/go-runewidth"
 )
 
-// ring is a fixed-size history of percentages for sparklines.
-type ring struct {
+// history is a fixed-size ring of samples for sparklines and graphs.
+type history struct {
 	vals []float64
 	next int
 	full bool
 }
 
-func newRing(size int) *ring { return &ring{vals: make([]float64, size)} }
+func newHistory(size int) *history { return &history{vals: make([]float64, size)} }
 
-func (r *ring) push(v float64) {
+func (r *history) push(v float64) {
 	r.vals[r.next] = v
 	r.next = (r.next + 1) % len(r.vals)
 	if r.next == 0 {
@@ -26,7 +26,7 @@ func (r *ring) push(v float64) {
 }
 
 // values returns the history oldest first.
-func (r *ring) values() []float64 {
+func (r *history) values() []float64 {
 	if !r.full {
 		return append([]float64(nil), r.vals[:r.next]...)
 	}

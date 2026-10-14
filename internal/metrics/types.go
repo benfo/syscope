@@ -41,7 +41,7 @@ type ProcInfo struct {
 	CreateTime time.Time
 
 	// CPU is normalized: 100 means every logical core is saturated
-	// (Task Manager style). Multiply by NumCPU for irix (top style).
+	// (Task Manager style). Multiply by NumCPU for per-core % (top style).
 	CPU      float64
 	CPUKnown bool // false when access is denied or there is no previous sample
 
