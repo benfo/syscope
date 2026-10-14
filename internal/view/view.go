@@ -251,3 +251,31 @@ func ShortUser(u string) string {
 	}
 	return u
 }
+
+// FormatByteRate renders bytes/second with decimal units, as Task Manager
+// does for disks: "412 KB/s", "1.2 MB/s".
+func FormatByteRate(bps float64) string {
+	return decimal(bps, "B/s")
+}
+
+// FormatBitRate renders bytes/second as bits/second with decimal units, as
+// Task Manager does for networks: "8.4 Mbps".
+func FormatBitRate(bps float64) string {
+	return decimal(bps*8, "bps")
+}
+
+func decimal(v float64, unit string) string {
+	prefixes := []string{"", "K", "M", "G", "T"}
+	i := 0
+	for v >= 1000 && i < len(prefixes)-1 {
+		v /= 1000
+		i++
+	}
+	if i == 0 {
+		return fmt.Sprintf("%.0f %s", v, unit)
+	}
+	if v >= 100 {
+		return fmt.Sprintf("%.0f %s%s", v, prefixes[i], unit)
+	}
+	return fmt.Sprintf("%.1f %s%s", v, prefixes[i], unit)
+}

@@ -125,6 +125,12 @@ func TestFormat(t *testing.T) {
 		{FormatCPU(0, false, 8, true), "--"},
 		{FormatUptime(50 * time.Minute), "0h 50m"},
 		{FormatUptime(76*time.Hour + time.Hour), "3d 5h 0m"},
+		{FormatByteRate(0), "0 B/s"},
+		{FormatByteRate(412_000), "412 KB/s"},
+		{FormatByteRate(1_250_000), "1.2 MB/s"},
+		{FormatBitRate(1_050_000), "8.4 Mbps"},
+		{FormatBitRate(125), "1.0 Kbps"},
+		{FormatBitRate(100), "800 bps"},
 	}
 	for _, c := range cases {
 		if got, want := c[0], c[1]; got != want {
