@@ -126,7 +126,7 @@ func TestFilterAndGroup(t *testing.T) {
 func TestKillNeedsConfirmation(t *testing.T) {
 	m := sampled(t, &fakeSampler{procs: []metrics.ProcInfo{p(1, "a", 1)}})
 	m = drive(t, m, key("D"))
-	if m.confirm == nil || !m.confirm.force {
+	if m.confirm == nil || !killPrompt(t, m).force {
 		t.Fatal("D should ask to confirm a force kill")
 	}
 	if !strings.Contains(m.View(), "Force kill a (PID 1)? [y/N]") {

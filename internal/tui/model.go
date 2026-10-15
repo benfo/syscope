@@ -73,7 +73,7 @@ type model struct {
 	showHelp   bool
 	helpOff    int             // scroll offset of the ? screen
 	theme      int             // index into Themes
-	confirm    *pendingKill    // kill awaiting y/N; nil when none
+	confirm    prompt          // footer question awaiting a key; nil when none
 	settingsUI *settingsScreen // settings popover; nil when closed
 	picker     *themePicker    // theme popover; nil when closed
 	prefs      prefs.Prefs     // current settings (the file plus one-run flag overrides)
@@ -166,8 +166,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.table.setDetails(msg)
 		return m, nil
 
-	case killDoneMsg:
-		m.showKillResult(msg)
+	case procDoneMsg:
+		m.showResult(msg)
 		if m.sampling {
 			return m, nil
 		}

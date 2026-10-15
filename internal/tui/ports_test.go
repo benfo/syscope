@@ -83,7 +83,7 @@ func TestPortsUnknownOwner(t *testing.T) {
 		}
 	}
 	m = selectPort(t, m, 11434)
-	if m = drive(t, m, key("D")); m.confirm == nil || !m.confirm.force || m.confirm.row.PID != 4120 {
+	if m = drive(t, m, key("D")); !killPrompt(t, m).force || killPrompt(t, m).row.PID != 4120 {
 		t.Errorf("D should offer to force kill the owner: %+v", m.confirm)
 	}
 }
