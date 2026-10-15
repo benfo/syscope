@@ -2,6 +2,8 @@ package metrics
 
 import (
 	"context"
+	stdnet "net"
+	"os"
 	"syscall"
 	"testing"
 	"time"
@@ -26,16 +28,30 @@ func TestToSocket(t *testing.T) {
 	}
 }
 
-func TestSocketCollectorLive(t *testing.T) {
+func TestSocketCollectorFindsOwnListener(t *testing.T) {
+	ln, err := stdnet.Listen("tcp4", "127.0.0.1:0")
+	if err != nil {
+		t.Skip("can't listen:", err)
+	}
+	defer ln.Close()
+	port := uint32(ln.Addr().(*stdnet.TCPAddr).Port)
+
 	var snap SystemSnapshot
 	if err := (socketCollector{}).collect(context.Background(), time.Now(), &snap); err != nil {
 		t.Fatal(err)
 	}
 	listening := 0
+	found := false
 	for _, s := range snap.Sockets {
 		if s.Listening() {
 			listening++
 		}
+		if s.LocalPort == port && s.Proto == "TCP" {
+			found = s.Listening() && s.PID == int32(os.Getpid())
+		}
 	}
 	t.Logf("%d sockets, %d listening", len(snap.Sockets), listening)
+	if !found {
+		t.Errorf("own listener on port %d not found with this PID", port)
+	}
 }
