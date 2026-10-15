@@ -14,7 +14,7 @@ This file is updated in the same commit as each feature.
 |---|---|
 | Stack | Go + gopsutil v4 + Bubble Tea / Lip Gloss + Cobra |
 | Interaction | `taskman` = live TUI; subcommands (`ps`, `kill`, …) for scripting |
-| TUI layout | Tabs (`1` Processes, `2` Performance, …) + one-line summary strip on every tab |
+| TUI layout | Tabs (`1` Processes, `2` Performance, `3` Ports, …) + one-line summary strip on every tab; inactive tabs shrink to their number when the tab bar is narrow |
 | CPU % | Normalized to 100% total (Task Manager); `--per-core` / `c` for per-core |
 | Memory column | RSS (working set on Windows) |
 | Kill | Graceful (`k`) + force (`K`), confirm first; never self-elevate |
@@ -29,15 +29,15 @@ The same rules on every tab; arrows / PgUp / PgDn / Home / End always work too.
 | Rule | Keys |
 |---|---|
 | Move | `j`/`k` down/up · `g`/`G` top/bottom · `Ctrl+d`/`Ctrl+u` half page |
-| Wrapping | **Menus wrap, scrolling lists don't** (as in vim: the completion menu and wildmenu cycle, buffers stop). Menus — short lists shown in full: Settings, the theme list, Performance devices — go from first to last and back. Scrolling lists — processes, help — stop at the ends; use `g`/`G` |
+| Wrapping | **Menus wrap, scrolling lists don't** (as in vim: the completion menu and wildmenu cycle, buffers stop). Menus — short lists shown in full: Settings, the theme list, Performance devices — go from first to last and back. Scrolling lists — processes, ports, help — stop at the ends; use `g`/`G` |
 | Search | `/` live filter · `Enter` keep and return to list · `Esc` clear |
 | Lowercase acts, uppercase is stronger / reverse | `d` end task / `D` force kill · `s` next sort column / `S` reverse |
-| Toggles | `z` group (fold) · `c` CPU% mode · `.` show hidden |
+| Toggles | `z` group (fold) · `c` CPU% mode · `.` show hidden (Performance: hidden adapters; Ports: connections, not just listeners) |
 | Tabs | `1`–`9` jump · `Tab` / `Shift+Tab` cycle |
 | Everywhere | `?` help · `Esc` cancel / clear · `q` quit · `y`/`n` confirm |
 | Settings | `,` opens Settings (one place for every setting; `j`/`k` select, `h`/`l` change with live preview, `Enter` on Theme opens the theme list). Dashboard keys change only the current session. The footer drops hints when narrow but always keeps `? help` |
 | Overlays | Never swallow global keys: tab keys work in `?` help (it follows you to the new tab); `q`/`Esc` close an overlay first. Exceptions, as in vim: search input is like insert mode (keys type; `Enter`/`Esc` leave) and y/N treats any other key as no |
-| Reserved | `Enter` details · `t` tree · `p` suspend/resume · `+`/`-` priority · `o` open file location |
+| Reserved | `Enter` details (on Ports: go to the owning process) · `t` tree · `p` suspend/resume · `+`/`-` priority · `o` open file location |
 
 New features must fit these rules and be added to the keymap table, never bound ad hoc.
 
@@ -107,6 +107,7 @@ Out of scope: per-process network rates, app history.
 - [x] **Settings screen + what persists** — `,` opens Settings (Theme, Refresh, CPU%, Default layout, Default sort, Restore last session), saved as you change them; `T` removed. Only settings persist; dashboard keys are session-only unless "Restore last session" is on, which saves and restores tab, sort, layout, CPU% mode, details pane and hidden devices in a `[session]` section. Footer always keeps `? help`
 - [x] **Wrap-around in menus** — Settings, theme list and Performance devices wrap; processes and help don't (one shared `menuMove` helper; rule in Key rules)
 - [x] **Per-volume disks** — volumes of a multi-volume disk appear indented under it in the Performance sidebar with their own read/write graphs and usage (Windows per-volume IOCTL counters, Linux partition counters; macOS and virtual drives show usage only, and say so). Active and response time stay on the physical disk's page. Nested sidebar entries via an optional `nested` interface. Virtual drives (Windows drive letters that aren't `\Device\HarddiskVolume…` partitions, e.g. cloud-sync drives) are kept off physical disks and named in a note on the disk page
+- [x] **Ports view** (Phase 3) — tab `3`: listening sockets (TCP LISTEN and bound UDP) with port, protocol, address and owning process; `.` adds every connection with remote end and state; `/` searches port, name, PID or address; `s`/`S` sort; `d`/`D` end the owner (with y/N); `Enter` jumps to the owner on Processes with its details open (clearing the search or opening its group/tree ancestors when they hide it); `?` explains 0.0.0.0 vs 127.0.0.1 and unknown owners (Linux needs root for other users' sockets). Sockets via gopsutil on every OS (~2 ms per sample). The Processes table's scrolling, columns, search box and kill prompt became shared pieces (`listnav.go`, `kill.go`)
 
 ### Phase 1 — POC
 - [x] Metrics sampler (gopsutil), CPU deltas, PID-reuse safe cache, Toolhelp names on Windows
