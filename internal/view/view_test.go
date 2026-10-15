@@ -179,3 +179,21 @@ func TestGPUSortAndGroup(t *testing.T) {
 		t.Error("FormatGPU")
 	}
 }
+
+func TestExitedRows(t *testing.T) {
+	procs := []metrics.ProcInfo{
+		{PID: 1, Name: "worker", Status: "zombie"},
+		{PID: 2, Name: "worker", Status: "zombie"},
+		{PID: 3, Name: "server", Status: "zombie"},
+		{PID: 4, Name: "server", Status: "running"},
+	}
+	flat := Rows(procs, false)
+	if !flat[0].Exited || flat[3].Exited {
+		t.Errorf("flat: %+v", flat)
+	}
+	for _, g := range Rows(procs, true) {
+		if want := g.Name == "worker"; g.Exited != want {
+			t.Errorf("group %s: exited %v, want %v (only when every member has)", g.Name, g.Exited, want)
+		}
+	}
+}

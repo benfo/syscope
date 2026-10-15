@@ -3,6 +3,7 @@ package metrics
 
 import (
 	"context"
+	"strings"
 	"time"
 )
 
@@ -60,7 +61,7 @@ type ProcInfo struct {
 	Name       string
 	Exe        string
 	User       string
-	Status     string
+	Status     string // e.g. "running", "sleep", "zombie"; "" where not reported (Windows)
 	CreateTime time.Time
 
 	// CPU is normalized: 100 means every logical core is saturated
@@ -77,6 +78,10 @@ type ProcInfo struct {
 	VRAM      uint64 // dedicated GPU memory
 	VRAMKnown bool
 }
+
+// Zombie reports whether the process has exited but is still listed because
+// its parent hasn't collected its exit status yet (Unix).
+func (p ProcInfo) Zombie() bool { return strings.Contains(p.Status, "zombie") }
 
 // Sampler produces snapshots. Rate-based fields (CPU) are computed from the
 // delta against the previous call, so the first call primes the sampler.
