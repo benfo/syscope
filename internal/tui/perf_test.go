@@ -65,3 +65,18 @@ func TestSingleVolumeDiskHasNoSubEntry(t *testing.T) {
 		}
 	}
 }
+
+func TestDiskPageExplainsVirtualDrives(t *testing.T) {
+	m := sampled(t, &fakeSampler{})
+	m = drive(t, m, tea.WindowSizeMsg{Width: 100, Height: 40}, key("2"))
+	m.perfKey = "disk:0"
+	if v := m.View(); !strings.Contains(v, "Virtual drives (X: Cloud Drive) aren't disks") {
+		t.Errorf("disk page should explain virtual drives:\n%s", v)
+	}
+	if help := strings.Join(drive(t, m, key("?")).helpContent(), "\n"); !strings.Contains(help, "cloud-sync drives") {
+		t.Error("? should explain virtual drives when there are any")
+	}
+	if virtualDrivesNote(nil) != "" {
+		t.Error("no virtual drives, no note")
+	}
+}

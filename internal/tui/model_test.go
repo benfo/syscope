@@ -26,7 +26,8 @@ func (f *fakeSampler) Sample(context.Context) (metrics.SystemSnapshot, []metrics
 			Volumes: []metrics.VolumeStat{
 				{Mount: "C:", Total: 1000 << 30, Used: 400 << 30, RatesKnown: true, ReadBps: 4e6, WriteBps: 1e6},
 				{Mount: "D:", Total: 500 << 30, Used: 100 << 30}}}},
-		Nets: f.netsOrDefault(), GPUs: f.gpus()}, f.procs, nil
+		VirtualDrives: []metrics.VirtualDrive{{Mount: "X:", Label: "Cloud Drive"}},
+		Nets:          f.netsOrDefault(), GPUs: f.gpus()}, f.procs, nil
 }
 
 func p(pid int32, name string, cpu float64) metrics.ProcInfo {

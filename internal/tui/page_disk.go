@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/x/ansi"
 
 	"taskman/internal/metrics"
 	"taskman/internal/view"
@@ -112,6 +113,11 @@ func (p diskPage) detail(w, h int) []string {
 		tail = append(tail, fmt.Sprintf("%-6s ", v.Mount)+bar(pct, 20)+
 			fmt.Sprintf(" %s/%s (%.0f%%)", view.FormatBytesCompact(v.Used), view.FormatBytesCompact(v.Total), pct))
 	}
+	if note := virtualDrivesNote(p.m.snap.VirtualDrives); note != "" {
+		for _, l := range strings.Split(ansi.Wordwrap(note, w, ""), "\n") {
+			tail = append(tail, ui.muted.Render(l))
+		}
+	}
 	head := []string{spread(ui.label.Render(p.name()), ui.muted.Render(desc), w), ui.muted.Render(sub)}
 	return withGraphs(head, tail, graphs, w, h)
 }
@@ -130,5 +136,24 @@ func (p diskPage) terms() []term {
 		t = append(t, term{"Response", "Average time per read or write. Under 1 ms is normal for NVMe; above ~20 ms feels sluggish; " +
 			"hundreds of ms means something is hammering the disk, or it's failing."})
 	}
-	return append(t, term{"Volumes", "Drives on this disk and how full they are. Keep SSDs below ~90% full; they slow down when nearly full."})
+	t = append(t, term{"Volumes", "Drives on this disk and how full they are. Keep SSDs below ~90% full; they slow down when nearly full."})
+	if len(p.m.snap.VirtualDrives) > 0 {
+		t = append(t, term{"Virtual drives", "Drive letters created by software, such as cloud-sync drives, rather than disk partitions. " +
+			"They report sizes that aren't real disk space, so they aren't listed as volumes. Reading and writing their files is disk activity on the disk they cache to."})
+	}
+	return t
+}
+
+// virtualDrivesNote explains why drive letters such as a cloud-sync drive
+// aren't listed under the disk: "Virtual drives (G: Google Drive) aren't
+// disks; …".
+func virtualDrivesNote(drives []metrics.VirtualDrive) string {
+	if len(drives) == 0 {
+		return ""
+	}
+	names := make([]string, len(drives))
+	for i, d := range drives {
+		names[i] = strings.TrimSpace(d.Mount + " " + d.Label)
+	}
+	return "Virtual drives (" + strings.Join(names, ", ") + ") aren't disks; their file activity shows on the disk they cache to."
 }
