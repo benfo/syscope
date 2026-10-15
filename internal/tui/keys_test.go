@@ -61,24 +61,24 @@ func TestVimNavigation(t *testing.T) {
 	}
 	m := sampled(t, &fakeSampler{procs: procs})
 	m = drive(t, m, key("j"), key("j"))
-	if m.table.cursor != 2 {
-		t.Errorf("jj: cursor %d", m.table.cursor)
+	if m.table.scroll.cursor != 2 {
+		t.Errorf("jj: cursor %d", m.table.scroll.cursor)
 	}
 	m = drive(t, m, key("k"))
-	if m.table.cursor != 1 || m.table.confirm != nil {
-		t.Errorf("k should move up, not kill: cursor %d", m.table.cursor)
+	if m.table.scroll.cursor != 1 || m.table.confirm != nil {
+		t.Errorf("k should move up, not kill: cursor %d", m.table.scroll.cursor)
 	}
 	m = drive(t, m, key("G"))
-	if m.table.cursor != 39 {
-		t.Errorf("G: cursor %d", m.table.cursor)
+	if m.table.scroll.cursor != 39 {
+		t.Errorf("G: cursor %d", m.table.scroll.cursor)
 	}
 	m = drive(t, m, key("g"))
-	if m.table.cursor != 0 || (m.table.layout == view.LayoutGrouped) {
-		t.Errorf("g should go to top without grouping: cursor %d group %v", m.table.cursor, (m.table.layout == view.LayoutGrouped))
+	if m.table.scroll.cursor != 0 || (m.table.layout == view.LayoutGrouped) {
+		t.Errorf("g should go to top without grouping: cursor %d group %v", m.table.scroll.cursor, (m.table.layout == view.LayoutGrouped))
 	}
 	m = drive(t, m, keyMsg("ctrl+d"))
-	if want := m.table.rowsHeight() / 2; m.table.cursor != want {
-		t.Errorf("ctrl+d: cursor %d, want %d", m.table.cursor, want)
+	if want := m.table.rowsHeight() / 2; m.table.scroll.cursor != want {
+		t.Errorf("ctrl+d: cursor %d, want %d", m.table.scroll.cursor, want)
 	}
 }
 
@@ -175,7 +175,7 @@ func TestMenusWrapScrollingListsDont(t *testing.T) {
 	}
 
 	procs := drive(t, m, key("k"))
-	if procs.table.cursor != 0 {
-		t.Errorf("the process table must not wrap: cursor %d", procs.table.cursor)
+	if procs.table.scroll.cursor != 0 {
+		t.Errorf("the process table must not wrap: cursor %d", procs.table.scroll.cursor)
 	}
 }

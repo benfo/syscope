@@ -77,8 +77,8 @@ func TestSelectionFollowsProcessAcrossRefresh(t *testing.T) {
 	f.procs = []metrics.ProcInfo{p(1, "a", 5), p(2, "b", 50), p(3, "c", 10)} // b jumps to top
 	snap, procs, _ := f.Sample(context.Background())
 	m = drive(t, m, sampleMsg{snap: snap, procs: procs})
-	if r, _ := m.table.selected(); r.PID != 2 || m.table.cursor != 0 {
-		t.Errorf("selection lost: PID %d at cursor %d", r.PID, m.table.cursor)
+	if r, _ := m.table.selected(); r.PID != 2 || m.table.scroll.cursor != 0 {
+		t.Errorf("selection lost: PID %d at cursor %d", r.PID, m.table.scroll.cursor)
 	}
 }
 

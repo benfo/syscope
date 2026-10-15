@@ -32,10 +32,7 @@ type processTable struct {
 
 	search    textinput.Model
 	searching bool
-
-	cursor int
-	offset int
-	selKey string // row the cursor follows across refreshes; "" until the user moves
+	scroll    scroller
 
 	confirm *pendingKill
 	details detailsPane
@@ -60,10 +57,8 @@ func newProcessTable(fetch detailsFetcher, now func() time.Time) processTable {
 	if now == nil {
 		now = time.Now
 	}
-	ti := textinput.New()
-	ti.Prompt = "/"
-	ti.Placeholder = "name or PID"
-	t := processTable{sortKey: view.SortCPU, desc: true, search: ti, details: detailsPane{fetch: fetch, now: now}}
+	t := processTable{sortKey: view.SortCPU, desc: true, search: newSearchInput("name or PID"),
+		details: detailsPane{fetch: fetch, now: now}}
 	t.folds[view.LayoutTree].Default = true // the tree starts open; groups start closed
 	return t
 }
@@ -93,24 +88,11 @@ func (t processTable) action(act action) (processTable, tea.Cmd) {
 }
 
 func (t processTable) apply(act action) (processTable, tea.Cmd) {
-	half := max(1, t.rowsHeight()/2)
+	if delta, ok := scrollMove(act, len(t.rows), t.rowsHeight()); ok {
+		t.move(delta)
+		return t, nil
+	}
 	switch act {
-	case actDown:
-		t.move(1)
-	case actUp:
-		t.move(-1)
-	case actTop:
-		t.move(-len(t.rows))
-	case actBottom:
-		t.move(len(t.rows))
-	case actHalfDown:
-		t.move(half)
-	case actHalfUp:
-		t.move(-half)
-	case actPageDown:
-		t.move(t.rowsHeight())
-	case actPageUp:
-		t.move(-t.rowsHeight())
 	case actSortNext:
 		t.sortKey = t.sortKey.Next()
 		for t.sortKey.IsGPU() && !t.showGPU { // skip columns this machine doesn't show
@@ -205,63 +187,29 @@ func rowDesc(r view.Row) string {
 	return fmt.Sprintf("%s (PID %d)", r.Name, r.PID)
 }
 
-// rebuild derives the visible rows. Once the user has moved the cursor, the
-// selection follows that process or group across refreshes; until then the
-// cursor stays put so the top consumer stays highlighted.
+// rebuild derives the visible rows and keeps the cursor on the followed
+// process or group (see scroller).
 func (t *processTable) rebuild() {
 	t.rows = view.Build(t.procs, t.search.Value(), t.layout, t.sortKey, t.desc, t.folds[t.layout])
-
-	found := false
-	if t.selKey != "" {
-		for i, r := range t.rows {
-			if r.Key == t.selKey {
-				t.cursor, found = i, true
-				break
-			}
-		}
-	}
-	if !found {
-		t.cursor = max(0, min(t.cursor, len(t.rows)-1))
-		if t.selKey != "" {
-			t.syncSelection() // selected process exited: follow its replacement row
-		}
-	}
-	t.clampScroll()
+	t.scroll.refresh(t.keys(), t.rowsHeight())
 }
 
-func (t *processTable) move(delta int) {
-	t.cursor = max(0, min(t.cursor+delta, len(t.rows)-1))
-	t.syncSelection()
-	t.clampScroll()
+func (t *processTable) keys() rowKeys {
+	return rowKeys{len(t.rows), func(i int) string { return t.rows[i].Key }}
 }
+
+func (t *processTable) move(delta int) { t.scroll.move(delta, t.keys(), t.rowsHeight()) }
 
 // resetSelection returns the cursor to the top and stops following a row.
-func (t *processTable) resetSelection() {
-	t.cursor, t.offset, t.selKey = 0, 0, ""
-}
+func (t *processTable) resetSelection() { t.scroll.reset() }
 
-func (t *processTable) syncSelection() {
-	if r, ok := t.selected(); ok {
-		t.selKey = r.Key
-	}
-}
-
-func (t *processTable) clampScroll() {
-	h := t.rowsHeight()
-	if t.cursor < t.offset {
-		t.offset = t.cursor
-	}
-	if t.cursor >= t.offset+h {
-		t.offset = t.cursor - h + 1
-	}
-	t.offset = max(0, min(t.offset, len(t.rows)-h))
-}
+func (t *processTable) clampScroll() { t.scroll.clamp(len(t.rows), t.rowsHeight()) }
 
 func (t processTable) selected() (view.Row, bool) {
-	if t.cursor < 0 || t.cursor >= len(t.rows) {
-		return view.Row{}, false
+	if c := t.scroll.cursor; c >= 0 && c < len(t.rows) {
+		return t.rows[c], true
 	}
-	return t.rows[t.cursor], true
+	return view.Row{}, false
 }
 
 // modeText summarises sort, CPU% mode and layout for the tab bar.
@@ -277,138 +225,44 @@ func (t processTable) modeText() string {
 	return fmt.Sprintf("sort %s%s · CPU%% %s · %s ", t.sortKey, dir, mode, t.layout)
 }
 
-// column is one Processes table column; adding a column means adding an
-// entry to processColumns.
-type column struct {
-	title    string
-	width    int // 0: flexible, takes the remaining width (at least minFlexW)
-	right    bool
-	sortKey  view.SortKey
-	sortable bool
-	gpuOnly  bool // shown only on machines with a GPU
-	cell     func(t processTable, r view.Row) string
-}
+func hasGPU(t processTable) bool { return t.showGPU }
 
-const (
-	colGap   = 1
-	minFlexW = 8
-)
-
-var processColumns = []column{
-	{title: "PID", width: 7, right: true, sortKey: view.SortPID, sortable: true,
+// processColumns are the Processes table's columns; adding a column means
+// adding an entry here.
+var processColumns = []column[processTable, view.Row]{
+	{title: "PID", width: 7, right: true, sortID: int(view.SortPID),
 		cell: func(_ processTable, r view.Row) string {
 			if r.Count > 1 {
 				return "" // a group: its PIDs are in the details pane
 			}
 			return strconv.Itoa(int(r.PID))
 		}},
-	{title: "NAME", sortKey: view.SortName, sortable: true, cell: nameCell},
-	{title: "USER", width: 14,
+	{title: "NAME", sortID: int(view.SortName), cell: nameCell},
+	{title: "USER", width: 14, sortID: noSort,
 		cell: func(_ processTable, r view.Row) string { return view.ShortUser(r.User) }},
-	{title: "CPU%", width: 7, right: true, sortKey: view.SortCPU, sortable: true,
+	{title: "CPU%", width: 7, right: true, sortID: int(view.SortCPU),
 		cell: func(t processTable, r view.Row) string {
 			return view.FormatCPU(r.CPU, r.CPUKnown, t.numCPU, t.perCoreCPU)
 		}},
-	{title: "MEM", width: 11, right: true, sortKey: view.SortMem, sortable: true,
+	{title: "MEM", width: 11, right: true, sortID: int(view.SortMem),
 		cell: func(_ processTable, r view.Row) string { return view.FormatMem(r.RSS, r.RSSKnown) }},
-	{title: "GPU%", width: 6, right: true, sortKey: view.SortGPU, sortable: true, gpuOnly: true,
+	{title: "GPU%", width: 6, right: true, sortID: int(view.SortGPU), visible: hasGPU,
 		cell: func(_ processTable, r view.Row) string { return view.FormatGPU(r.GPU, r.GPUKnown) }},
-	{title: "VRAM", width: 10, right: true, sortKey: view.SortVRAM, sortable: true, gpuOnly: true,
+	{title: "VRAM", width: 10, right: true, sortID: int(view.SortVRAM), visible: hasGPU,
 		cell: func(_ processTable, r view.Row) string { return view.FormatMem(r.VRAM, r.VRAMKnown) }},
-}
-
-// columns are the columns shown on this machine.
-func (t processTable) columns() []column {
-	var out []column
-	for _, c := range processColumns {
-		if !c.gpuOnly || t.showGPU {
-			out = append(out, c)
-		}
-	}
-	return out
-}
-
-// arrow marks the sort column's title with the sort direction.
-func (t processTable) arrow(k view.SortKey, title string) string {
-	switch {
-	case t.sortKey != k:
-		return title
-	case t.desc:
-		return title + "▼"
-	}
-	return title + "▲"
-}
-
-// columnWidths resolves flexible columns against the available width w.
-func columnWidths(cols []column, w int) []int {
-	fixed, flex := colGap*(len(cols)-1), 0
-	for _, c := range cols {
-		if c.width == 0 {
-			flex++
-		}
-		fixed += c.width
-	}
-	widths := make([]int, len(cols))
-	for i, c := range cols {
-		widths[i] = c.width
-		if c.width == 0 {
-			widths[i] = max(minFlexW, (w-fixed)/max(1, flex))
-		}
-	}
-	return widths
-}
-
-// line lays out one row of cells at the given column widths.
-func line(cols []column, widths []int, cells []string, w int) string {
-	gap := strings.Repeat(" ", colGap)
-	parts := make([]string, len(cols))
-	for i, c := range cols {
-		if c.right {
-			parts[i] = fitRight(cells[i], widths[i])
-		} else {
-			parts[i] = fit(cells[i], widths[i])
-		}
-	}
-	return fit(strings.Join(parts, gap), w)
 }
 
 // render draws the heading, the rows and, when open, the details pane at
 // width w.
 func (t processTable) render(w int) string {
-	cols := t.columns()
-	widths := columnWidths(cols, w)
-
-	titles := make([]string, len(cols))
-	for i, c := range cols {
-		switch {
-		case c.sortable:
-			titles[i] = t.arrow(c.sortKey, c.title)
-		default:
-			titles[i] = c.title
-		}
-	}
-	var b strings.Builder
-	b.WriteString(ui.inverse.Render(line(cols, widths, titles, w)) + "\n")
-
-	cells := make([]string, len(cols))
-	for i := t.offset; i < t.offset+t.rowsHeight(); i++ {
-		if i >= len(t.rows) {
-			b.WriteString("\n")
-			continue
-		}
-		for j, c := range cols {
-			cells[j] = c.cell(t, t.rows[i])
-		}
-		row := line(cols, widths, cells, w)
-		if i == t.cursor {
-			row = ui.selected.Render(row)
-		}
-		b.WriteString(row + "\n")
-	}
+	out := renderTable(tableView[processTable, view.Row]{
+		owner: t, cols: processColumns, rows: t.rows, scroll: t.scroll,
+		height: t.rowsHeight(), sortID: int(t.sortKey), desc: t.desc,
+	}, w)
 	if t.details.open {
-		b.WriteString(t.renderDetails(w))
+		out += t.renderDetails(w)
 	}
-	return b.String()
+	return out
 }
 
 // terms are the ? explanations for the Processes tab.
@@ -477,7 +331,7 @@ func (t *processTable) collapse() {
 	case r.Parent != "":
 		for i, p := range t.rows {
 			if p.Key == r.Parent {
-				t.move(i - t.cursor)
+				t.move(i - t.scroll.cursor)
 				break
 			}
 		}

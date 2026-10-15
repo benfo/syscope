@@ -49,7 +49,7 @@ func TestGPUColumnsHiddenWithoutGPU(t *testing.T) {
 }
 
 func TestColumnWidths(t *testing.T) {
-	cols := []column{{width: 7}, {}, {width: 10}}
+	cols := []column[processTable, view.Row]{{width: 7}, {}, {width: 10}}
 	if got := columnWidths(cols, 40); got[1] != 40-7-10-2 {
 		t.Errorf("flex width: %v", got)
 	}
