@@ -1,0 +1,16 @@
+ CPU 43.0% ▆▂▅▇▃▅▁▄  MEM 77% 49.0/64.0G  GPU 31% 79°C VRAM 9.0/12.0G
+ 1 Processes   2 Performance   3 Ports         sort port▲ · listening 
+ PORT▲ PROTO  ADDRESS                     PID PROCESS                 
+   445 TCP    0.0.0.0                       4 System                  
+   445 TCP    ::                            4 System                  
+  3478 UDP    0.0.0.0                   72244 Meet.exe                
+  5353 UDP    0.0.0.0                   21248 chrome.exe              
+  7680 TCP    0.0.0.0                         (unknown)               
+ 11434 TCP    127.0.0.1                  4120 ollama.exe              
+
+
+
+
+
+
+ / search d/D kill s/S sort . all enter process j/k move ? help

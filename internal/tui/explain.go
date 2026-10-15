@@ -13,8 +13,11 @@ type term struct{ name, text string }
 // On the Performance tab the selected device page provides them, and only for
 // metrics this platform reports.
 func (m model) about() (string, []term) {
-	if m.tab == tabProcesses {
+	switch m.tab {
+	case tabProcesses:
 		return "Processes", m.table.terms()
+	case tabPorts:
+		return "Ports", m.ports.terms()
 	}
 	sel, _ := m.selectedPage(m.visiblePages())
 	return sel.helpTitle(), sel.terms()
@@ -77,7 +80,7 @@ func (m model) helpAction(act action) model {
 		m.helpOff = 0
 	case actBottom:
 		m.helpOff = len(m.helpContent())
-	case actTab1, actTab2, actNextTab, actPrevTab:
+	case actTab1, actTab2, actTab3, actNextTab, actPrevTab:
 		// Stay in help and explain the new tab.
 		m = m.switchTab(act)
 		m.helpOff = 0

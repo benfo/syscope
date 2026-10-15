@@ -24,10 +24,14 @@ type killDoneMsg struct {
 	err    error // last error
 }
 
-// killTarget is what d/D would end on the current tab.
+// killTarget is what d/D would end on the current tab: the selected process,
+// or the owner of the selected socket.
 func (m model) killTarget() (view.Row, bool) {
-	if m.tab == tabProcesses {
+	switch m.tab {
+	case tabProcesses:
 		return m.table.selected()
+	case tabPorts:
+		return m.ports.owner()
 	}
 	return view.Row{}, false
 }
@@ -36,6 +40,8 @@ func (m model) killTarget() (view.Row, bool) {
 func (m model) askKill(force bool) model {
 	if r, ok := m.killTarget(); ok {
 		m.confirm = &pendingKill{row: r, force: force}
+	} else if _, sel := m.ports.selected(); sel && m.tab == tabPorts {
+		m.setStatus("which process owns this socket is unknown", false)
 	}
 	return m
 }

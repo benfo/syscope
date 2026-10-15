@@ -12,10 +12,11 @@ import (
 const (
 	tabProcesses = iota
 	tabPerformance
+	tabPorts
 	numTabs
 )
 
-var tabNames = [numTabs]string{"Processes", "Performance"}
+var tabNames = [numTabs]string{"Processes", "Performance", "Ports"}
 
 // Fixed screen furniture on every tab: summary strip, tab bar, footer.
 const chromeLines = 3
@@ -35,6 +36,8 @@ func (m model) View() string {
 		b.WriteString(m.renderHelp())
 	case m.tab == tabPerformance:
 		b.WriteString(m.renderPerf())
+	case m.tab == tabPorts:
+		b.WriteString(m.ports.render(m.width))
 	default:
 		b.WriteString(m.table.render(m.width))
 	}
@@ -49,22 +52,37 @@ func (m model) View() string {
 	return screen
 }
 
+// renderTabs is the tab bar, with the tab's mode on the right. When both
+// don't fit, inactive tabs shrink to their number.
 func (m model) renderTabs() string {
-	var left strings.Builder
-	for i, n := range tabNames {
-		t := fmt.Sprintf(" %d %s ", i+1, n)
-		if i == m.tab {
-			left.WriteString(ui.inverse.Render(t))
-		} else {
-			left.WriteString(ui.muted.Render(t))
-		}
-		left.WriteString(" ")
-	}
 	var right string
-	if m.tab == tabProcesses {
+	switch m.tab {
+	case tabProcesses:
 		right = ui.muted.Render(m.table.modeText())
+	case tabPorts:
+		right = ui.muted.Render(m.ports.modeText())
 	}
-	return spread(left.String(), right, m.width)
+	left := m.tabLabels(false)
+	if lipgloss.Width(left)+lipgloss.Width(right) >= m.width {
+		left = m.tabLabels(true)
+	}
+	return spread(left, right, m.width)
+}
+
+func (m model) tabLabels(compact bool) string {
+	var b strings.Builder
+	for i, n := range tabNames {
+		switch {
+		case i == m.tab:
+			b.WriteString(ui.inverse.Render(fmt.Sprintf(" %d %s ", i+1, n)))
+		case compact:
+			b.WriteString(ui.muted.Render(fmt.Sprintf(" %d ", i+1)))
+		default:
+			b.WriteString(ui.muted.Render(fmt.Sprintf(" %d %s ", i+1, n)))
+		}
+		b.WriteString(" ")
+	}
+	return b.String()
 }
 
 // renderHelp is the ? overlay, filling the body area.
@@ -81,8 +99,19 @@ func (m model) renderHelp() string {
 	return b.String()
 }
 
+// activeSearch is the current tab's search box; nil on tabs without one.
+func (m model) activeSearch() *searchBox {
+	switch m.tab {
+	case tabProcesses:
+		return &m.table.search
+	case tabPorts:
+		return &m.ports.search
+	}
+	return nil
+}
+
 func (m model) renderFooter() string {
-	t := m.table
+	search := m.activeSearch()
 	switch {
 	case m.showHelp:
 		return m.helpFooter()
@@ -92,8 +121,8 @@ func (m model) renderFooter() string {
 			verb = "Force kill"
 		}
 		return ui.prompt.Render(fit(fmt.Sprintf(" %s %s? [y/N]", verb, rowDesc(m.confirm.row)), m.width))
-	case t.search.active:
-		return ansi.Truncate(" "+t.search.input.View(), m.width, "")
+	case search != nil && search.active:
+		return ansi.Truncate(" "+search.input.View(), m.width, "")
 	case m.status != "" && time.Since(m.statusAt) < 5*time.Second:
 		style := ui.muted
 		if !m.statusOK {
@@ -103,7 +132,8 @@ func (m model) renderFooter() string {
 	}
 
 	var b strings.Builder
-	if s := t.search.value(); s != "" && m.tab == tabProcesses {
+	if search != nil && search.value() != "" {
+		s := search.value()
 		b.WriteString(ui.prompt.Render(" filter: "+s) + ui.muted.Render(" (esc clears) "))
 	}
 	// "? help" lists every key, so it always shows; other hints are dropped

@@ -1,0 +1,16 @@
+ CPU 43.0% ▆▂▅▇▃▅▁▄  MEM 77% 49.0/64.0G  GPU 31% 79°C VRAM 9.0/12.0G
+ 1 Processes   2 Performance   3 Ports    sort process▲ · all sockets 
+  PORT PROTO  ADDRESS     REMOTE      STATE           PID PROCESS▲    
+  7680 TCP    0.0.0.0                 LISTEN              (unknown)   
+ 52101 TCP    192.0.2.106 198.51.100… TIME_WAIT           (unknown)   
+  5353 UDP    0.0.0.0                               21248 chrome.exe  
+ 52144 TCP    192.0.2.106 203.0.113.… ESTABLISHED   21248 chrome.exe  
+ 52150 TCP    127.0.0.1   127.0.0.1:… ESTABLISHED   55916 Example.Te… 
+  3478 UDP    0.0.0.0                               72244 Meet.exe    
+ 11434 TCP    127.0.0.1               LISTEN         4120 ollama.exe  
+   445 TCP    0.0.0.0                 LISTEN            4 System      
+   445 TCP    ::                      LISTEN            4 System      
+
+
+
+ / search d/D kill s/S sort . all enter process j/k move ? help

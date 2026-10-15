@@ -27,7 +27,7 @@ func (f *fakeSampler) Sample(context.Context) (metrics.SystemSnapshot, []metrics
 				{Mount: "C:", Total: 1000 << 30, Used: 400 << 30, RatesKnown: true, ReadBps: 4e6, WriteBps: 1e6},
 				{Mount: "D:", Total: 500 << 30, Used: 100 << 30}}}},
 		VirtualDrives: []metrics.VirtualDrive{{Mount: "X:", Label: "Cloud Drive"}},
-		Nets:          f.netsOrDefault(), GPUs: f.gpus()}, f.procs, nil
+		Nets:          f.netsOrDefault(), GPUs: f.gpus(), Sockets: goldenSockets()}, f.procs, nil
 }
 
 func p(pid int32, name string, cpu float64) metrics.ProcInfo {
@@ -181,6 +181,10 @@ func TestTabs(t *testing.T) {
 	m = drive(t, m, key("D")) // process keys are inert on the Performance tab
 	if m.confirm != nil {
 		t.Error("kill must not trigger from the Performance tab")
+	}
+	m = drive(t, m, keyMsg("tab"))
+	if m.tab != tabPorts {
+		t.Error("tab should move on to Ports")
 	}
 	m = drive(t, m, keyMsg("tab"))
 	if m.tab != tabProcesses {

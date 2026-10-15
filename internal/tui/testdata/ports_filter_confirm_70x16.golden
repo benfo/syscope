@@ -1,0 +1,16 @@
+ CPU 43.0% ▆▂▅▇▃▅▁▄  MEM 77% 49.0/64.0G  GPU 31% 79°C VRAM 9.0/12.0G
+ 1 Processes   2 Performance   3 Ports         sort port▲ · listening 
+ PORT▲ PROTO  ADDRESS                     PID PROCESS                 
+ 11434 TCP    127.0.0.1                  4120 ollama.exe              
+
+
+
+
+
+
+
+
+
+
+
+ End task ollama.exe (PID 4120)? [y/N]                                

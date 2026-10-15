@@ -271,6 +271,36 @@ func (t *processTable) collapse() {
 	}
 }
 
+// reveal selects process pid's row, clearing the search or opening the rows
+// it's nested under when they hide it. False if the process isn't running.
+func (t *processTable) reveal(pid int32) bool {
+	find := func() int {
+		for i, r := range t.rows {
+			if r.Count == 1 && r.PID == pid {
+				return i
+			}
+		}
+		return -1
+	}
+	i := find()
+	if i < 0 && t.search.value() != "" {
+		t.search.clear()
+		t.rebuild()
+		i = find()
+	}
+	if i < 0 {
+		for _, k := range view.Enclosing(t.procs, t.layout, pid) {
+			t.setOpen(k, true)
+		}
+		i = find()
+	}
+	if i < 0 {
+		return false
+	}
+	t.move(i - t.scroll.cursor)
+	return true
+}
+
 func (t *processTable) setOpen(key string, open bool) {
 	f := &t.folds[t.layout]
 	if f.Open == nil {

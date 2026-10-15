@@ -66,6 +66,11 @@ func TestGoldenScreens(t *testing.T) {
 		{"perf_igpu", []tea.KeyMsg{key("2"), key("G")}, false},
 		{"perf_hidden_adapters", []tea.KeyMsg{key("2"), key("."), key("G")}, false},
 		{"perf_gpu_help", []tea.KeyMsg{key("2"), key("G"), key("k"), key("?")}, false},
+		{"ports", []tea.KeyMsg{key("3")}, false},
+		{"ports_all_sorted", []tea.KeyMsg{key("3"), key("."), key("s"), key("s"), key("s")}, false},
+		{"ports_filter_confirm", []tea.KeyMsg{key("3"), key("/"), key("o"), key("l"), keyMsg("enter"), key("d")}, false},
+		{"ports_help", []tea.KeyMsg{key("3"), key("?")}, false},
+		{"ports_goto_process", []tea.KeyMsg{key("3"), key("G"), keyMsg("enter")}, true},
 	}
 	for _, size := range []struct{ w, h int }{{100, 30}, {70, 16}} {
 		for _, s := range screens {
@@ -140,5 +145,24 @@ func goldenProcs() []metrics.ProcInfo {
 			GPU: 0, GPUKnown: true, VRAM: 4400 << 20, VRAMKnown: true},
 		{PID: 72244, Name: "Meet.exe", User: `CORP\sam`, CPU: 1.2, CPUKnown: true, RSS: 1 * gib, RSSKnown: true,
 			GPU: 3.1, GPUKnown: true, VRAM: 412 << 20, VRAMKnown: true},
+	}
+}
+
+// goldenSockets are listeners and connections of goldenProcs, plus one
+// socket whose owner the OS didn't report.
+func goldenSockets() []metrics.Socket {
+	return []metrics.Socket{
+		{Proto: "TCP", LocalIP: "127.0.0.1", LocalPort: 11434, State: "LISTEN", PID: 4120},
+		{Proto: "TCP", LocalIP: "0.0.0.0", LocalPort: 445, State: "LISTEN", PID: 4},
+		{Proto: "TCP", LocalIP: "::", LocalPort: 445, State: "LISTEN", PID: 4},
+		{Proto: "UDP", LocalIP: "0.0.0.0", LocalPort: 5353, PID: 21248},
+		{Proto: "UDP", LocalIP: "0.0.0.0", LocalPort: 3478, PID: 72244},
+		{Proto: "TCP", LocalIP: "0.0.0.0", LocalPort: 7680, State: "LISTEN"},
+		{Proto: "TCP", LocalIP: "192.0.2.106", LocalPort: 52144, RemoteIP: "203.0.113.20", RemotePort: 443,
+			State: "ESTABLISHED", PID: 21248},
+		{Proto: "TCP", LocalIP: "127.0.0.1", LocalPort: 52150, RemoteIP: "127.0.0.1", RemotePort: 11434,
+			State: "ESTABLISHED", PID: 55916},
+		{Proto: "TCP", LocalIP: "192.0.2.106", LocalPort: 52101, RemoteIP: "198.51.100.9", RemotePort: 443,
+			State: "TIME_WAIT"},
 	}
 }

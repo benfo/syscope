@@ -83,6 +83,10 @@ func TestSessionRestoredOnlyWhenEnabled(t *testing.T) {
 		m.table.sortKey != view.SortMem || !m.showHidden {
 		t.Errorf("session not restored: %+v", m.session())
 	}
+	start.Session.Tab = "ports"
+	if m = modelWith(t, start, &recorder{}); m.tab != tabPorts || m.session().Tab != "ports" {
+		t.Errorf("the Ports tab should round-trip: tab %d", m.tab)
+	}
 }
 
 func TestDashboardKeysDontSaveWithoutRestore(t *testing.T) {

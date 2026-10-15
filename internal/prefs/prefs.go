@@ -32,7 +32,7 @@ type Prefs struct {
 // Session is what the user was doing when taskman closed. It's only saved
 // and restored when Prefs.RestoreSession is on.
 type Session struct {
-	Tab         string `toml:"tab"` // processes, performance
+	Tab         string `toml:"tab"` // processes, performance, ports
 	Sort        string `toml:"sort"`
 	Descending  bool   `toml:"descending"`
 	Layout      string `toml:"layout"`

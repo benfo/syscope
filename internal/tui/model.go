@@ -4,6 +4,7 @@ package tui
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -64,6 +65,7 @@ type model struct {
 	snap      metrics.SystemSnapshot
 	histories histories
 	table     processTable
+	ports     portsTable
 
 	tab        int
 	perfKey    string // selected Performance device
@@ -100,6 +102,7 @@ func newModel(o Options) model {
 		save:      o.Save,
 		histories: histories{},
 		table:     newProcessTable(o.Details, o.Now),
+		ports:     newPortsTable(),
 	}
 	m.applyPrefs(s)
 	m.saved = s // so target() keeps the saved session when not restoring
@@ -131,6 +134,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width, m.height = msg.Width, msg.Height
 		m.table.setHeight(m.tableHeight())
+		m.ports.setHeight(m.tableHeight())
 		return m, nil
 
 	case sampleMsg:
@@ -143,6 +147,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.snap = msg.snap
 		m.recordHistory()
 		m.table.setProcs(msg.procs, msg.snap)
+		m.ports.setData(msg.snap.Sockets, msg.procs)
 		// The first sample only primes CPU deltas; follow up quickly.
 		next := m.refresh
 		if !m.snap.CPUKnown {
@@ -197,6 +202,9 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case m.table.search.active:
 		m.table, cmd = m.table.searchKey(msg)
 		return m, cmd
+	case m.ports.search.active:
+		m.ports, cmd = m.ports.searchKey(msg)
+		return m, cmd
 	case m.picker != nil:
 		return m.pickerKey(key), nil
 	case m.settingsUI != nil:
@@ -212,25 +220,50 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case actHelp:
 		m.showHelp, m.helpOff = true, 0
 		return m, nil
-	case actTab1, actTab2, actNextTab, actPrevTab:
+	case actTab1, actTab2, actTab3, actNextTab, actPrevTab:
 		return m.switchTab(act), nil
 	case actSettings:
 		return m.openSettings(), nil
 	case actEndTask, actForceKill:
 		return m.askKill(act == actForceKill), nil
 	}
-	if m.tab == tabPerformance {
+	switch m.tab {
+	case tabPerformance:
 		return m.perfAction(act), nil
+	case tabPorts:
+		if act == actGoToProcess {
+			return m.goToProcess()
+		}
+		m.ports, cmd = m.ports.apply(act)
+		return m, cmd
 	}
 	m.table, cmd = m.table.action(act)
 	return m, cmd
+}
+
+// goToProcess shows the selected socket's owner on the Processes tab, with
+// its details pane open.
+func (m model) goToProcess() (tea.Model, tea.Cmd) {
+	r, ok := m.ports.owner()
+	switch {
+	case !ok:
+		m.setStatus("which process owns this socket is unknown", false)
+		return m, nil
+	case !m.table.reveal(r.PID):
+		m.setStatus(fmt.Sprintf("PID %d has exited", r.PID), false)
+		return m, nil
+	}
+	m.tab = tabProcesses
+	m.table.details.open = true
+	m.table.clampScroll()
+	return m, m.table.detailsCmd()
 }
 
 // switchTab handles the tab actions. It's shared by every mode that shows
 // the tab bar, so tab keys work the same everywhere (including ? help).
 func (m model) switchTab(act action) model {
 	switch act {
-	case actTab1, actTab2:
+	case actTab1, actTab2, actTab3:
 		m.tab = int(act - actTab1)
 	case actNextTab:
 		m.tab = (m.tab + 1) % numTabs

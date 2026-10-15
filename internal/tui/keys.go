@@ -17,6 +17,7 @@ const (
 	actPageUp
 	actTab1
 	actTab2
+	actTab3
 	actNextTab
 	actPrevTab
 	actHelp
@@ -37,6 +38,7 @@ const (
 	actCollapse
 	actExpandAll
 	actCollapseAll
+	actGoToProcess
 	numActions // sentinel for tests
 )
 
@@ -46,12 +48,14 @@ const (
 	scopeGlobal scope = iota
 	scopeProcesses
 	scopePerformance
+	scopePorts
 )
 
 var scopeTitles = map[scope]string{
 	scopeGlobal:      "Everywhere",
 	scopeProcesses:   "Processes",
 	scopePerformance: "Performance",
+	scopePorts:       "Ports",
 }
 
 // binding is one row of help: a label, a description and the keys it maps.
@@ -68,7 +72,7 @@ var keymap = []binding{
 	{scopeGlobal, "g/G", "top / bottom", "", map[string]action{"g": actTop, "home": actTop, "G": actBottom, "end": actBottom}},
 	{scopeGlobal, "^d/^u", "half page down / up", "", map[string]action{
 		"ctrl+d": actHalfDown, "ctrl+u": actHalfUp, "pgdown": actPageDown, "pgup": actPageUp}},
-	{scopeGlobal, "1-2", "jump to tab", "tabs", map[string]action{"1": actTab1, "2": actTab2}},
+	{scopeGlobal, "1-3", "jump to tab", "tabs", map[string]action{"1": actTab1, "2": actTab2, "3": actTab3}},
 	{scopeGlobal, "tab", "next / previous tab", "", map[string]action{"tab": actNextTab, "shift+tab": actPrevTab}},
 	{scopeGlobal, "esc", "close pane / cancel / clear search", "", map[string]action{"esc": actCancel}},
 	{scopeGlobal, ",", "settings: theme, refresh, defaults, restore session", "settings", map[string]action{",": actSettings}},
@@ -87,6 +91,13 @@ var keymap = []binding{
 	{scopeProcesses, "enter", "details pane (follows the cursor)", "details", map[string]action{"enter": actDetails}},
 
 	{scopePerformance, ".", "show hidden adapters", "hidden", map[string]action{".": actShowHidden}},
+
+	{scopePorts, "/", "search by port, name, PID or address", "search", map[string]action{"/": actSearch}},
+	{scopePorts, "d/D", "end task / force kill the owning process", "kill", map[string]action{
+		"d": actEndTask, "delete": actEndTask, "D": actForceKill}},
+	{scopePorts, "s/S", "next sort column / reverse", "sort", map[string]action{"s": actSortNext, "S": actSortReverse}},
+	{scopePorts, ".", "show connections too, not just listening", "all", map[string]action{".": actShowHidden}},
+	{scopePorts, "enter", "go to the owning process", "process", map[string]action{"enter": actGoToProcess}},
 }
 
 // lookup resolves a key in the given scope, falling back to global keys.
@@ -104,8 +115,11 @@ func lookup(sc scope, key string) action {
 }
 
 func (m model) scope() scope {
-	if m.tab == tabPerformance {
+	switch m.tab {
+	case tabPerformance:
 		return scopePerformance
+	case tabPorts:
+		return scopePorts
 	}
 	return scopeProcesses
 }
@@ -161,5 +175,5 @@ func menuMove(sel, n int, act action) (next int, moved bool) {
 func wrap(i, n int) int { return ((i % n) + n) % n }
 
 func isTabAction(a action) bool {
-	return a == actTab1 || a == actTab2 || a == actNextTab || a == actPrevTab
+	return a == actTab1 || a == actTab2 || a == actTab3 || a == actNextTab || a == actPrevTab
 }

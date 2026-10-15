@@ -1,5 +1,5 @@
  CPU 43.0% ▆▂▅▇▃▅▁▄  MEM 77% 49.0/64.0G  GPU 31% 79°C VRAM 9.0/12.0G
- 1 Processes   2 Performance       sort cpu▼ · CPU% normalized · flat 
+ 1 Processes   2   3               sort cpu▼ · CPU% normalized · flat 
     PID NAME      USER             CPU%▼         MEM   GPU%       VRAM
    4120 ollama.e… sam                2.5     1.0 GiB   88.0    7.0 GiB
   55916 Example.… sam                0.1   542.0 MiB    0.0        0 B

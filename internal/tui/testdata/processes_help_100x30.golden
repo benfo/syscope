@@ -1,5 +1,5 @@
  CPU 43.0% ▆▂▅▇▃▅▁▄  MEM 77% 49.0/64.0G  GPU 31% 79°C VRAM 9.0/12.0G  NET ↓3.2 Mbps ↑160 Kbps
- 1 Processes   2 Performance                                     sort cpu▼ · CPU% normalized · flat 
+ 1 Processes   2 Performance   3 Ports                           sort cpu▼ · CPU% normalized · flat 
  About: Processes                                                                                   
    PID             Process ID, a number the OS gives each running process. Use it with `taskman     
                    kill <pid>`. IDs are reused after a process exits.                               

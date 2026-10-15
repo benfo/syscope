@@ -1,0 +1,16 @@
+ CPU 43.0% ▆▂▅▇▃▅▁▄  MEM 77% 49.0/64.0G  GPU 31% 79°C VRAM 9.0/12.0G
+ 1 Processes   2 Performance   3 Ports         sort port▲ · listening 
+ About: Ports                                                         
+   PORT            The number other programs connect to. A port can   
+                   only have one listener per address, so "address    
+                   already in use" means something here already has   
+                   it: search for the port (/) to see what.           
+   PROTO           TCP for connections (web servers, databases, SSH). 
+                   UDP for messages without a connection (DNS,        
+                   discovery, games, video calls).                    
+   ADDRESS         Where it listens. 0.0.0.0 or :: means every        
+                   network interface, so other machines can reach it  
+                   unless a firewall blocks it. 127.0.0.1 or ::1      
+                   means this machine only.                           
+   PID / PROCESS   The process that owns the socket. Enter goes to it 
+ esc close j/k scroll  lines 1–13 of 39
