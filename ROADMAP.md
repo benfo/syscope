@@ -32,12 +32,12 @@ The same rules on every tab; arrows / PgUp / PgDn / Home / End always work too.
 | Wrapping | **Menus wrap, scrolling lists don't** (as in vim: the completion menu and wildmenu cycle, buffers stop). Menus — short lists shown in full: Settings, the theme list, Performance devices — go from first to last and back. Scrolling lists — processes, ports, help — stop at the ends; use `g`/`G` |
 | Search | `/` live filter · `Enter` keep and return to list · `Esc` clear |
 | Lowercase acts, uppercase is stronger / reverse | `d` end task / `D` force kill · `s` next sort column / `S` reverse |
-| Toggles | `z` group (fold) · `c` CPU% mode · `.` show hidden (Performance: hidden adapters; Ports: connections, not just listeners) |
+| Toggles | `z` group (fold) · `c` CPU% mode · `p` suspend (asks) / resume · `.` show hidden (Performance: hidden adapters; Ports: connections, not just listeners) |
 | Tabs | `1`–`9` jump · `Tab` / `Shift+Tab` cycle |
 | Everywhere | `?` help · `Esc` cancel / clear · `q` quit · `y`/`n` confirm (kill prompts add `t`: also the processes it started) |
 | Settings | `,` opens Settings (one place for every setting; `j`/`k` select, `h`/`l` change with live preview, `Enter` on Theme opens the theme list). Dashboard keys change only the current session. The footer drops hints when narrow but always keeps `? help` |
 | Overlays | Never swallow global keys: tab keys work in `?` help (it follows you to the new tab); `q`/`Esc` close an overlay first. Exceptions, as in vim: search input is like insert mode (keys type; `Enter`/`Esc` leave) and y/N treats any other key as no |
-| Reserved | `Enter` details (on Ports: go to the owning process) · `t` tree · `p` suspend/resume · `+`/`-` priority · `o` open file location |
+| Reserved | `Enter` details (on Ports: go to the owning process) · `t` tree · `+`/`-` priority · `o` open file location |
 
 New features must fit these rules and be added to the keymap table, never bound ad hoc.
 
@@ -113,6 +113,7 @@ Out of scope: per-process network rates, app history.
 - [x] **Ports view** (Phase 3) — tab `3`: listening sockets (TCP LISTEN and bound UDP) with port, protocol, address and owning process; `.` adds every connection with remote end and state; `/` searches port, name, PID or address; `s`/`S` sort; `d`/`D` end the owner (with y/N); `Enter` jumps to the owner on Processes with its details open (clearing the search or opening its group/tree ancestors when they hide it); `?` explains 0.0.0.0 vs 127.0.0.1 and unknown owners (Linux needs root for other users' sockets). Sockets via gopsutil on every OS (~2 ms per sample). The Processes table's scrolling, columns, search box and kill prompt became shared pieces (`listnav.go`, `kill.go`)
 - [x] **Kill tree** (Phase 3) — when the process (or any process in a group, or a port's owner) started others, the `d`/`D` prompt offers `t`: end it and every process it started, parents first so they can't respawn children; the count is in the prompt. `y` still ends just the one, so existing muscle memory stays safe (ending `explorer.exe` with `y` doesn't take every desktop app with it). Children must have started after their parent, so reused PIDs aren't mistaken for children
 - [x] **Exited (zombie) processes** — Linux/macOS processes that have exited but whose parent hasn't collected them show as `name (exited)` (also in `taskman ps`, and `"exited": true` in JSON); the details pane explains zombies; `d`/`D` on one says it can't be ended instead of appearing to do nothing, and kill tree skips them. Found while testing kill tree in Docker, where the container's PID 1 doesn't reap (use `docker run --init`)
+- [x] **Suspend / resume** (Phase 3) — `p` asks "Suspend x? [y/N]" (a wrong pick can freeze the desktop), and resumes a suspended process without asking. Refuses taskman itself and its ancestors (shell, terminal), which nothing could then resume. Suspended processes show as `(suspended)` (also in `taskman ps` and JSON) with a details hint; detection matches Task Manager on Windows (every thread waiting with reason Suspended, via NtQuerySystemInformation — so Store apps Windows paused show too) and uses the stopped state on Unix. Quitting with processes this session suspended asks "Resume … before quitting? [Y/n]" (a second Ctrl+C quits without resuming). Kill, suspend and quit share one prompt/job runner
 
 ### Phase 1 — POC
 - [x] Metrics sampler (gopsutil), CPU deltas, PID-reuse safe cache, Toolhelp names on Windows
