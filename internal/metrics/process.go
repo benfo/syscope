@@ -33,8 +33,9 @@ type procEntry struct {
 // snapshotEntry is what a whole-system process snapshot knows about one
 // process (Windows only; see processSnapshot).
 type snapshotEntry struct {
-	name string
-	ppid int32
+	name      string
+	ppid      int32
+	suspended bool // every thread is suspended
 }
 
 func newProcessCollector(numCPU int) *processCollector {
@@ -104,6 +105,9 @@ func (c *processCollector) sample(ctx context.Context, pid int32, snap snapshotE
 	}
 	if st, err := e.proc.StatusWithContext(ctx); err == nil && len(st) > 0 {
 		info.Status = strings.Join(st, ",")
+	}
+	if snap.suspended {
+		info.Status = statusStopped // Windows reports no status; the snapshot knows
 	}
 	return info
 }

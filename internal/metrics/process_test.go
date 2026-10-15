@@ -4,8 +4,12 @@ import (
 	"context"
 	"math"
 	"os"
+	"os/exec"
+	"runtime"
 	"testing"
 	"time"
+
+	"taskman/internal/proc"
 )
 
 func TestProcCPUPercent(t *testing.T) {
@@ -88,5 +92,54 @@ func TestIORates(t *testing.T) {
 	cur.PID = 2
 	if _, _, ok := IORates(prev, cur); ok {
 		t.Error("different processes must not produce a rate")
+	}
+}
+
+func TestSuspendedDetected(t *testing.T) {
+	var cmd *exec.Cmd
+	if runtime.GOOS == "windows" {
+		cmd = exec.Command("ping", "-n", "60", "127.0.0.1")
+	} else {
+		cmd = exec.Command("sleep", "60")
+	}
+	if err := cmd.Start(); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = cmd.Process.Kill(); _ = cmd.Wait() })
+	pid := int32(cmd.Process.Pid)
+
+	c := newProcessCollector(1)
+	suspended := func() bool {
+		procs, err := c.collect(context.Background(), time.Now())
+		if err != nil {
+			t.Fatal(err)
+		}
+		n := 0
+		found := false
+		for _, p := range procs {
+			if p.Suspended() {
+				n++
+			}
+			if p.PID == pid {
+				found = p.Suspended()
+			}
+		}
+		t.Logf("%d suspended processes", n)
+		return found
+	}
+	if suspended() {
+		t.Fatal("running process reported suspended")
+	}
+	if err := proc.Suspend(pid); err != nil {
+		t.Fatal(err)
+	}
+	if !suspended() {
+		t.Error("suspended process not detected")
+	}
+	if err := proc.Resume(pid); err != nil {
+		t.Fatal(err)
+	}
+	if suspended() {
+		t.Error("resumed process still reported suspended")
 	}
 }

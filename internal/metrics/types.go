@@ -79,9 +79,19 @@ type ProcInfo struct {
 	VRAMKnown bool
 }
 
+// Status values the dashboard acts on (gopsutil's names).
+const (
+	statusZombie  = "zombie"
+	statusStopped = "stop"
+)
+
 // Zombie reports whether the process has exited but is still listed because
 // its parent hasn't collected its exit status yet (Unix).
-func (p ProcInfo) Zombie() bool { return strings.Contains(p.Status, "zombie") }
+func (p ProcInfo) Zombie() bool { return strings.Contains(p.Status, statusZombie) }
+
+// Suspended reports whether the process is paused: stopped by a signal
+// (Unix) or with every thread suspended (Windows).
+func (p ProcInfo) Suspended() bool { return strings.Contains(p.Status, statusStopped) }
 
 // Sampler produces snapshots. Rate-based fields (CPU) are computed from the
 // delta against the previous call, so the first call primes the sampler.
