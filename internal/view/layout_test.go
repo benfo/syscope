@@ -5,6 +5,7 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"time"
 
 	"taskman/internal/metrics"
 )
@@ -130,5 +131,27 @@ func TestEnclosing(t *testing.T) {
 	}
 	if Enclosing(procs, LayoutFlat, 3) != nil || Enclosing(procs, LayoutTree, 99) != nil {
 		t.Error("flat or missing process should need nothing open")
+	}
+}
+
+func TestDescendants(t *testing.T) {
+	t0 := time.Date(2026, 1, 1, 9, 0, 0, 0, time.UTC)
+	procs := []metrics.ProcInfo{
+		{PID: 10, Name: "node", CreateTime: t0},
+		{PID: 11, PPID: 10, Name: "worker", CreateTime: t0.Add(time.Second)},
+		{PID: 12, PPID: 11, Name: "esbuild", CreateTime: t0.Add(2 * time.Second)},
+		{PID: 13, PPID: 10, Name: "older", CreateTime: t0.Add(-time.Hour)}, // parent PID reused
+		{PID: 14, PPID: 15, Name: "loop-a"},
+		{PID: 15, PPID: 14, Name: "loop-b"},
+		{PID: 16, PPID: 16, Name: "self"},
+	}
+	if got := Descendants(procs, []int32{10}); !slices.Equal(got, []int32{11, 12}) {
+		t.Errorf("tree: %v", got)
+	}
+	if got := Descendants(procs, []int32{14}); !slices.Equal(got, []int32{15}) {
+		t.Errorf("cycle: %v", got)
+	}
+	if got := Descendants(procs, []int32{16, 99}); len(got) != 0 {
+		t.Errorf("self-parent or missing: %v", got)
 	}
 }

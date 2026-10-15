@@ -207,3 +207,45 @@ func Enclosing(procs []metrics.ProcInfo, layout Layout, pid int32) []string {
 	slices.Reverse(keys)
 	return keys
 }
+
+// Descendants is every process started, directly or indirectly, by the
+// processes in roots (excluding roots), parents before children. A child
+// must have started after its parent, so a PID reused by an unrelated
+// process isn't mistaken for the parent.
+func Descendants(procs []metrics.ProcInfo, roots []int32) []int32 {
+	children := map[int32][]metrics.ProcInfo{}
+	byPID := make(map[int32]metrics.ProcInfo, len(procs))
+	for _, p := range procs {
+		byPID[p.PID] = p
+		if p.PPID != p.PID {
+			children[p.PPID] = append(children[p.PPID], p)
+		}
+	}
+	seen := map[int32]bool{}
+	for _, pid := range roots {
+		seen[pid] = true
+	}
+	var out []int32
+	queue := slices.Clone(roots)
+	for len(queue) > 0 {
+		parent, ok := byPID[queue[0]]
+		queue = queue[1:]
+		if !ok {
+			continue
+		}
+		for _, c := range children[parent.PID] {
+			if seen[c.PID] || startedBefore(c, parent) {
+				continue
+			}
+			seen[c.PID] = true
+			out = append(out, c.PID)
+			queue = append(queue, c.PID)
+		}
+	}
+	return out
+}
+
+// startedBefore reports whether a started before b, when both times are known.
+func startedBefore(a, b metrics.ProcInfo) bool {
+	return !a.CreateTime.IsZero() && !b.CreateTime.IsZero() && a.CreateTime.Before(b.CreateTime)
+}
