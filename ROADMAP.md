@@ -17,9 +17,11 @@ This file is updated in the same commit as each feature.
 | TUI layout | Tabs (`1` Processes, `2` Performance, `3` Ports, …) + one-line summary strip on every tab; inactive tabs shrink to their number when the tab bar is narrow |
 | CPU % | Normalized to 100% total (Task Manager); `--per-core` / `c` for per-core |
 | Memory column | RSS (working set on Windows) |
-| Kill | Graceful (`k`) + force (`K`), confirm first; never self-elevate |
+| Name | **syscope** (renamed from taskman, 2026-10-15): "a scope for your system". Module `github.com/benfo/syscope`; repo github.com/benfo/syscope (private until reviewed) |
+| Kill | Graceful (`d`) + force (`D`), confirm first (`t` adds the processes it started); never self-elevate |
+| Suspend | `p` asks before suspending, resumes without asking; never suspends syscope or its terminal; quitting offers to resume what this session suspended |
 | `ps` sampling | Two samples, 1s window (`--interval`) |
-| Testing | Windows native, Linux via Docker (`golang:1.27`), macOS compile-only |
+| Testing | Windows native, Linux via Docker (`golang:1.27`), macOS compile-only (see How to test) |
 | Keys | Vim style, one keymap table drives footer, `?` help and tests (see Key rules) |
 | Help | `?` explains every metric on the current view (what it means, when to worry); new metrics ship with their explanation |
 
@@ -50,10 +52,20 @@ The codebase must stay easy to maintain:
 - **Platforms**: OS-specific code in `*_windows.go` / `*_linux.go` / `*_other.go` files grouped per concern.
 - **Privacy**: the repo is public. Test fixtures, golden screens, examples, comments and docs use **synthetic data only** — fictional names, `example.com` emails, documentation IPs (192.0.2.x, 198.51.100.x, 203.0.113.x, 2001:db8::), generic apps and hardware. Never copy values from a real machine (user names, IPs, running apps, exact hardware). `internal/repocheck` fails the build on real-looking IPs or emails; names need review.
 
+### How to test
+- **Everything, Windows:** `go vet ./... && go test ./...`, then `go install ./cmd/syscope`
+- **Linux (Docker):** `docker run --rm -v "$PWD:/src" -v syscope-gomod:/go/pkg/mod -w /src golang:1.27 sh -c 'go vet ./... && go test ./...'`
+- **macOS:** compile-only, `GOOS=darwin go vet ./...`
+- **Screens:** golden tests in `internal/tui/testdata`; after an intended visual change, `go test ./internal/tui -run Golden -update` and review the diff
+- **Try Linux by hand (Docker):** builds syscope in a container with demo listeners (TCP 8080, UDP 5353, a connection) and two `bash` processes that each started two `sleep`s. Use `--init`; without it syscope is PID 1, nothing reaps exited processes, and they stay listed as `(exited)` (handy for testing that):
+  `docker run --rm -it --init -v "$PWD:/src" -v syscope-gomod:/go/pkg/mod -w /src golang:1.27 bash -c 'apt-get update -qq >/dev/null && apt-get install -y -qq netcat-openbsd >/dev/null && go build -o /usr/local/bin/syscope ./cmd/syscope && (nc -lk 8080 >/dev/null &) && (nc -lku 5353 >/dev/null &) && (sleep 9999 | nc localhost 8080 &) && (bash -c "sleep 9999 & sleep 9999 & wait" &) && (bash -c "sleep 9999 & sleep 9999 & wait" &) && sleep 1 && syscope'`
+  Replace the final `syscope` with `useradd -m demo && su demo -c syscope` to see Linux without root (socket owners `(unknown)`).
+- **Docker's limits:** only the container's processes; CPU/memory/disk/network are Docker Desktop's VM; no GPU.
+
 ### Phases
-1. **POC** — process table, CPU/MEM header, `ps`, `kill`
-2. **Performance parity** — tabs, CPU core grid (P/E), memory, disk, network, GPU, per-process GPU/VRAM
-3. **Developers / power users** — process tree, details pane, ports view, kill tree, suspend/resume, priority, config file
+1. **POC** — process table, CPU/MEM header, `ps`, `kill` ✓
+2. **Performance parity** — tabs, CPU core grid (P/E), memory, disk, network, GPU, per-process GPU/VRAM ✓ (Linux Intel / macOS GPU left)
+3. **Developers / power users** — process tree ✓, details pane ✓, ports view ✓, kill tree ✓, suspend/resume ✓, priority, config file ✓
 4. **AI / local LLM** — detect Ollama / LM Studio / llama.cpp / vLLM / ComfyUI, loaded models + VRAM, headroom
 5. **Gamers** — game mode (suspend / deprioritize background hogs); FPS via PresentMon (stretch)
 6. **Admin parity** — services, startup apps, users
@@ -62,6 +74,27 @@ Stretch: `syscope record` (CSV/JSON logging), `syscope serve` (Prometheus endpoi
 Out of scope: per-process network rates, app history.
 
 ## To do
+
+### Next up (where we left off, 2026-10-15)
+- [ ] **Priority (`+`/`-`)** — last Phase 3 item; the keys are reserved. Windows priority classes (Idle … Realtime; never offer Realtime), Unix nice (−20…19). Lowering works for your own processes; raising needs admin / root, so errors must say so. Design questions to ask first: a PRI column or details-pane only? confirm before raising? what `+`/`-` do on a group
+- [ ] **`syscope kill --tree`** (optional) — the CLI equivalent of the `t` answer in the dashboard's kill prompt
+
+### Before making the repo public
+- [ ] **README** — what it is, a screenshot made from the synthetic golden data (never a real machine), install (`go install github.com/benfo/syscope/cmd/syscope@latest`), keys overview, platforms
+- [ ] **License** — choose one (ask the user; MIT or Apache-2.0 are the usual picks)
+- [ ] **Delete `backup/pre-scrub`** (local only, contains old personal data): `git branch -D backup/pre-scrub && git reflog expire --expire=now --all && git gc --prune=now`. Never push it
+- [ ] **CI** (suggestion) — GitHub Actions running `go vet` + `go test` on Windows, Linux and **macOS runners**, which would finally test macOS for real instead of compile-only
+- [ ] **Releases** (suggestion) — prebuilt binaries per OS (e.g. GoReleaser) so people don't need Go
+- [ ] **Default branch** — repo uses `master`; rename to `main` before going public if wanted
+- [ ] **Go public:** `gh repo edit benfo/syscope --visibility public --accept-visibility-change-consequences`. History was checked on 2026-10-15 (every commit uses the intended public author identity; three old comments mention Google Drive's default drive letter, judged fine)
+
+### Testing setup (suggestions, 2026-10-15)
+- [ ] **WSL2 Ubuntu** for everyday Linux testing on the dev machine: a full system (many processes, users, permissions), and probably NVIDIA via WSL's driver passthrough — the first real test of the Linux NVML path. `wsl --install -d Ubuntu`, then install Go
+- [ ] **Ubuntu live USB at milestones** — the only real test of Linux hardware paths (NVMe sysfs, Wi-Fi, Intel/NVIDIA GPU, P/E core grid); needed for "GPU: Linux Intel"
+
+### Polish
+- [ ] **Footer hint priority** — with `p suspend` added, `1-3 tabs` no longer fits at 100 columns (hints drop from the end). Option: give hints a priority so tab keys outlast rarer ones
+- [ ] **Faster first screen** (offered 2026-10-14, not requested yet) — start+exit ~60 ms, but the first full sample takes ~300 ms (process list ~0.35 s, CPU% needs a second sample ~0.7 s). Options: show the table as soon as names are known, fill numbers in after
 
 ### Phase 2 — Performance parity
 - [ ] **GPU: Linux Intel** (i915/xe sysfs: clock, power; usage needs root) and **macOS Apple Silicon** (IOKit performance statistics via purego)
@@ -84,10 +117,10 @@ Out of scope: per-process network rates, app history.
 - [ ] **Enter on a Performance device** (user question) — `Enter` is reserved for "details", so it should drill into the selected device. Options: (a) **"who's using it"**: jump to Processes filtered/sorted by that resource — CPU→CPU%, Memory→MEM, GPU→GPU%/VRAM (needs 2d), Disk→disk I/O, Network→connections (Phase 3); (b) **full-screen device view**: bigger graph plus extra detail (per-core graphs, per-volume I/O, per-engine GPU graphs); (c) both: `Enter` opens the full-screen view, and a key there jumps to the processes using it. Decide after 2d, when per-process GPU exists. (2026-10-14)
 
 ### Revisit (Claude reminds at the trigger)
-- [ ] **Help on Performance can't change device** — while `?` is open, `j`/`k` scroll the help, so you must close it to explain another device. Option: help as a side panel that follows the selection. *Trigger: end of Phase 2 (after 2d), once help has had real use.* (noted 2026-10-14)
+- [ ] **Help on Performance can't change device** — while `?` is open, `j`/`k` scroll the help, so you must close it to explain another device. Options: fix it (help as a bottom pane that follows the selection, like the details pane), keep as is, or drop. *Trigger reached (end of Phase 2); raised 2026-10-14 and 2026-10-15 — **awaiting the user's decision**.* (noted 2026-10-14)
 
 ### Later phases
-- [ ] Phase 3 — developers / power users
+- [ ] Phase 3 — developers / power users (only priority left)
 - [ ] Phase 4 — AI / local LLM
 - [ ] Phase 5 — gamers
 - [ ] Phase 6 — admin parity
@@ -103,17 +136,20 @@ Out of scope: per-process network rates, app history.
 - [x] **Refactor** to Code standards (behaviour unchanged, proven by golden screen tests + colour comparison): formatting helpers in `view`, shared grid/stat layout; irix→per-core (`--irix` kept as deprecated alias), ring→history, cpu→cpuInfo; all colours behind a `Theme` of named roles; Performance devices behind a `devicePage` interface (one `page_*.go` per device); Processes tab extracted to `processTable`; sampler split into per-area collectors; metrics files and tests grouped per concern
 - [x] **2d** Per-process GPU% (busiest engine) and VRAM: Processes columns (only on machines with a GPU; sortable; summed in groups; explained in `?`) and in `syscope ps` (`--sort gpu|vram`, JSON `gpu_percent`/`vram_bytes`). Sources: Windows per-process GPU counters (any vendor), NVML process lists (NVIDIA), DRM fdinfo (Linux AMD/Intel). Idle processes show 0 when the source covers every process, `--` only when genuinely unknown. Processes columns are now a table (`processColumns`), and collectors can enrich processes (`procEnricher`)
 - [x] **Themes, part 1** — 10 built-in presets (default, dracula, catppuccin-mocha, tokyo-night, nord, gruvbox-dark, solarized-dark, github-light, high-contrast, colorblind / Okabe–Ito), `--theme`, `syscope themes` preview, `T` live-preview picker popover
-- [x] **Details pane** (Phase 3, part 1) — `Enter` opens a bottom split following the cursor: path, command line, parent/children, user, start time, threads, handles, live I/O rate, CPU/memory/GPU (which GPU and engine)/VRAM; group summary for grouped rows; `Esc` closes before clearing search
-- [x] **"Why" hints, part 1** — `internal/insight` rule table shown in the details pane (ℹ explains, ⚠ act): idle cached VRAM, LLM fell back to CPU, big RAM share, video encode/decode, browser-engine child roles, many processes, svchost service names, protected processes (accurate for isolated ones like Secure System), notes on well-known system processes. Checked against real processes on Windows
-- [x] **Preferences** — auto-saved TOML in the OS config dir (`syscope config path`): theme, refresh, last tab, sort/direction, grouping, per-core CPU%, details pane, show-hidden devices. Only changed settings are saved (one-run flag overrides aren't); background atomic saves plus a final save on quit; a broken file starts on defaults without overwriting it; `syscope config show|path|reset`, `--config <file>`. `syscope ps` deliberately ignores preferences
-- [x] **Process tree + expandable groups** (Phase 3) — layouts flat / grouped (`z`) / tree (`t`); `l`/`h` (or →/←) expand/collapse or go to parent, `L`/`H` all; groups start closed, the tree open; search keeps matches' ancestors; processes in parent cycles are never hidden; group rows read `chrome (31)`; layout saved as a preference
-- [x] **Settings screen + what persists** — `,` opens Settings (Theme, Refresh, CPU%, Default layout, Default sort, Restore last session), saved as you change them; `T` removed. Only settings persist; dashboard keys are session-only unless "Restore last session" is on, which saves and restores tab, sort, layout, CPU% mode, details pane and hidden devices in a `[session]` section. Footer always keeps `? help`
 - [x] **Wrap-around in menus** — Settings, theme list and Performance devices wrap; processes and help don't (one shared `menuMove` helper; rule in Key rules)
 - [x] **Per-volume disks** — volumes of a multi-volume disk appear indented under it in the Performance sidebar with their own read/write graphs and usage (Windows per-volume IOCTL counters, Linux partition counters; macOS and virtual drives show usage only, and say so). Active and response time stay on the physical disk's page. Nested sidebar entries via an optional `nested` interface. Virtual drives (Windows drive letters that aren't `\Device\HarddiskVolume…` partitions, e.g. cloud-sync drives) are kept off physical disks and named in a note on the disk page
-- [x] **Ports view** (Phase 3) — tab `3`: listening sockets (TCP LISTEN and bound UDP) with port, protocol, address and owning process; `.` adds every connection with remote end and state; `/` searches port, name, PID or address; `s`/`S` sort; `d`/`D` end the owner (with y/N); `Enter` jumps to the owner on Processes with its details open (clearing the search or opening its group/tree ancestors when they hide it); `?` explains 0.0.0.0 vs 127.0.0.1 and unknown owners (Linux needs root for other users' sockets). Sockets via gopsutil on every OS (~2 ms per sample). The Processes table's scrolling, columns, search box and kill prompt became shared pieces (`listnav.go`, `kill.go`)
-- [x] **Kill tree** (Phase 3) — when the process (or any process in a group, or a port's owner) started others, the `d`/`D` prompt offers `t`: end it and every process it started, parents first so they can't respawn children; the count is in the prompt. `y` still ends just the one, so existing muscle memory stays safe (ending `explorer.exe` with `y` doesn't take every desktop app with it). Children must have started after their parent, so reused PIDs aren't mistaken for children
+
+### Phase 3 — Developers / power users
+- [x] **Details pane** — `Enter` opens a bottom split following the cursor: path, command line, parent/children, user, start time, threads, handles, live I/O rate, CPU/memory/GPU (which GPU and engine)/VRAM; group summary for grouped rows; `Esc` closes before clearing search
+- [x] **"Why" hints, part 1** — `internal/insight` rule table shown in the details pane (ℹ explains, ⚠ act): idle cached VRAM, LLM fell back to CPU, big RAM share, video encode/decode, browser-engine child roles, many processes, svchost service names, protected processes (accurate for isolated ones like Secure System), notes on well-known system processes. Checked against real processes on Windows
+- [x] **Preferences** — auto-saved TOML in the OS config dir (`syscope config path`): theme, refresh, last tab, sort/direction, grouping, per-core CPU%, details pane, show-hidden devices. Only changed settings are saved (one-run flag overrides aren't); background atomic saves plus a final save on quit; a broken file starts on defaults without overwriting it; `syscope config show|path|reset`, `--config <file>`. `syscope ps` deliberately ignores preferences
+- [x] **Process tree + expandable groups** — layouts flat / grouped (`z`) / tree (`t`); `l`/`h` (or →/←) expand/collapse or go to parent, `L`/`H` all; groups start closed, the tree open; search keeps matches' ancestors; processes in parent cycles are never hidden; group rows read `chrome (31)`; layout saved as a preference
+- [x] **Settings screen + what persists** — `,` opens Settings (Theme, Refresh, CPU%, Default layout, Default sort, Restore last session), saved as you change them; `T` removed. Only settings persist; dashboard keys are session-only unless "Restore last session" is on, which saves and restores tab, sort, layout, CPU% mode, details pane and hidden devices in a `[session]` section. Footer always keeps `? help`
+- [x] **Ports view** — tab `3`: listening sockets (TCP LISTEN and bound UDP) with port, protocol, address and owning process; `.` adds every connection with remote end and state; `/` searches port, name, PID or address; `s`/`S` sort; `d`/`D` end the owner (with y/N); `Enter` jumps to the owner on Processes with its details open (clearing the search or opening its group/tree ancestors when they hide it); `?` explains 0.0.0.0 vs 127.0.0.1 and unknown owners (Linux needs root for other users' sockets). Sockets via gopsutil on every OS (~2 ms per sample). The Processes table's scrolling, columns, search box and kill prompt became shared pieces (`listnav.go`, `kill.go`)
+- [x] **Kill tree** — when the process (or any process in a group, or a port's owner) started others, the `d`/`D` prompt offers `t`: end it and every process it started, parents first so they can't respawn children; the count is in the prompt. `y` still ends just the one, so existing muscle memory stays safe (ending `explorer.exe` with `y` doesn't take every desktop app with it). Children must have started after their parent, so reused PIDs aren't mistaken for children
 - [x] **Exited (zombie) processes** — Linux/macOS processes that have exited but whose parent hasn't collected them show as `name (exited)` (also in `syscope ps`, and `"exited": true` in JSON); the details pane explains zombies; `d`/`D` on one says it can't be ended instead of appearing to do nothing, and kill tree skips them. Found while testing kill tree in Docker, where the container's PID 1 doesn't reap (use `docker run --init`)
-- [x] **Suspend / resume** (Phase 3) — `p` asks "Suspend x? [y/N]" (a wrong pick can freeze the desktop), and resumes a suspended process without asking. Refuses syscope itself and its ancestors (shell, terminal), which nothing could then resume. Suspended processes show as `(suspended)` (also in `syscope ps` and JSON) with a details hint; detection matches Task Manager on Windows (every thread waiting with reason Suspended, via NtQuerySystemInformation — so Store apps Windows paused show too) and uses the stopped state on Unix. Quitting with processes this session suspended asks "Resume … before quitting? [Y/n]" (a second Ctrl+C quits without resuming). Kill, suspend and quit share one prompt/job runner
+- [x] **Suspend / resume** — `p` asks "Suspend x? [y/N]" (a wrong pick can freeze the desktop), and resumes a suspended process without asking. Refuses syscope itself and its ancestors (shell, terminal), which nothing could then resume. Suspended processes show as `(suspended)` (also in `syscope ps` and JSON) with a details hint; detection matches Task Manager on Windows (every thread waiting with reason Suspended, via NtQuerySystemInformation — so Store apps Windows paused show too) and uses the stopped state on Unix. Quitting with processes this session suspended asks "Resume … before quitting? [Y/n]" (a second Ctrl+C quits without resuming). Kill, suspend and quit share one prompt/job runner
+- [x] **Rename + repo** (2026-10-15) — taskman → **syscope** (module, command, text, config folder; old preferences copied); private GitHub repo github.com/benfo/syscope with only `master` pushed, after scanning the full history for personal data
 
 ### Phase 1 — POC
 - [x] Metrics sampler (gopsutil), CPU deltas, PID-reuse safe cache, Toolhelp names on Windows
