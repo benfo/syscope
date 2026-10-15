@@ -82,12 +82,29 @@ func (m model) killTarget() (view.Row, bool) {
 
 // askKill opens the confirmation prompt for the current tab's selection.
 func (m model) askKill(force bool) model {
-	if r, ok := m.killTarget(); ok {
-		m.confirm = &pendingKill{row: r, tree: view.Descendants(m.table.procs, r.PIDs), force: force}
-	} else if _, sel := m.ports.selected(); sel && m.tab == tabPorts {
-		m.setStatus("which process owns this socket is unknown", false)
+	r, ok := m.killTarget()
+	switch {
+	case ok && r.Exited:
+		m.setStatus(rowDesc(r)+" has already exited; only its parent can clear it from the list", false)
+	case ok:
+		m.confirm = &pendingKill{row: r, tree: m.running(view.Descendants(m.table.procs, r.PIDs)), force: force}
+	default:
+		if _, sel := m.ports.selected(); sel && m.tab == tabPorts {
+			m.setStatus("which process owns this socket is unknown", false)
+		}
 	}
 	return m
+}
+
+// running drops processes that have already exited (zombies) from pids.
+func (m model) running(pids []int32) []int32 {
+	exited := map[int32]bool{}
+	for _, p := range m.table.procs {
+		if p.Zombie() {
+			exited[p.PID] = true
+		}
+	}
+	return slices.DeleteFunc(pids, func(pid int32) bool { return exited[pid] })
 }
 
 // confirmKey answers the kill prompt.

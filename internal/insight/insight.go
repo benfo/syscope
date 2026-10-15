@@ -64,6 +64,14 @@ const (
 )
 
 var rules = []rule{
+	{ // A zombie: exited, but its parent hasn't collected its exit status.
+		level: Info,
+		when:  func(c Context) bool { return c.Proc.Zombie() },
+		text: func(Context) string {
+			return "Already exited. It stays listed (a \"zombie\") until its parent, shown above, collects its exit status. " +
+				"It uses no CPU or memory and can't be ended. If zombies pile up, the parent has a bug; ending the parent clears them."
+		},
+	},
 	{ // A local LLM working the CPU while the GPU idles has usually fallen back.
 		level: Warn,
 		when: func(c Context) bool {

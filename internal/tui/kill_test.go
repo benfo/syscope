@@ -2,6 +2,8 @@ package tui
 
 import (
 	"slices"
+	"strings"
+	"taskman/internal/metrics"
 	"testing"
 )
 
@@ -32,5 +34,32 @@ func TestKillPromptWithoutChildren(t *testing.T) {
 	}
 	if _, ok := m.confirm.answer("t"); ok {
 		t.Error("t means nothing without children; it should cancel")
+	}
+}
+
+// zombieProcs is a parent with one running and one exited child.
+func zombieProcs() []metrics.ProcInfo {
+	return []metrics.ProcInfo{
+		p(100, "build.sh", 5),
+		{PID: 101, PPID: 100, Name: "compiler", Status: "running", CPUKnown: true, CPU: 4},
+		{PID: 102, PPID: 100, Name: "linker", Status: "zombie", CPUKnown: true},
+	}
+}
+
+func TestZombiesMarkedAndNotKillable(t *testing.T) {
+	m := sampled(t, &fakeSampler{procs: zombieProcs()})
+	if !strings.Contains(m.View(), "linker (exited)") {
+		t.Error("an exited process should be marked")
+	}
+	m = drive(t, m, key("d")) // build.sh: its tree counts only the running child
+	if m.confirm == nil || !slices.Equal(m.confirm.tree, []int32{101}) {
+		t.Fatalf("tree should skip exited children: %+v", m.confirm)
+	}
+	m = drive(t, m, key("n"), key("G")) // linker, lowest CPU
+	if r, _ := m.table.selected(); r.PID != 102 {
+		t.Fatalf("selected %d", r.PID)
+	}
+	if m = drive(t, m, key("d")); m.confirm != nil || !strings.Contains(m.status, "already exited") {
+		t.Errorf("d on an exited process should explain, not prompt: %q", m.status)
 	}
 }

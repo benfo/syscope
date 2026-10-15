@@ -218,6 +218,7 @@ func nameCell(t processTable, r view.Row) string {
 	if r.Count > 1 {
 		name = fmt.Sprintf("%s (%d)", r.Name, r.Count)
 	}
+	name += view.ExitedMark(r)
 	if t.layout == view.LayoutFlat {
 		return name
 	}

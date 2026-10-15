@@ -124,3 +124,12 @@ func TestIsolatedProcessesDontSayRunAsAdmin(t *testing.T) {
 		t.Errorf("Secure System: %+v", h)
 	}
 }
+
+func TestZombie(t *testing.T) {
+	if h := For(Context{Proc: metrics.ProcInfo{Name: "worker", Status: "zombie"}}); !has(h, "Already exited") {
+		t.Errorf("zombie: %+v", h)
+	}
+	if has(For(Context{Proc: metrics.ProcInfo{Name: "worker", Status: "sleep"}}), "Already exited") {
+		t.Error("a sleeping process hasn't exited")
+	}
+}
