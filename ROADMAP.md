@@ -61,6 +61,7 @@ The codebase must stay easy to maintain:
   `docker run --rm -it --init -v "$PWD:/src" -v syscope-gomod:/go/pkg/mod -w /src golang:1.27 bash -c 'apt-get update -qq >/dev/null && apt-get install -y -qq netcat-openbsd >/dev/null && go build -o /usr/local/bin/syscope ./cmd/syscope && (nc -lk 8080 >/dev/null &) && (nc -lku 5353 >/dev/null &) && (sleep 9999 | nc localhost 8080 &) && (bash -c "sleep 9999 & sleep 9999 & wait" &) && (bash -c "sleep 9999 & sleep 9999 & wait" &) && sleep 1 && syscope'`
   Replace the final `syscope` with `useradd -m demo && su demo -c syscope` to see Linux without root (socket owners `(unknown)`).
 - **Docker's limits:** only the container's processes; CPU/memory/disk/network are Docker Desktop's VM; no GPU.
+- **Release a test build:** `scripts/release.sh v0.x.y` builds all six OS/CPU archives into `dist/` (neutral file owner, executable bit set, `--version` stamped), then `gh release create v0.x.y --prerelease --target master dist/syscope_* dist/SHA256SUMS`. Testers need read access to the private repo: `gh api -X PUT repos/benfo/syscope/collaborators/<user> -f permission=pull`. v0.1.0 released 2026-10-15
 
 ### Phases
 1. **POC** — process table, CPU/MEM header, `ps`, `kill` ✓
@@ -84,7 +85,7 @@ Out of scope: per-process network rates, app history.
 - [ ] **License** — choose one (ask the user; MIT or Apache-2.0 are the usual picks)
 - [ ] **Delete `backup/pre-scrub`** (local only, contains old personal data): `git branch -D backup/pre-scrub && git reflog expire --expire=now --all && git gc --prune=now`. Never push it
 - [ ] **CI** (suggestion) — GitHub Actions running `go vet` + `go test` on Windows, Linux and **macOS runners**, which would finally test macOS for real instead of compile-only
-- [ ] **Releases** (suggestion) — prebuilt binaries per OS (e.g. GoReleaser) so people don't need Go
+- [ ] **Signed releases** (later) — v0.1.0 binaries are unsigned (Windows SmartScreen and macOS Gatekeeper warn; the release notes explain the workaround). Signing needs certificates (Windows code signing, Apple Developer ID); a Homebrew tap / winget / Scoop listing would come after
 - [ ] **Default branch** — repo uses `master`; rename to `main` before going public if wanted
 - [ ] **Go public:** `gh repo edit benfo/syscope --visibility public --accept-visibility-change-consequences`. History was checked on 2026-10-15 (every commit uses the intended public author identity; three old comments mention Google Drive's default drive letter, judged fine)
 
