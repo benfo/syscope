@@ -66,6 +66,9 @@ Out of scope: per-process network rates, app history.
 ### Phase 2 — Performance parity
 - [ ] **GPU: Linux Intel** (i915/xe sysfs: clock, power; usage needs root) and **macOS Apple Silicon** (IOKit performance statistics via purego)
 
+### Ports follow-ups (2026-10-15)
+- [ ] **Merge dual-stack listeners** — on Windows a dual-stack listener shows as two rows (`0.0.0.0` and `::`, e.g. port 445), as in `netstat`. Option: one row with address "all (IPv4+IPv6)" when proto, port and PID match
+- [ ] **Remember show-all** — `.` on Ports isn't part of the restored session (`[session]`); add it alongside `show_hidden`
 
 ### Theming (user request, 2026-10-14)
 - [ ] **Themes, part 2** — user themes from a file in the config dir and community themes (shareable files; maybe a `themes/` folder in the repo); optional painting of the background colour (themes currently colour text only). Depends on **Preferences**.
