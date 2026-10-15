@@ -3,7 +3,7 @@
     PID NAME                                    USER             CPU%▼         MEM   GPU%       VRAM
    4120 ollama.exe                              sam                2.5     1.0 GiB   88.0    7.0 GiB
   55916 Example.TextEditor.Language.ServiceHos… sam                0.1   542.0 MiB    0.0        0 B
-  21772 SongPlayer.exe                                             0.0   187.0 MiB    0.0    4.3 GiB
+  21772 SongPlayer.exe (suspended)                                 0.0   187.0 MiB    0.0    4.3 GiB
 
 
 

@@ -7,7 +7,7 @@
   47768 chrome.exe                              sam                0.7   175.0 MiB    0.0        0 B
   55916 Example.TextEditor.Language.ServiceHos… sam                0.1   542.0 MiB    0.0        0 B
       4 System                                  SYSTEM              --          --     --         --
-  21772 SongPlayer.exe                                             0.0   187.0 MiB    0.0    4.3 GiB
+  21772 SongPlayer.exe (suspended)                                 0.0   187.0 MiB    0.0    4.3 GiB
 
 
 
@@ -27,4 +27,4 @@
                                                                                                     
                                                                                                     
                                                                                                     
- / search d/D kill s/S sort z group t tree l/h fold c cpu% enter details j/k move 1-3 tabs ? help
+ / search d/D kill s/S sort z group t tree l/h fold c cpu% p suspend enter details j/k move ? help

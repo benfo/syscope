@@ -26,7 +26,8 @@ func (m model) about() (string, []term) {
 var processTerms = []term{
 	{"PID", "Process ID, a number the OS gives each running process. Use it with `taskman kill <pid>`. IDs are reused after a process exits."},
 	{"NAME", "The program's executable name. Grouping (z) combines processes with the same name, e.g. \"chrome (31)\", summing their CPU and memory. " +
-		"The tree (t) nests each process under the one that started it. ▸ can be expanded with l, ▾ collapsed with h."},
+		"The tree (t) nests each process under the one that started it. ▸ can be expanded with l, ▾ collapsed with h. " +
+		"(suspended) is paused (p resumes it); (exited) has ended but its parent hasn't cleaned it up yet."},
 	{"USER", "The account the process runs as. Blank usually means a system account you can't inspect without admin rights."},
 	{"CPU%", "Share of total CPU capacity used since the last refresh. Normalized (default): 100% means every core is busy, like Task Manager. " +
 		"Per-core (c): 100% means one full core, so a busy process can exceed 100%. \"--\" means no permission to read it (run as admin / sudo)."},

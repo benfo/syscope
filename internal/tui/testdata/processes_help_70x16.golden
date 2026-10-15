@@ -9,8 +9,8 @@
                    "chrome (31)", summing their CPU and memory. The   
                    tree (t) nests each process under the one that     
                    started it. ▸ can be expanded with l, ▾ collapsed  
-                   with h.                                            
+                   with h. (suspended) is paused (p resumes it);      
+                   (exited) has ended but its parent hasn't cleaned   
+                   it up yet.                                         
    USER            The account the process runs as. Blank usually     
-                   means a system account you can't inspect without   
-                   admin rights.                                      
- esc close j/k scroll  lines 1–13 of 68
+ esc close j/k scroll  lines 1–13 of 71

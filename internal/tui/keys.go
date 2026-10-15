@@ -39,6 +39,7 @@ const (
 	actExpandAll
 	actCollapseAll
 	actGoToProcess
+	actSuspend
 	numActions // sentinel for tests
 )
 
@@ -88,6 +89,7 @@ var keymap = []binding{
 		"l": actExpand, "right": actExpand, "h": actCollapse, "left": actCollapse}},
 	{scopeProcesses, "L/H", "expand / collapse all", "", map[string]action{"L": actExpandAll, "H": actCollapseAll}},
 	{scopeProcesses, "c", "CPU% normalized / per-core", "cpu%", map[string]action{"c": actCPUMode}},
+	{scopeProcesses, "p", "suspend (asks) / resume", "suspend", map[string]action{"p": actSuspend}},
 	{scopeProcesses, "enter", "details pane (follows the cursor)", "details", map[string]action{"enter": actDetails}},
 
 	{scopePerformance, ".", "show hidden adapters", "hidden", map[string]action{".": actShowHidden}},

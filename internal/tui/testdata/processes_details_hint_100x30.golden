@@ -2,7 +2,7 @@
  1 Processes   2 Performance   3 Ports                          sort vram▼ · CPU% normalized · flat 
     PID NAME                                    USER              CPU%         MEM   GPU%      VRAM▼
    4120 ollama.exe                              sam                2.5     1.0 GiB   88.0    7.0 GiB
-  21772 SongPlayer.exe                                             0.0   187.0 MiB    0.0    4.3 GiB
+  21772 SongPlayer.exe (suspended)                                 0.0   187.0 MiB    0.0    4.3 GiB
   72244 Meet.exe                                sam                1.2     1.0 GiB    3.1  412.0 MiB
   21248 chrome.exe                              sam                1.9   535.0 MiB    0.4  180.0 MiB
       4 System                                  SYSTEM              --          --     --         --
@@ -23,8 +23,8 @@
  Command "C:\Program Files\WindowsApps\Example1.SongPlayerWin\SongPlayer.exe"                       
  Parent --   Children 0   Threads 23   Handles 412                                                  
  CPU 0.0%   Memory 187.0 MiB   GPU 0.0%   VRAM 4.3 GiB                                              
+ ℹ Suspended: none of its threads run, so it uses no CPU but keeps its memory. Press p to resume it.
+   Windows suspends background Store apps by itself to save power; on Linux and macOS, Ctrl+Z in a  
+   terminal suspends a program the same way.                                                        
  ℹ Holds 4.3 GiB of GPU memory while idle: cached graphics (textures, buffers), not active use. It's
-   reclaimed if another app needs the VRAM.                                                         
-                                                                                                    
-                                                                                                    
- / search d/D kill s/S sort z group t tree l/h fold c cpu% enter details j/k move 1-3 tabs ? help
+ / search d/D kill s/S sort z group t tree l/h fold c cpu% p suspend enter details j/k move ? help

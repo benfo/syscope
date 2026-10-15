@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -71,12 +72,14 @@ type model struct {
 	perfKey    string // selected Performance device
 	showHidden bool   // list hidden devices (e.g. idle virtual adapters)
 	showHelp   bool
-	helpOff    int             // scroll offset of the ? screen
-	theme      int             // index into Themes
-	confirm    prompt          // footer question awaiting a key; nil when none
-	settingsUI *settingsScreen // settings popover; nil when closed
-	picker     *themePicker    // theme popover; nil when closed
-	prefs      prefs.Prefs     // current settings (the file plus one-run flag overrides)
+	helpOff    int                 // scroll offset of the ? screen
+	theme      int                 // index into Themes
+	confirm    prompt              // footer question awaiting a key; nil when none
+	selfPID    int32               // taskman's own process, never suspended
+	suspended  map[int32]time.Time // processes this session suspended, by start time
+	settingsUI *settingsScreen     // settings popover; nil when closed
+	picker     *themePicker        // theme popover; nil when closed
+	prefs      prefs.Prefs         // current settings (the file plus one-run flag overrides)
 
 	save  savePrefsFunc
 	saved prefs.Prefs // settings as last saved (or loaded)
@@ -101,6 +104,8 @@ func newModel(o Options) model {
 		cpuInfo:   o.CPUInfo,
 		save:      o.Save,
 		histories: histories{},
+		selfPID:   int32(os.Getpid()),
+		suspended: map[int32]time.Time{},
 		table:     newProcessTable(o.Details, o.Now),
 		ports:     newPortsTable(),
 	}
@@ -168,6 +173,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case procDoneMsg:
 		m.showResult(msg)
+		m.trackSuspended(msg)
 		if m.sampling {
 			return m, nil
 		}
@@ -192,7 +198,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	key := msg.String()
 	if key == "ctrl+c" {
-		return m, tea.Quit
+		if _, asking := m.confirm.(quitPrompt); asking {
+			return m, tea.Quit // a second Ctrl+C quits without resuming
+		}
+		return m.quit()
 	}
 
 	var cmd tea.Cmd
@@ -216,7 +225,7 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	act := lookup(m.scope(), key)
 	switch act {
 	case actQuit:
-		return m, tea.Quit
+		return m.quit()
 	case actHelp:
 		m.showHelp, m.helpOff = true, 0
 		return m, nil
@@ -226,6 +235,8 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.openSettings(), nil
 	case actEndTask, actForceKill:
 		return m.askKill(act == actForceKill), nil
+	case actSuspend:
+		return m.toggleSuspend()
 	}
 	switch m.tab {
 	case tabPerformance:

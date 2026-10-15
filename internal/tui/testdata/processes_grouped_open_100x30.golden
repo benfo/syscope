@@ -8,7 +8,7 @@
   72244   Meet                                  sam                1.2     1.0 GiB    3.1  412.0 MiB
   55916   Example.TextEditor.Language.ServiceH… sam                0.1   542.0 MiB    0.0        0 B
       4   System                                SYSTEM              --          --     --         --
-  21772   SongPlayer                                               0.0   187.0 MiB    0.0    4.3 GiB
+  21772   SongPlayer (suspended)                                   0.0   187.0 MiB    0.0    4.3 GiB
 
 
 
@@ -27,4 +27,4 @@
 
 
 
- / search d/D kill s/S sort z group t tree l/h fold c cpu% enter details j/k move 1-3 tabs ? help
+ / search d/D kill s/S sort z group t tree l/h fold c cpu% p suspend enter details j/k move ? help

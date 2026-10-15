@@ -32,22 +32,24 @@ type procOp int
 const (
 	opEnd procOp = iota
 	opForceEnd
+	opSuspend
+	opResume
 )
 
 func (op procOp) apply(pid int32) error {
 	switch op {
 	case opForceEnd:
 		return proc.Kill(pid, true)
+	case opSuspend:
+		return proc.Suspend(pid)
+	case opResume:
+		return proc.Resume(pid)
 	}
 	return proc.Kill(pid, false)
 }
 
 func (op procOp) pastTense() string {
-	switch op {
-	case opForceEnd:
-		return "terminated"
-	}
-	return "asked to exit"
+	return [...]string{"asked to exit", "terminated", "suspended", "resumed"}[op]
 }
 
 // procJob is a confirmed action on processes.
@@ -60,6 +62,7 @@ type procJob struct {
 // procDoneMsg reports a finished job back to the model.
 type procDoneMsg struct {
 	job    procJob
+	done   []int32 // PIDs it succeeded on
 	failed int
 	err    error // last error
 }
@@ -71,6 +74,8 @@ func runJob(job procJob) tea.Cmd {
 			if err := job.op.apply(pid); err != nil {
 				res.failed++
 				res.err = err
+			} else {
+				res.done = append(res.done, pid)
 			}
 		}
 		return res
