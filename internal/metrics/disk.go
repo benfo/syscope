@@ -167,8 +167,8 @@ func (c *diskCollector) collect(ctx context.Context, now time.Time, snap *System
 // partition, e.g. a cloud-sync drive. Its activity shows up on the disk it
 // caches to.
 type VirtualDrive struct {
-	Mount string // "G:"
-	Label string // "Google Drive"; "" when unknown
+	Mount string // "X:"
+	Label string // "Cloud Drive"; "" when unknown
 }
 
 // isPartitionDevice reports whether a Windows drive letter's device path is

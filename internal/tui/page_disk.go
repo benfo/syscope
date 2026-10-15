@@ -39,7 +39,7 @@ func (p diskPage) helpTitle() string     { return p.name() }
 func (p diskPage) hidden() bool          { return false }
 func (p diskPage) style() lipgloss.Style { return ui.disk }
 
-// name is "Disk 0 (C: G:)": the disk and the volumes on it.
+// name is "Disk 0 (C: D:)": the disk and the volumes on it.
 func (p diskPage) name() string {
 	if len(p.d.Volumes) == 0 {
 		return p.d.Name
@@ -145,7 +145,7 @@ func (p diskPage) terms() []term {
 }
 
 // virtualDrivesNote explains why drive letters such as a cloud-sync drive
-// aren't listed under the disk: "Virtual drives (G: Google Drive) aren't
+// aren't listed under the disk: "Virtual drives (X: Cloud Drive) aren't
 // disks; …".
 func virtualDrivesNote(drives []metrics.VirtualDrive) string {
 	if len(drives) == 0 {
