@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"taskman/internal/metrics"
+	"github.com/benfo/syscope/internal/metrics"
 )
 
 func procs() []metrics.ProcInfo {

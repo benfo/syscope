@@ -9,7 +9,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 
-	"taskman/internal/metrics"
+	"github.com/benfo/syscope/internal/metrics"
 )
 
 type fakeSampler struct {

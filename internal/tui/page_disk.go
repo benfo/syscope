@@ -7,8 +7,8 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/x/ansi"
 
-	"taskman/internal/metrics"
-	"taskman/internal/view"
+	"github.com/benfo/syscope/internal/metrics"
+	"github.com/benfo/syscope/internal/view"
 )
 
 // diskRateFloor keeps idle disks from showing noise as full-height graphs.

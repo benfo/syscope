@@ -3,8 +3,9 @@ package tui
 import (
 	"slices"
 	"strings"
-	"taskman/internal/metrics"
 	"testing"
+
+	"github.com/benfo/syscope/internal/metrics"
 )
 
 func TestKillPromptOffersTree(t *testing.T) {

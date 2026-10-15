@@ -13,7 +13,7 @@ import (
 type nvmlFunc func(args ...uintptr) uintptr
 
 // nvml is a minimal binding to NVIDIA's management library, which ships with
-// the driver. Only the calls taskman needs are bound.
+// the driver. Only the calls syscope needs are bound.
 type nvml struct {
 	mu       sync.Mutex
 	sym      func(name string) (nvmlFunc, bool)

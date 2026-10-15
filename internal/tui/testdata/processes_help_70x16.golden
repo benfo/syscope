@@ -2,7 +2,7 @@
  1 Processes   2   3               sort cpu▼ · CPU% normalized · flat 
  About: Processes                                                     
    PID             Process ID, a number the OS gives each running     
-                   process. Use it with `taskman kill <pid>`. IDs are 
+                   process. Use it with `syscope kill <pid>`. IDs are 
                    reused after a process exits.                      
    NAME            The program's executable name. Grouping (z)        
                    combines processes with the same name, e.g.        

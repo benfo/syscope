@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"taskman/internal/metrics"
+	"github.com/benfo/syscope/internal/metrics"
 )
 
 // treeProcs is a small process tree:

@@ -7,9 +7,9 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
-	"taskman/internal/metrics"
-	"taskman/internal/prefs"
-	"taskman/internal/view"
+	"github.com/benfo/syscope/internal/metrics"
+	"github.com/benfo/syscope/internal/prefs"
+	"github.com/benfo/syscope/internal/view"
 )
 
 // recorder is a fake savePrefsFunc that remembers each save.

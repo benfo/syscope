@@ -7,9 +7,10 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	"taskman/internal/metrics"
 	"testing"
 	"time"
+
+	"github.com/benfo/syscope/internal/metrics"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/x/ansi"

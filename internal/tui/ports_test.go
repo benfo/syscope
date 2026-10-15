@@ -5,7 +5,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
-	"taskman/internal/view"
+	"github.com/benfo/syscope/internal/view"
 )
 
 // selectPort moves the Ports cursor to the row for port.

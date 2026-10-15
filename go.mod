@@ -1,4 +1,4 @@
-module taskman
+module github.com/benfo/syscope
 
 go 1.27.0
 

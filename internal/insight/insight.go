@@ -1,5 +1,5 @@
 // Package insight explains why a process uses the resources it does, in
-// plain language, from data taskman already collects. Each explanation is a
+// plain language, from data syscope already collects. Each explanation is a
 // rule in rules; adding a hint means adding a rule.
 package insight
 
@@ -8,8 +8,8 @@ import (
 	"regexp"
 	"strings"
 
-	"taskman/internal/metrics"
-	"taskman/internal/view"
+	"github.com/benfo/syscope/internal/metrics"
+	"github.com/benfo/syscope/internal/view"
 )
 
 // Level says whether a hint explains (Info) or suggests acting (Warn).
@@ -64,7 +64,7 @@ const (
 )
 
 var rules = []rule{
-	{ // Paused by someone: by taskman (p), Ctrl+Z in a terminal, a debugger, or Windows itself.
+	{ // Paused by someone: by syscope (p), Ctrl+Z in a terminal, a debugger, or Windows itself.
 		level: Info,
 		when:  func(c Context) bool { return c.Proc.Suspended() },
 		text: func(Context) string {
@@ -154,7 +154,7 @@ var rules = []rule{
 			return !c.Proc.CPUKnown && !c.Proc.RSSKnown && c.Proc.PID > 4 && !isolated[strings.ToLower(c.Proc.Name)]
 		},
 		text: func(Context) string {
-			return "The OS protects this process: run taskman as administrator (or with sudo) to see its CPU and memory."
+			return "The OS protects this process: run syscope as administrator (or with sudo) to see its CPU and memory."
 		},
 	},
 	{

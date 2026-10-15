@@ -1,4 +1,4 @@
-// Package tui is taskman's interactive full-screen dashboard.
+// Package tui is syscope's interactive full-screen dashboard.
 package tui
 
 import (
@@ -10,8 +10,8 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
-	"taskman/internal/metrics"
-	"taskman/internal/prefs"
+	"github.com/benfo/syscope/internal/metrics"
+	"github.com/benfo/syscope/internal/prefs"
 )
 
 const historyLen = 300
@@ -75,7 +75,7 @@ type model struct {
 	helpOff    int                 // scroll offset of the ? screen
 	theme      int                 // index into Themes
 	confirm    prompt              // footer question awaiting a key; nil when none
-	selfPID    int32               // taskman's own process, never suspended
+	selfPID    int32               // syscope's own process, never suspended
 	suspended  map[int32]time.Time // processes this session suspended, by start time
 	settingsUI *settingsScreen     // settings popover; nil when closed
 	picker     *themePicker        // theme popover; nil when closed

@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"taskman/internal/metrics"
+	"github.com/benfo/syscope/internal/metrics"
 )
 
 func has(hints []Hint, substr string) bool {
@@ -81,7 +81,7 @@ func TestSvchost(t *testing.T) {
 }
 
 func TestProtectedAndKnownAndMemory(t *testing.T) {
-	if !has(For(Context{Proc: metrics.ProcInfo{PID: 600, Name: "csrss.exe"}}), "run taskman as administrator") {
+	if !has(For(Context{Proc: metrics.ProcInfo{PID: 600, Name: "csrss.exe"}}), "run syscope as administrator") {
 		t.Error("protected process")
 	}
 	if !has(For(Context{Proc: metrics.ProcInfo{Name: "dwm.exe", CPUKnown: true}}), "Desktop Window Manager") {

@@ -10,9 +10,9 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"taskman/internal/metrics"
-	"taskman/internal/proc"
-	"taskman/internal/view"
+	"github.com/benfo/syscope/internal/metrics"
+	"github.com/benfo/syscope/internal/proc"
+	"github.com/benfo/syscope/internal/view"
 )
 
 type killOptions struct {
@@ -28,7 +28,7 @@ func newKillCmd() *cobra.Command {
 		Short: "End processes by PID or name",
 		Long: "End processes. Without --force this asks the process to exit (SIGTERM on Unix,\n" +
 			"closing its windows on Windows); --force terminates it immediately.",
-		Example: "  taskman kill 1234\n  taskman kill 1234 5678 --force\n  taskman kill --name notepad\n  taskman kill --name chrome --all --force",
+		Example: "  syscope kill 1234\n  syscope kill 1234 5678 --force\n  syscope kill --name notepad\n  syscope kill --name chrome --all --force",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			pids, err := killTargets(cmd, args, o)
 			if err != nil {

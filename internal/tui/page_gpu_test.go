@@ -6,7 +6,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
-	"taskman/internal/metrics"
+	"github.com/benfo/syscope/internal/metrics"
 )
 
 func fakeGPUs() []metrics.GPUStat {

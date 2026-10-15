@@ -8,8 +8,8 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/x/ansi"
 
-	"taskman/internal/metrics"
-	"taskman/internal/view"
+	"github.com/benfo/syscope/internal/metrics"
+	"github.com/benfo/syscope/internal/view"
 )
 
 // renderStrip is the one-line summary shown on every tab. When it's too

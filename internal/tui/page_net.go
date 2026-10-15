@@ -5,8 +5,8 @@ import (
 
 	"github.com/charmbracelet/lipgloss"
 
-	"taskman/internal/metrics"
-	"taskman/internal/view"
+	"github.com/benfo/syscope/internal/metrics"
+	"github.com/benfo/syscope/internal/view"
 )
 
 // netRateFloor keeps idle adapters from showing noise as full-height graphs.

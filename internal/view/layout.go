@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"taskman/internal/metrics"
+	"github.com/benfo/syscope/internal/metrics"
 )
 
 // Layout is how the process list is arranged.

@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"taskman/internal/metrics"
+	"github.com/benfo/syscope/internal/metrics"
 )
 
 type SortKey int

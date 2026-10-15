@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"taskman/internal/metrics"
+	"github.com/benfo/syscope/internal/metrics"
 )
 
 // PortSort is a Ports table sort column.

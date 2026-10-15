@@ -6,8 +6,8 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
-	"taskman/internal/metrics"
-	"taskman/internal/view"
+	"github.com/benfo/syscope/internal/metrics"
+	"github.com/benfo/syscope/internal/view"
 )
 
 func selectPID(t *testing.T, m model, pid int32) model {
@@ -41,17 +41,17 @@ func TestSuspendAsksResumeDoesnt(t *testing.T) {
 	}
 }
 
-func TestCantSuspendTaskmanOrItsTerminal(t *testing.T) {
+func TestCantSuspendSelfOrItsTerminal(t *testing.T) {
 	procs := append(goldenProcs(),
 		metrics.ProcInfo{PID: 900, Name: "terminal"},
 		metrics.ProcInfo{PID: 901, PPID: 900, Name: "shell"},
-		metrics.ProcInfo{PID: 902, PPID: 901, Name: "taskman"})
+		metrics.ProcInfo{PID: 902, PPID: 901, Name: "syscope"})
 	m := sampled(t, &fakeSampler{procs: procs})
 	m.selfPID = 902
 	for _, pid := range []int32{900, 902} {
 		got := drive(t, selectPID(t, m, pid), key("p"))
 		if got.confirm != nil || got.status == "" {
-			t.Errorf("PID %d: must refuse to suspend taskman or its ancestors", pid)
+			t.Errorf("PID %d: must refuse to suspend syscope or its ancestors", pid)
 		}
 	}
 }

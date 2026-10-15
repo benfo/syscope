@@ -3,8 +3,9 @@ package tui
 import (
 	"reflect"
 	"strings"
-	"taskman/internal/prefs"
 	"testing"
+
+	"github.com/benfo/syscope/internal/prefs"
 )
 
 // TestThemeDefinesEveryRole guards presets and user themes: an empty colour

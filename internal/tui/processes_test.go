@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"taskman/internal/metrics"
-	"taskman/internal/view"
+	"github.com/benfo/syscope/internal/metrics"
+	"github.com/benfo/syscope/internal/view"
 )
 
 func gpuProcs() []metrics.ProcInfo {

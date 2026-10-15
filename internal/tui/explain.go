@@ -24,7 +24,7 @@ func (m model) about() (string, []term) {
 }
 
 var processTerms = []term{
-	{"PID", "Process ID, a number the OS gives each running process. Use it with `taskman kill <pid>`. IDs are reused after a process exits."},
+	{"PID", "Process ID, a number the OS gives each running process. Use it with `syscope kill <pid>`. IDs are reused after a process exits."},
 	{"NAME", "The program's executable name. Grouping (z) combines processes with the same name, e.g. \"chrome (31)\", summing their CPU and memory. " +
 		"The tree (t) nests each process under the one that started it. ▸ can be expanded with l, ▾ collapsed with h. " +
 		"(suspended) is paused (p resumes it); (exited) has ended but its parent hasn't cleaned it up yet."},

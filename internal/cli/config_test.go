@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"taskman/internal/prefs"
+	"github.com/benfo/syscope/internal/prefs"
 )
 
 func runRoot(t *testing.T, args ...string) string {

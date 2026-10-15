@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"taskman/internal/proc"
+	"github.com/benfo/syscope/internal/proc"
 )
 
 func TestProcCPUPercent(t *testing.T) {

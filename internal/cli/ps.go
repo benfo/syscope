@@ -13,8 +13,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"taskman/internal/metrics"
-	"taskman/internal/view"
+	"github.com/benfo/syscope/internal/metrics"
+	"github.com/benfo/syscope/internal/view"
 )
 
 type psOptions struct {

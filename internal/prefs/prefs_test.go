@@ -28,7 +28,7 @@ func TestSaveLoadRoundTrip(t *testing.T) {
 		t.Errorf("round trip: got %+v, %v", got, err)
 	}
 	b, _ := os.ReadFile(path)
-	if s := string(b); !strings.HasPrefix(s, "# taskman preferences") || !strings.Contains(s, `refresh = "500ms"`) {
+	if s := string(b); !strings.HasPrefix(s, "# syscope preferences") || !strings.Contains(s, `refresh = "500ms"`) {
 		t.Errorf("file should be readable TOML with a header:\n%s", s)
 	}
 	if left, _ := filepath.Glob(filepath.Join(filepath.Dir(path), ".config-*")); len(left) != 0 {

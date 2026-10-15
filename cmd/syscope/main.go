@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"taskman/internal/cli"
+	"github.com/benfo/syscope/internal/cli"
 )
 
 func main() {

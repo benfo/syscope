@@ -5,8 +5,8 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
-	"taskman/internal/proc"
-	"taskman/internal/view"
+	"github.com/benfo/syscope/internal/proc"
+	"github.com/benfo/syscope/internal/view"
 )
 
 // prompt is a question in the footer that takes the next key (kill, suspend
@@ -26,7 +26,7 @@ func (m model) confirmKey(key string) (model, tea.Cmd) {
 	return m, cmd
 }
 
-// procOp is something taskman does to processes.
+// procOp is something syscope does to processes.
 type procOp int
 
 const (

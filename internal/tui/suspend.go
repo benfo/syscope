@@ -6,8 +6,8 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
-	"taskman/internal/metrics"
-	"taskman/internal/view"
+	"github.com/benfo/syscope/internal/metrics"
+	"github.com/benfo/syscope/internal/view"
 )
 
 // suspendPrompt asks before suspending: a paused process can be one you need
@@ -33,17 +33,17 @@ func (m model) toggleSuspend() (model, tea.Cmd) {
 		m.setStatus(rowDesc(r)+" has already exited", false)
 	case r.Suspended:
 		return m, runJob(procJob{op: opResume, desc: rowDesc(r), pids: slices.Clone(r.PIDs)})
-	case m.runsTaskman(r):
-		m.setStatus("can't suspend taskman or the terminal it runs in: nothing could resume it", false)
+	case m.runsSelf(r):
+		m.setStatus("can't suspend syscope or the terminal it runs in: nothing could resume it", false)
 	default:
 		m.confirm = suspendPrompt{r}
 	}
 	return m, nil
 }
 
-// runsTaskman reports whether r includes taskman or one of its ancestors
+// runsSelf reports whether r includes syscope or one of its ancestors
 // (the shell and terminal it runs in).
-func (m model) runsTaskman(r view.Row) bool {
+func (m model) runsSelf(r view.Row) bool {
 	chain := append(view.Ancestors(m.table.procs, m.selfPID), m.selfPID)
 	return slices.ContainsFunc(r.PIDs, func(pid int32) bool { return slices.Contains(chain, pid) })
 }

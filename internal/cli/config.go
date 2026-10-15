@@ -11,7 +11,7 @@ import (
 	"github.com/BurntSushi/toml"
 	"github.com/spf13/cobra"
 
-	"taskman/internal/prefs"
+	"github.com/benfo/syscope/internal/prefs"
 )
 
 // minRefresh keeps the dashboard from sampling hard enough to load the
@@ -45,7 +45,7 @@ func newConfigCmd(configPath *string) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "config",
 		Short: "Show, locate or reset saved preferences",
-		Long: "taskman saves dashboard choices (theme, sort, grouping, …) automatically.\n" +
+		Long: "syscope saves dashboard choices (theme, sort, grouping, …) automatically.\n" +
 			"Command-line flags override them for one run without being saved.",
 	}
 	cmd.AddCommand(

@@ -5,8 +5,8 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
-	"taskman/internal/prefs"
-	"taskman/internal/view"
+	"github.com/benfo/syscope/internal/prefs"
+	"github.com/benfo/syscope/internal/view"
 )
 
 // savePrefsFunc persists a change: the preferences when last saved (before)

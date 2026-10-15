@@ -1,4 +1,4 @@
-// Package cli defines taskman's command-line interface.
+// Package cli defines syscope's command-line interface.
 package cli
 
 import (
@@ -13,9 +13,9 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
-	"taskman/internal/metrics"
-	"taskman/internal/prefs"
-	"taskman/internal/tui"
+	"github.com/benfo/syscope/internal/metrics"
+	"github.com/benfo/syscope/internal/prefs"
+	"github.com/benfo/syscope/internal/tui"
 )
 
 // exitError carries a specific process exit code out of a command.
@@ -36,7 +36,7 @@ func Execute() int {
 	if err == nil {
 		return 0
 	}
-	fmt.Fprintln(os.Stderr, "taskman:", err)
+	fmt.Fprintln(os.Stderr, "syscope:", err)
 	var ee *exitError
 	if errors.As(err, &ee) {
 		return ee.code
@@ -49,7 +49,7 @@ func newRootCmd() *cobra.Command {
 	var perCore bool
 	var themeName, configPath string
 	root := &cobra.Command{
-		Use:   "taskman",
+		Use:   "syscope",
 		Short: "Cross-platform process manager and performance monitor",
 		Long: "Run without a command for the live dashboard, or use a command for scripting.\n" +
 			"CPU% is normalized like Task Manager (100% = all cores busy) unless --per-core is set.",
@@ -67,7 +67,7 @@ func newRootCmd() *cobra.Command {
 				}
 			}
 			if !term.IsTerminal(os.Stdout.Fd()) {
-				return errors.New("the dashboard needs a terminal; use `taskman ps` for scripting")
+				return errors.New("the dashboard needs a terminal; use `syscope ps` for scripting")
 			}
 			path, err := resolveConfigPath(configPath)
 			if err != nil {
@@ -107,8 +107,8 @@ func newRootCmd() *cobra.Command {
 	}
 	root.Flags().DurationVar(&refresh, "refresh", time.Second, "dashboard refresh interval (saved preference if not given)")
 	addPerCoreFlag(root.Flags(), &perCore)
-	root.Flags().StringVar(&themeName, "theme", "default", "colour theme (see `taskman themes`; , opens Settings)")
-	root.PersistentFlags().StringVar(&configPath, "config", "", "preferences file (default: see `taskman config path`)")
+	root.Flags().StringVar(&themeName, "theme", "default", "colour theme (see `syscope themes`; , opens Settings)")
+	root.PersistentFlags().StringVar(&configPath, "config", "", "preferences file (default: see `syscope config path`)")
 	root.AddCommand(newPsCmd(), newKillCmd(), newThemesCmd(), newConfigCmd(&configPath))
 	return root
 }

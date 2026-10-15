@@ -15,7 +15,7 @@ import (
 	"github.com/BurntSushi/toml"
 )
 
-// Prefs is everything taskman remembers: the settings chosen in the settings
+// Prefs is everything syscope remembers: the settings chosen in the settings
 // screen, and, only when RestoreSession is on, the last session. Adding a
 // setting means adding a field here; loading, saving and Merge handle it.
 type Prefs struct {
@@ -29,7 +29,7 @@ type Prefs struct {
 	Session Session `toml:"session"`
 }
 
-// Session is what the user was doing when taskman closed. It's only saved
+// Session is what the user was doing when syscope closed. It's only saved
 // and restored when Prefs.RestoreSession is on.
 type Session struct {
 	Tab         string `toml:"tab"` // processes, performance, ports
@@ -66,14 +66,14 @@ func Default() Prefs {
 }
 
 // DefaultPath is config.toml in the OS's per-user config directory:
-// %APPDATA%\taskman on Windows, ~/.config/taskman on Linux,
-// ~/Library/Application Support/taskman on macOS.
+// %APPDATA%\syscope on Windows, ~/.config/syscope on Linux,
+// ~/Library/Application Support/syscope on macOS.
 func DefaultPath() (string, error) {
 	dir, err := os.UserConfigDir()
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(dir, "taskman", "config.toml"), nil
+	return filepath.Join(dir, "syscope", "config.toml"), nil
 }
 
 // Load reads preferences from path. A missing file gives the defaults, and
@@ -93,8 +93,8 @@ func Load(path string) (Prefs, error) {
 	return p, nil
 }
 
-const header = "# taskman preferences, saved automatically when you change them in the dashboard.\n" +
-	"# Command-line flags override them for one run. Reset with: taskman config reset\n\n"
+const header = "# syscope preferences, saved automatically when you change them in the dashboard.\n" +
+	"# Command-line flags override them for one run. Reset with: syscope config reset\n\n"
 
 // Save writes preferences atomically: to a temporary file that then replaces
 // path, so a crash can't leave a half-written file.

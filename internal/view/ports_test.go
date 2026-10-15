@@ -3,7 +3,7 @@ package view
 import (
 	"testing"
 
-	"taskman/internal/metrics"
+	"github.com/benfo/syscope/internal/metrics"
 )
 
 func testSockets() []metrics.Socket {

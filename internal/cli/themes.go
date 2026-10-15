@@ -6,14 +6,14 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"taskman/internal/tui"
+	"github.com/benfo/syscope/internal/tui"
 )
 
 func newThemesCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "themes",
 		Short: "List colour themes with a preview",
-		Long: "List the built-in colour themes. Use one with `taskman --theme <name>` for one run, or\n" +
+		Long: "List the built-in colour themes. Use one with `syscope --theme <name>` for one run, or\n" +
 			"press , in the dashboard for Settings, where themes preview live and are saved.\n" +
 			"Themes colour text only; they look best with a matching terminal background.",
 		Args: cobra.NoArgs,

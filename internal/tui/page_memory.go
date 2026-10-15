@@ -6,7 +6,7 @@ import (
 
 	"github.com/charmbracelet/lipgloss"
 
-	"taskman/internal/view"
+	"github.com/benfo/syscope/internal/view"
 )
 
 const memoryKey = "mem"

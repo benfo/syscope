@@ -6,7 +6,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
-	"taskman/internal/view"
+	"github.com/benfo/syscope/internal/view"
 )
 
 // pendingKill is a kill awaiting confirmation: y ends the target, t (offered

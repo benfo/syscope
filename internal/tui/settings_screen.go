@@ -6,7 +6,7 @@ import (
 
 	"github.com/charmbracelet/lipgloss"
 
-	"taskman/internal/view"
+	"github.com/benfo/syscope/internal/view"
 )
 
 // settingsScreen is the popover opened with ",": the one place where
