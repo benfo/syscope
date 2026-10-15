@@ -67,3 +67,16 @@ func TestSaverKeepsFlagOverridesOutOfTheFile(t *testing.T) {
 		t.Errorf("want saved theme kept and grouping saved, got %+v (%v)", got, err)
 	}
 }
+
+func TestVersionFlag(t *testing.T) {
+	var out bytes.Buffer
+	cmd := newRootCmd()
+	cmd.SetOut(&out)
+	cmd.SetArgs([]string{"--version"})
+	if err := cmd.Execute(); err != nil {
+		t.Fatal(err)
+	}
+	if got := out.String(); !strings.Contains(got, "syscope version dev") {
+		t.Errorf("--version printed %q", got)
+	}
+}

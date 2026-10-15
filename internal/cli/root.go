@@ -18,6 +18,10 @@ import (
 	"github.com/benfo/syscope/internal/tui"
 )
 
+// version is set at build time by scripts/release.sh (-ldflags -X); "dev" for
+// local builds.
+var version = "dev"
+
 // exitError carries a specific process exit code out of a command.
 type exitError struct {
 	code int
@@ -49,8 +53,9 @@ func newRootCmd() *cobra.Command {
 	var perCore bool
 	var themeName, configPath string
 	root := &cobra.Command{
-		Use:   "syscope",
-		Short: "Cross-platform process manager and performance monitor",
+		Use:     "syscope",
+		Version: version,
+		Short:   "Cross-platform process manager and performance monitor",
 		Long: "Run without a command for the live dashboard, or use a command for scripting.\n" +
 			"CPU% is normalized like Task Manager (100% = all cores busy) unless --per-core is set.",
 		Args:          cobra.NoArgs,
