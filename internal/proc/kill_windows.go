@@ -3,6 +3,7 @@ package proc
 import (
 	"errors"
 	"sync"
+	"syscall"
 	"unsafe"
 
 	"golang.org/x/sys/windows"
@@ -87,6 +88,11 @@ func windowsOf(pid uint32) ([]windows.HWND, error) {
 	defer enumMu.Unlock()
 	enumPID, enumHWNDs = pid, nil
 	err := windows.EnumWindows(enumWindow, unsafe.Pointer(nil))
+	// EnumWindows returns 0 with LastError 0 when there are no windows on the
+	// desktop (e.g. headless/sandbox desktops). x/sys/windows maps that to EINVAL.
+	if errors.Is(err, syscall.EINVAL) || errors.Is(err, windows.ERROR_SUCCESS) {
+		err = nil
+	}
 	return enumHWNDs, err
 }
 
