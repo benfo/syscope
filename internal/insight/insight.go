@@ -64,6 +64,14 @@ const (
 )
 
 var rules = []rule{
+	{ // Paused by someone: by taskman (p), Ctrl+Z in a terminal, a debugger, or Windows itself.
+		level: Info,
+		when:  func(c Context) bool { return c.Proc.Suspended() },
+		text: func(Context) string {
+			return "Suspended: none of its threads run, so it uses no CPU but keeps its memory. Press p to resume it. " +
+				"Windows suspends background Store apps by itself to save power; on Linux and macOS, Ctrl+Z in a terminal suspends a program the same way."
+		},
+	},
 	{ // A zombie: exited, but its parent hasn't collected its exit status.
 		level: Info,
 		when:  func(c Context) bool { return c.Proc.Zombie() },

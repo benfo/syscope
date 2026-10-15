@@ -194,18 +194,32 @@ func Enclosing(procs []metrics.ProcInfo, layout Layout, pid int32) []string {
 		return nil
 	}
 	var keys []string
-	seen := map[int32]bool{pid: true} // guards against PPID cycles
-	for {
-		parent, ok := byPID[p.PPID]
-		if !ok || seen[parent.PID] {
-			break
-		}
-		seen[parent.PID] = true
-		keys = append(keys, ProcessKey(parent.PID))
-		p = parent
+	for _, a := range Ancestors(procs, pid) {
+		keys = append(keys, ProcessKey(a))
 	}
 	slices.Reverse(keys)
 	return keys
+}
+
+// Ancestors is the chain of running processes above pid: its parent, the
+// parent's parent, and so on.
+func Ancestors(procs []metrics.ProcInfo, pid int32) []int32 {
+	byPID := make(map[int32]metrics.ProcInfo, len(procs))
+	for _, p := range procs {
+		byPID[p.PID] = p
+	}
+	var out []int32
+	seen := map[int32]bool{pid: true} // guards against PPID cycles
+	for p, ok := byPID[pid]; ok; {
+		parent, found := byPID[p.PPID]
+		if !found || seen[parent.PID] {
+			break
+		}
+		seen[parent.PID] = true
+		out = append(out, parent.PID)
+		p = parent
+	}
+	return out
 }
 
 // Descendants is every process started, directly or indirectly, by the

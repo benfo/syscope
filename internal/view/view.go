@@ -74,6 +74,7 @@ type Row struct {
 	Expandable bool   // has children that can be shown
 	Expanded   bool   // its children are shown below it
 	Exited     bool   // zombie: exited, waiting for its parent to clean up (all members, for a group)
+	Suspended  bool   // paused (all members, for a group)
 }
 
 // Filter keeps processes whose name contains q (case-insensitive) or whose
@@ -100,7 +101,7 @@ func Rows(procs []metrics.ProcInfo, group bool) []Row {
 		for i, p := range procs {
 			rows[i] = Row{
 				Key: ProcessKey(p.PID), PID: p.PID, PIDs: []int32{p.PID},
-				Name: p.Name, User: p.User, Count: 1, Exited: p.Zombie(),
+				Name: p.Name, User: p.User, Count: 1, Exited: p.Zombie(), Suspended: p.Suspended(),
 				CPU: p.CPU, CPUKnown: p.CPUKnown, RSS: p.RSS, RSSKnown: p.RSSKnown,
 				GPU: p.GPU, GPUKnown: p.GPUKnown, VRAM: p.VRAM, VRAMKnown: p.VRAMKnown,
 			}
@@ -116,11 +117,12 @@ func Rows(procs []metrics.ProcInfo, group bool) []Row {
 		if !ok {
 			i = len(rows)
 			idx[strings.ToLower(k)] = i
-			rows = append(rows, Row{Key: groupKey(p.Name), PID: p.PID, Name: k, User: p.User, Exited: true})
+			rows = append(rows, Row{Key: groupKey(p.Name), PID: p.PID, Name: k, User: p.User, Exited: true, Suspended: true})
 		}
 		r := &rows[i]
 		r.PIDs = append(r.PIDs, p.PID)
 		r.Exited = r.Exited && p.Zombie()
+		r.Suspended = r.Suspended && p.Suspended()
 		r.Count++
 		if r.User != p.User {
 			r.User = "(multiple)"
@@ -346,10 +348,13 @@ func FormatUsedTotal(used, total uint64) string {
 	return fmt.Sprintf("%.1f/%.1fG", float64(used)/gib, float64(total)/gib)
 }
 
-// ExitedMark is appended to an exited (zombie) row's name.
-func ExitedMark(r Row) string {
-	if r.Exited {
+// StateMark is appended to the name of an exited (zombie) or suspended row.
+func StateMark(r Row) string {
+	switch {
+	case r.Exited:
 		return " (exited)"
+	case r.Suspended:
+		return " (suspended)"
 	}
 	return ""
 }

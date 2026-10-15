@@ -133,3 +133,9 @@ func TestZombie(t *testing.T) {
 		t.Error("a sleeping process hasn't exited")
 	}
 }
+
+func TestSuspended(t *testing.T) {
+	if h := For(Context{Proc: metrics.ProcInfo{Name: "worker", Status: "stop"}}); !has(h, "Press p to resume") {
+		t.Errorf("suspended: %+v", h)
+	}
+}

@@ -108,7 +108,7 @@ func writePsTable(w io.Writer, snap metrics.SystemSnapshot, rows []view.Row, o p
 		if o.group {
 			id = strconv.Itoa(r.Count)
 		}
-		cells := []string{id, r.Name + view.ExitedMark(r), view.ShortUser(r.User),
+		cells := []string{id, r.Name + view.StateMark(r), view.ShortUser(r.User),
 			view.FormatCPU(r.CPU, r.CPUKnown, snap.NumCPU, o.perCore), view.FormatMem(r.RSS, r.RSSKnown)}
 		if hasGPU {
 			cells = append(cells, view.FormatGPU(r.GPU, r.GPUKnown), view.FormatMem(r.VRAM, r.VRAMKnown))
@@ -136,6 +136,7 @@ type jsonRow struct {
 	Name       string   `json:"name"`
 	Count      int      `json:"count,omitempty"`
 	Exited     bool     `json:"exited,omitempty"` // zombie: exited, waiting for its parent
+	Suspended  bool     `json:"suspended,omitempty"`
 	PIDs       []int32  `json:"pids,omitempty"`
 	User       string   `json:"user"`
 	CPUPercent *float64 `json:"cpu_percent"`
@@ -175,7 +176,7 @@ func writePsJSON(w io.Writer, snap metrics.SystemSnapshot, rows []view.Row, o ps
 		Rows:    make([]jsonRow, 0, len(rows)),
 	}
 	for _, r := range rows {
-		jr := jsonRow{Name: r.Name, User: r.User, Exited: r.Exited}
+		jr := jsonRow{Name: r.Name, User: r.User, Exited: r.Exited, Suspended: r.Suspended}
 		if o.group {
 			jr.Count, jr.PIDs = r.Count, r.PIDs
 		} else {
