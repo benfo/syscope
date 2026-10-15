@@ -115,7 +115,7 @@ func Rows(procs []metrics.ProcInfo, group bool) []Row {
 		if !ok {
 			i = len(rows)
 			idx[strings.ToLower(k)] = i
-			rows = append(rows, Row{Key: "g:" + strings.ToLower(k), PID: p.PID, Name: k, User: p.User})
+			rows = append(rows, Row{Key: groupKey(p.Name), PID: p.PID, Name: k, User: p.User})
 		}
 		r := &rows[i]
 		r.PIDs = append(r.PIDs, p.PID)

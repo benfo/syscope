@@ -2,6 +2,7 @@ package view
 
 import (
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -172,3 +173,37 @@ func buildTree(procs []metrics.ProcInfo, search string, key SortKey, desc bool, 
 
 // ProcessKey is the row key of a single process, for selection and folding.
 func ProcessKey(pid int32) string { return "p:" + strconv.Itoa(int(pid)) }
+
+// groupKey is the row key of the group a process name belongs to.
+func groupKey(name string) string { return "g:" + strings.ToLower(GroupName(name)) }
+
+// Enclosing is the keys of the rows process pid is nested under in a
+// layout, outermost first: they must be open for its row to show.
+func Enclosing(procs []metrics.ProcInfo, layout Layout, pid int32) []string {
+	byPID := make(map[int32]metrics.ProcInfo, len(procs))
+	for _, p := range procs {
+		byPID[p.PID] = p
+	}
+	p, ok := byPID[pid]
+	switch {
+	case !ok:
+		return nil
+	case layout == LayoutGrouped:
+		return []string{groupKey(p.Name)}
+	case layout != LayoutTree:
+		return nil
+	}
+	var keys []string
+	seen := map[int32]bool{pid: true} // guards against PPID cycles
+	for {
+		parent, ok := byPID[p.PPID]
+		if !ok || seen[parent.PID] {
+			break
+		}
+		seen[parent.PID] = true
+		keys = append(keys, ProcessKey(parent.PID))
+		p = parent
+	}
+	slices.Reverse(keys)
+	return keys
+}

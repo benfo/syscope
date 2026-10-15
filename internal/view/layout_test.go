@@ -2,6 +2,7 @@ package view
 
 import (
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
 
@@ -108,5 +109,26 @@ func TestParseLayout(t *testing.T) {
 	}
 	if _, err := ParseLayout("spiral"); err == nil {
 		t.Error("expected error")
+	}
+}
+
+func TestEnclosing(t *testing.T) {
+	procs := []metrics.ProcInfo{
+		{PID: 1, Name: "init"},
+		{PID: 2, PPID: 1, Name: "shell"},
+		{PID: 3, PPID: 2, Name: "chrome.exe"},
+		{PID: 4, PPID: 4, Name: "self-parent"},
+	}
+	if got := Enclosing(procs, LayoutTree, 3); !slices.Equal(got, []string{"p:1", "p:2"}) {
+		t.Errorf("tree: %v", got)
+	}
+	if got := Enclosing(procs, LayoutTree, 4); len(got) != 0 {
+		t.Errorf("self-parent: %v", got)
+	}
+	if got := Enclosing(procs, LayoutGrouped, 3); !slices.Equal(got, []string{"g:chrome"}) {
+		t.Errorf("grouped: %v", got)
+	}
+	if Enclosing(procs, LayoutFlat, 3) != nil || Enclosing(procs, LayoutTree, 99) != nil {
+		t.Error("flat or missing process should need nothing open")
 	}
 }
