@@ -2,6 +2,7 @@ package tui
 
 import (
 	"fmt"
+	"slices"
 
 	tea "github.com/charmbracelet/bubbletea"
 
@@ -9,10 +10,53 @@ import (
 	"taskman/internal/view"
 )
 
-// pendingKill is a kill awaiting y/N confirmation.
+// pendingKill is a kill awaiting confirmation: y ends the target, t (offered
+// when it started other processes) ends those too, any other key cancels.
 type pendingKill struct {
 	row   view.Row
+	tree  []int32 // processes the target started, parents first
 	force bool
+}
+
+func (pk pendingKill) prompt() string {
+	verb := "End task"
+	if pk.force {
+		verb = "Force kill"
+	}
+	if len(pk.tree) == 0 {
+		return fmt.Sprintf("%s %s? [y/N]", verb, rowDesc(pk.row))
+	}
+	return fmt.Sprintf("%s %s? [y/N · t: %s]", verb, rowDesc(pk.row), startedDesc(len(pk.tree)))
+}
+
+func startedDesc(n int) string {
+	if n == 1 {
+		return "and 1 process it started"
+	}
+	return fmt.Sprintf("and %d processes it started", n)
+}
+
+// killJob is a confirmed kill.
+type killJob struct {
+	desc  string
+	pids  []int32 // in kill order
+	force bool
+}
+
+// answer is the kill a prompt key confirms; false cancels. With the tree,
+// parents go first so a parent can't start replacements for children
+// already ended.
+func (pk pendingKill) answer(key string) (killJob, bool) {
+	job := killJob{desc: rowDesc(pk.row), pids: slices.Clone(pk.row.PIDs), force: pk.force}
+	switch {
+	case key == "y" || key == "Y":
+		return job, true
+	case (key == "t" || key == "T") && len(pk.tree) > 0:
+		job.desc += " " + startedDesc(len(pk.tree))
+		job.pids = append(job.pids, pk.tree...)
+		return job, true
+	}
+	return killJob{}, false
 }
 
 // killDoneMsg reports a finished kill back to the model.
@@ -36,32 +80,32 @@ func (m model) killTarget() (view.Row, bool) {
 	return view.Row{}, false
 }
 
-// askKill opens the y/N prompt for the current tab's selection.
+// askKill opens the confirmation prompt for the current tab's selection.
 func (m model) askKill(force bool) model {
 	if r, ok := m.killTarget(); ok {
-		m.confirm = &pendingKill{row: r, force: force}
+		m.confirm = &pendingKill{row: r, tree: view.Descendants(m.table.procs, r.PIDs), force: force}
 	} else if _, sel := m.ports.selected(); sel && m.tab == tabPorts {
 		m.setStatus("which process owns this socket is unknown", false)
 	}
 	return m
 }
 
-// confirmKey answers the y/N kill prompt; any key but y cancels.
+// confirmKey answers the kill prompt.
 func (m model) confirmKey(key string) (model, tea.Cmd) {
-	pk := *m.confirm
+	job, ok := m.confirm.answer(key)
 	m.confirm = nil
-	if key == "y" || key == "Y" {
-		return m, killCmd(pk)
+	if !ok {
+		m.setStatus("cancelled", true)
+		return m, nil
 	}
-	m.setStatus("cancelled", true)
-	return m, nil
+	return m, killCmd(job)
 }
 
-func killCmd(pk pendingKill) tea.Cmd {
+func killCmd(job killJob) tea.Cmd {
 	return func() tea.Msg {
-		res := killDoneMsg{desc: rowDesc(pk.row), force: pk.force, total: len(pk.row.PIDs)}
-		for _, pid := range pk.row.PIDs {
-			if err := proc.Kill(pid, pk.force); err != nil {
+		res := killDoneMsg{desc: job.desc, force: job.force, total: len(job.pids)}
+		for _, pid := range job.pids {
+			if err := proc.Kill(pid, job.force); err != nil {
 				res.failed++
 				res.err = err
 			}

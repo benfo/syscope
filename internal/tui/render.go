@@ -116,11 +116,7 @@ func (m model) renderFooter() string {
 	case m.showHelp:
 		return m.helpFooter()
 	case m.confirm != nil:
-		verb := "End task"
-		if m.confirm.force {
-			verb = "Force kill"
-		}
-		return ui.prompt.Render(fit(fmt.Sprintf(" %s %s? [y/N]", verb, rowDesc(m.confirm.row)), m.width))
+		return ui.prompt.Render(fit(" "+m.confirm.prompt(), m.width))
 	case search != nil && search.active:
 		return ansi.Truncate(" "+search.input.View(), m.width, "")
 	case m.status != "" && time.Since(m.statusAt) < 5*time.Second:

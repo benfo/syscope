@@ -80,7 +80,7 @@ var keymap = []binding{
 	{scopeGlobal, "q", "quit", "quit", map[string]action{"q": actQuit, "ctrl+c": actQuit}},
 
 	{scopeProcesses, "/", "search (live filter)", "search", map[string]action{"/": actSearch}},
-	{scopeProcesses, "d/D", "end task / force kill", "kill", map[string]action{"d": actEndTask, "delete": actEndTask, "D": actForceKill}},
+	{scopeProcesses, "d/D", "end task / force kill (t at the prompt: with the processes it started)", "kill", map[string]action{"d": actEndTask, "delete": actEndTask, "D": actForceKill}},
 	{scopeProcesses, "s/S", "next sort column / reverse", "sort", map[string]action{"s": actSortNext, "S": actSortReverse}},
 	{scopeProcesses, "z", "group by app (again: flat)", "group", map[string]action{"z": actGroup}},
 	{scopeProcesses, "t", "process tree (again: flat)", "tree", map[string]action{"t": actTree}},
@@ -93,7 +93,7 @@ var keymap = []binding{
 	{scopePerformance, ".", "show hidden adapters", "hidden", map[string]action{".": actShowHidden}},
 
 	{scopePorts, "/", "search by port, name, PID or address", "search", map[string]action{"/": actSearch}},
-	{scopePorts, "d/D", "end task / force kill the owning process", "kill", map[string]action{
+	{scopePorts, "d/D", "end task / force kill the owning process (t at the prompt: with the processes it started)", "kill", map[string]action{
 		"d": actEndTask, "delete": actEndTask, "D": actForceKill}},
 	{scopePorts, "s/S", "next sort column / reverse", "sort", map[string]action{"s": actSortNext, "S": actSortReverse}},
 	{scopePorts, ".", "show connections too, not just listening", "all", map[string]action{".": actShowHidden}},

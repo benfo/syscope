@@ -49,6 +49,7 @@ func TestGoldenScreens(t *testing.T) {
 		{"processes", nil, false},
 		{"processes_grouped_percore", []tea.KeyMsg{key("z"), key("c")}, false},
 		{"processes_filter_confirm", []tea.KeyMsg{key("/"), key("a"), keyMsg("enter"), key("D")}, false},
+		{"processes_kill_tree", []tea.KeyMsg{key("j"), key("d")}, false},
 		{"processes_help", []tea.KeyMsg{key("?")}, false},
 		{"processes_details", []tea.KeyMsg{keyMsg("enter")}, true},
 		{"processes_details_group", []tea.KeyMsg{key("z"), keyMsg("enter")}, true},
