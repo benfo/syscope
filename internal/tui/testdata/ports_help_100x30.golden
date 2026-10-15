@@ -17,7 +17,7 @@
                                                                                                     
  Keys: Ports                                                                                        
    /        search by port, name, PID or address                                                    
-   d/D      end task / force kill the owning process                                                
+   d/D      end / force kill the owner (t: also processes it started)                               
    s/S      next sort column / reverse                                                              
    .        show connections too, not just listening                                                
    enter    go to the owning process                                                                
