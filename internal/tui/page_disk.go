@@ -119,7 +119,7 @@ func (p diskPage) detail(w, h int) []string {
 		}
 	}
 	head := []string{spread(ui.label.Render(p.name()), ui.muted.Render(desc), w), ui.muted.Render(sub)}
-	return withGraphs(head, tail, graphs, w, h)
+	return p.m.withGraphs(head, tail, graphs, w, h)
 }
 
 func (p diskPage) terms() []term {

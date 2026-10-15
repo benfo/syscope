@@ -92,7 +92,7 @@ func (p gpuPage) detail(w, h int) []string {
 		spread(ui.label.Render("GPU "+g.ID), ui.muted.Render(g.Name), w),
 		ui.muted.Render("Utilization (busiest engine) · " + p.m.graphSpan(w-2)),
 	}
-	return withGraphs(head, tail, graphs, w, h)
+	return p.m.withGraphs(head, tail, graphs, w, h)
 }
 
 // stats lists every reading the GPU reports, skipping the ones it doesn't.

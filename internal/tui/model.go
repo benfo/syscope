@@ -14,7 +14,9 @@ import (
 	"github.com/benfo/syscope/internal/prefs"
 )
 
-const historyLen = 300
+// historyLen is how many samples each graph keeps: enough to fill a wide
+// terminal with Braille graphs (two samples per column).
+const historyLen = 600
 
 type Options struct {
 	Sampler metrics.Sampler

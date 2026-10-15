@@ -61,6 +61,7 @@ func TestGoldenScreens(t *testing.T) {
 		{"settings", []tea.KeyMsg{key(","), key("j")}, false},
 		{"theme_picker", []tea.KeyMsg{key(","), keyMsg("enter"), key("j"), key("j")}, false},
 		{"perf_cpu", []tea.KeyMsg{key("2")}, false},
+		{"perf_cpu_blocks", []tea.KeyMsg{key(","), key("j"), key("l"), keyMsg("esc"), key("2")}, false},
 		{"perf_memory", []tea.KeyMsg{key("2"), key("j")}, false},
 		{"perf_disk", []tea.KeyMsg{key("2"), key("j"), key("j")}, false},
 		{"perf_volume", []tea.KeyMsg{key("2"), key("j"), key("j"), key("j")}, false},

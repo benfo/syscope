@@ -56,6 +56,9 @@ func (m *model) applyPrefs(p prefs.Prefs) {
 		m.setStatus("unknown theme "+p.Theme+" in preferences; using default", false)
 	}
 	applyTheme(Themes[m.theme])
+	if _, ok := graphStyleIndex(p.Graphs); !ok && p.Graphs != "" {
+		m.setStatus("unknown graphs "+p.Graphs+" in preferences; using "+graphStyles[0].name, false)
+	}
 
 	t := &m.table
 	t.perCoreCPU = p.PerCoreCPU

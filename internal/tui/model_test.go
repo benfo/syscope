@@ -196,11 +196,47 @@ func TestTabs(t *testing.T) {
 	}
 }
 
-func TestAreaGraph(t *testing.T) {
-	got := areaGraph([]float64{100, 50, 0, 6.25}, 5, 2)
+func TestBlockGraph(t *testing.T) {
+	got := blockGraph([]float64{100, 50, 0, 6.25}, 5, 2)
 	want := []string{" █   ", " ██ ▁"}
 	if strings.Join(got, "|") != strings.Join(want, "|") {
 		t.Errorf("got %q, want %q", got, want)
+	}
+}
+
+func TestBrailleGraph(t *testing.T) {
+	tests := []struct {
+		name string
+		vals []float64
+		w, h int
+		want []string
+	}{
+		// 2 rows = 8 dots high: 100% → 8 dots, 50% → 4, 0 → none, 12.5% → 1.
+		{"two samples per cell", []float64{100, 50, 0, 12.5}, 2, 2, []string{"⡇ ", "⣿⢀"}},
+		// The newest sample is always the rightmost dot column.
+		{"odd count right-aligned", []float64{100}, 2, 1, []string{" ⢸"}},
+		{"oldest dropped", []float64{100, 100, 100, 0, 0}, 2, 1, []string{"⣿ "}},
+		{"clamped", []float64{-5, 250}, 1, 1, []string{"⢸"}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := brailleGraph(tt.vals, tt.w, tt.h)
+			if strings.Join(got, "|") != strings.Join(tt.want, "|") {
+				t.Errorf("got %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestGraphSpanCountsSamplesPerCell(t *testing.T) {
+	m := model{refresh: time.Second}
+	m.prefs.Graphs = "braille"
+	if got := m.graphSpan(60); got != "2m0s" {
+		t.Errorf("braille span = %s, want 2m0s", got)
+	}
+	m.prefs.Graphs = "blocks"
+	if got := m.graphSpan(60); got != "1m0s" {
+		t.Errorf("blocks span = %s, want 1m0s", got)
 	}
 }
 

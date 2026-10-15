@@ -54,7 +54,7 @@ func (p memoryPage) detail(w, h int) []string {
 	}
 	tail := []string{"", ui.muted.Render("Composition"), p.composition(w), ""}
 	tail = append(tail, packLine(stats, statSep, w)...)
-	return withGraphs(head, tail, []graphSpec{{vals: p.trend(), style: ui.memory}}, w, h)
+	return p.m.withGraphs(head, tail, []graphSpec{{vals: p.trend(), style: ui.memory}}, w, h)
 }
 
 // composition is a single bar: in use | cached | free.

@@ -64,7 +64,7 @@ func (p cpuPage) detail(w, h int) []string {
 	}
 	tail := append(append([]string{""}, stats...), "")
 	tail = append(tail, p.coreGrid(w)...)
-	return withGraphs(head, tail, []graphSpec{{vals: p.trend(), style: ui.cpu}}, w, h)
+	return p.m.withGraphs(head, tail, []graphSpec{{vals: p.trend(), style: ui.cpu}}, w, h)
 }
 
 // coreGrid renders one cell per logical CPU: index, P/E kind, meter, %.

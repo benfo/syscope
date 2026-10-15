@@ -84,7 +84,7 @@ func (p netPage) detail(w, h int) []string {
 		spread(ui.label.Render(n.Name), ui.muted.Render(n.Desc), w),
 		ui.muted.Render("Throughput · scale " + view.FormatBitRate(top) + " · " + p.m.graphSpan(w-2)),
 	}
-	return withGraphs(head, tail, graphs, w, h)
+	return p.m.withGraphs(head, tail, graphs, w, h)
 }
 
 func (p netPage) terms() []term {

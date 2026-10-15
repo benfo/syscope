@@ -36,6 +36,15 @@ var settingRows = []settingRow{
 		list: func(m model) model { return m.openThemePicker() },
 	},
 	{
+		label: "Graphs",
+		value: func(m model) string { return m.graphStyle().name },
+		step: func(m model, dir int) model {
+			i, _ := graphStyleIndex(m.prefs.Graphs)
+			m.prefs.Graphs = graphStyles[wrap(i+dir, len(graphStyles))].name
+			return m
+		},
+	},
+	{
 		label: "Refresh",
 		value: func(m model) string { return m.refresh.String() },
 		step: func(m model, dir int) model {

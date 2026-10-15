@@ -81,14 +81,14 @@ Chosen by the user on 2026-10-15, in this order:
 1. [ ] **Priority (`+`/`-`) + efficiency mode + "Not responding"** — last Phase 3 item; the keys are reserved. Windows priority classes (Idle … Realtime; never offer Realtime), Unix nice (−20…19). Lowering works for your own processes; raising needs admin / root, so errors must say so. Design questions to ask first: a PRI column or details-pane only? confirm before raising? what `+`/`-` do on a group.
    - **Efficiency mode** (Windows 11 EcoQoS: `SetProcessInformation(ProcessPowerThrottling)` + Idle priority, as Task Manager does) — shown like `(suspended)` (e.g. a leaf/`eco` marker) and toggled by a key (ask: `e`?). On Unix there is no equivalent; either map to nice 19 or hide the action — decide with the user.
    - **"Not responding"** — Windows: a process whose top-level window is hung (`IsHungAppWindow`, reusing the window enumeration `d` uses) shows `(not responding)` with a details hint, and is a good `D` candidate. macOS: possible later (no public API; skip for now). Linux: no standard notion — don't show.
-2. [ ] **Braille graphs** — first step of the History & graphs plan below: Braille (2×4 dots per cell) for every history graph, twice the time resolution of eighth-blocks and smooth lines; blocks kept as a fallback setting for fonts without Braille. Golden tests updated
+2. [x] **Braille graphs** ✓ 2026-10-15 — see Done
 3. [ ] **History & rewind** — see the plan below (adjustable timeframe, then rewind)
 4. [ ] **Which process has this file locked?** — the classic "can't delete / file in use" fix (Process Explorer's Find Handle). Ideas: `syscope who-locks <path>` CLI plus a dashboard search (key to decide, e.g. on Processes `/` with a path prefix, or a dedicated prompt); also list a process's open files in the details pane. Per OS: Windows — Restart Manager API (`RmGetList`, the same one installers use; no admin, fast) for files, fallback handle enumeration (`NtQuerySystemInformation` handle table + `NtQueryObject`, needs care: some handles hang, query on a worker with timeout); Linux — scan `/proc/*/fd` symlinks (other users' processes need root, say so); macOS — `proc_pidinfo` fd lists via purego (spike). Directories count too (a shell `cd`'d into a folder blocks deleting it on Windows)
 - [ ] **`syscope kill --tree`** (optional) — the CLI equivalent of the `t` answer in the dashboard's kill prompt
 
 ### History & graphs (plan, 2026-10-15)
 Merges the earlier "High-resolution graphs" and "Adjustable history timeframe" ideas, plus rewind. Build in steps, each shippable:
-1. **Braille graphs** (Next up #2).
+1. **Braille graphs** ✓ (2026-10-15).
 2. **Long history store** — graphs keep 300 samples (5 min at 1 s) today. Tiered downsampling: 1 s for 5 min, 10 s for 1 h, 1 min for 24 h, keeping min/max/avg per bucket so spikes aren't lost. Setting / `--history 30m`; zoom on Performance with `[` / `]` (not `+`/`-`, priority). Memory budget to check (devices × metrics × buckets is small; per-process is the expensive part).
 3. **Per-process history** — small CPU / memory graphs for the selected process in the details pane; keep a compact history for the top-N processes per sample (not every process), so cost stays bounded. Enables leak detection ("Why" hints part 2 / anomaly detection).
 4. **Rewind** — move back through history and see the **process list as it was** at that moment ("what was eating CPU at 03:12?"). Needs per-sample process snapshots (top-N by CPU / memory / GPU / disk, stored at the same tiers). UI to design: a cursor on the Performance graph (`h`/`l` moves in time?) with a "⏪ 03:12:40 — live in `Esc`" banner, and the Processes table showing that moment read-only (no kill / suspend). Spike markers on graphs; a key jumps to the next spike.
@@ -141,6 +141,9 @@ Merges the earlier "High-resolution graphs" and "Adjustable history timeframe" i
 - [ ] Phase 6 — admin parity
 
 ## Done
+
+### History & graphs
+- [x] **Braille graphs** (2026-10-15) — Performance graphs draw with Braille (2×4 dots per character): twice the samples per column of the eighth-block graphs, so a graph shows twice the time (spans in titles count it). New **Graphs** setting (`braille` default / `blocks` fallback for fonts without Braille; `graphs` in preferences); graph styles are a small table in `tui/graphs.go`, ready for pixel graphs later. Graphs keep 600 samples (was 300) to fill wide terminals. Sidebar and summary-strip sparklines stay blocks: one row of Braille has only 4 levels against 8
 
 ### Phase 2 — Performance parity
 - [x] **2a** Tabs (`1`/`2`, Tab) + summary strip; Performance tab with device sidebar, CPU (history graph, P/E core grid via GetLogicalProcessorInformationEx / sysfs) and Memory (graph, composition, commit charge, cache, swap)

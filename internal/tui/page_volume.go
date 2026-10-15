@@ -77,7 +77,7 @@ func (p volumePage) detail(w, h int) []string {
 		spread(ui.label.Render(p.v.Mount), ui.muted.Render("on "+diskPage{p.m, p.d}.name()), w),
 		ui.muted.Render(sub),
 	}
-	return withGraphs(head, tail, graphs, w, h)
+	return p.m.withGraphs(head, tail, graphs, w, h)
 }
 
 func (p volumePage) terms() []term {

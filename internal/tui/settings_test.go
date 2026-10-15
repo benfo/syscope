@@ -120,8 +120,12 @@ func TestSettingsScreenSavesImmediately(t *testing.T) {
 	if m.settingsUI == nil || !strings.Contains(m.View(), "Restore last session") {
 		t.Fatal(", should open Settings")
 	}
+	m = press(t, m, "j", "l") // Graphs: braille → blocks
+	if m.graphStyle().name != "blocks" || len(rec.saves) != 1 || rec.last().Graphs != "blocks" {
+		t.Errorf("graphs change should apply and save: %q, %d saves", m.graphStyle().name, len(rec.saves))
+	}
 	m = press(t, m, "j", "l") // Refresh: 1s → 2s
-	if m.refresh != 2*time.Second || len(rec.saves) != 1 || rec.last().Refresh.Duration != 2*time.Second {
+	if m.refresh != 2*time.Second || len(rec.saves) != 2 || rec.last().Refresh.Duration != 2*time.Second {
 		t.Errorf("refresh change should apply and save: %v, %d saves", m.refresh, len(rec.saves))
 	}
 	m = press(t, m, "j", "j", "l") // Default layout: flat → grouped, applied now too

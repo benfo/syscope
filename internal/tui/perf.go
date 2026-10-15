@@ -163,7 +163,7 @@ func (h histories) values(device, series string) []float64 {
 
 // graphSpan describes how much time a graph of width w covers.
 func (m model) graphSpan(w int) string {
-	return (time.Duration(min(w, historyLen)) * m.refresh).Round(time.Second).String()
+	return (time.Duration(min(w*m.graphStyle().perCell, historyLen)) * m.refresh).Round(time.Second).String()
 }
 
 // kv renders one "Label value" stat.

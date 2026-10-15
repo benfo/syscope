@@ -24,6 +24,7 @@ type Prefs struct {
 	PerCoreCPU     bool     `toml:"per_core_cpu"`
 	DefaultLayout  string   `toml:"default_layout"` // flat, grouped, tree
 	DefaultSort    string   `toml:"default_sort"`   // cpu, mem, gpu, vram, pid, name
+	Graphs         string   `toml:"graphs"`         // braille, blocks
 	RestoreSession bool     `toml:"restore_session"`
 
 	Session Session `toml:"session"`
@@ -62,6 +63,7 @@ func Default() Prefs {
 		Refresh:       Duration{time.Second},
 		DefaultLayout: "flat",
 		DefaultSort:   "cpu",
+		Graphs:        "braille",
 	}
 }
 
