@@ -34,7 +34,7 @@ The same rules on every tab; arrows / PgUp / PgDn / Home / End always work too.
 | Lowercase acts, uppercase is stronger / reverse | `d` end task / `D` force kill · `s` next sort column / `S` reverse |
 | Toggles | `z` group (fold) · `c` CPU% mode · `.` show hidden (Performance: hidden adapters; Ports: connections, not just listeners) |
 | Tabs | `1`–`9` jump · `Tab` / `Shift+Tab` cycle |
-| Everywhere | `?` help · `Esc` cancel / clear · `q` quit · `y`/`n` confirm |
+| Everywhere | `?` help · `Esc` cancel / clear · `q` quit · `y`/`n` confirm (kill prompts add `t`: also the processes it started) |
 | Settings | `,` opens Settings (one place for every setting; `j`/`k` select, `h`/`l` change with live preview, `Enter` on Theme opens the theme list). Dashboard keys change only the current session. The footer drops hints when narrow but always keeps `? help` |
 | Overlays | Never swallow global keys: tab keys work in `?` help (it follows you to the new tab); `q`/`Esc` close an overlay first. Exceptions, as in vim: search input is like insert mode (keys type; `Enter`/`Esc` leave) and y/N treats any other key as no |
 | Reserved | `Enter` details (on Ports: go to the owning process) · `t` tree · `p` suspend/resume · `+`/`-` priority · `o` open file location |
@@ -111,6 +111,7 @@ Out of scope: per-process network rates, app history.
 - [x] **Wrap-around in menus** — Settings, theme list and Performance devices wrap; processes and help don't (one shared `menuMove` helper; rule in Key rules)
 - [x] **Per-volume disks** — volumes of a multi-volume disk appear indented under it in the Performance sidebar with their own read/write graphs and usage (Windows per-volume IOCTL counters, Linux partition counters; macOS and virtual drives show usage only, and say so). Active and response time stay on the physical disk's page. Nested sidebar entries via an optional `nested` interface. Virtual drives (Windows drive letters that aren't `\Device\HarddiskVolume…` partitions, e.g. cloud-sync drives) are kept off physical disks and named in a note on the disk page
 - [x] **Ports view** (Phase 3) — tab `3`: listening sockets (TCP LISTEN and bound UDP) with port, protocol, address and owning process; `.` adds every connection with remote end and state; `/` searches port, name, PID or address; `s`/`S` sort; `d`/`D` end the owner (with y/N); `Enter` jumps to the owner on Processes with its details open (clearing the search or opening its group/tree ancestors when they hide it); `?` explains 0.0.0.0 vs 127.0.0.1 and unknown owners (Linux needs root for other users' sockets). Sockets via gopsutil on every OS (~2 ms per sample). The Processes table's scrolling, columns, search box and kill prompt became shared pieces (`listnav.go`, `kill.go`)
+- [x] **Kill tree** (Phase 3) — when the process (or any process in a group, or a port's owner) started others, the `d`/`D` prompt offers `t`: end it and every process it started, parents first so they can't respawn children; the count is in the prompt. `y` still ends just the one, so existing muscle memory stays safe (ending `explorer.exe` with `y` doesn't take every desktop app with it). Children must have started after their parent, so reused PIDs aren't mistaken for children
 
 ### Phase 1 — POC
 - [x] Metrics sampler (gopsutil), CPU deltas, PID-reuse safe cache, Toolhelp names on Windows
