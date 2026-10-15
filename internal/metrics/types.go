@@ -26,9 +26,10 @@ type SystemSnapshot struct {
 	ProcCount int
 	Uptime    time.Duration
 
-	Disks []DiskStat
-	Nets  []NetStat
-	GPUs  []GPUStat
+	Disks         []DiskStat
+	VirtualDrives []VirtualDrive // drive letters that aren't disk partitions (Windows)
+	Nets          []NetStat
+	GPUs          []GPUStat
 }
 
 // ProcInfo is a point-in-time view of one process.

@@ -62,3 +62,7 @@ func readDisks() ([]diskRaw, error) {
 }
 
 func mountLabel(m string) string { return m }
+
+// readVirtualDrives: elsewhere virtual file systems (FUSE mounts such as
+// rclone) don't map to a physical disk in the first place.
+func readVirtualDrives() []VirtualDrive { return nil }

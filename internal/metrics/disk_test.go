@@ -96,4 +96,21 @@ func TestVolumeRatesLive(t *testing.T) {
 			t.Logf("%s %s: known=%v read=%.0f write=%.0f", d.Name, v.Mount, v.RatesKnown, v.ReadBps, v.WriteBps)
 		}
 	}
+	for _, v := range snap.VirtualDrives {
+		t.Logf("virtual drive %s %q", v.Mount, v.Label)
+	}
+}
+
+func TestIsPartitionDevice(t *testing.T) {
+	for dev, want := range map[string]bool{
+		`\Device\HarddiskVolume3`:                              true,
+		`\Device\HarddiskVolume12`:                             true,
+		`\Device\Volume{f5ae2bcb-da01-3bf2-8935-408102040811}`: false, // cloud drive
+		`\Device\WinFsp.Disk\VolumeX`:                          false,
+		``:                                                     false,
+	} {
+		if got := isPartitionDevice(dev); got != want {
+			t.Errorf("isPartitionDevice(%q) = %v", dev, got)
+		}
+	}
 }

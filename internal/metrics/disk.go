@@ -158,6 +158,22 @@ func (c *diskCollector) collect(ctx context.Context, now time.Time, snap *System
 		next[r.ID] = r
 		snap.Disks = append(snap.Disks, st)
 	}
+	snap.VirtualDrives = readVirtualDrives()
 	c.prev, c.prevAt = next, now
 	return nil
+}
+
+// VirtualDrive is a drive letter provided by software rather than a disk
+// partition, e.g. a cloud-sync drive. Its activity shows up on the disk it
+// caches to.
+type VirtualDrive struct {
+	Mount string // "G:"
+	Label string // "Google Drive"; "" when unknown
+}
+
+// isPartitionDevice reports whether a Windows drive letter's device path is
+// a real disk partition ("\Device\HarddiskVolume3"), as opposed to a volume
+// created by a virtual file system ("\Device\Volume{…}", "\Device\WinFsp…").
+func isPartitionDevice(dev string) bool {
+	return strings.HasPrefix(dev, `\Device\HarddiskVolume`)
 }

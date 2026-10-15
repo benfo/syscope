@@ -115,16 +115,9 @@ func storageDescriptor(h windows.Handle) (model, bus string) {
 func volumesByDisk() (map[uint32][]string, map[string]volumeIO) {
 	out := map[uint32][]string{}
 	io := map[string]volumeIO{}
-	var names [256]uint16
-	n, err := windows.GetLogicalDriveStrings(uint32(len(names)), &names[0])
-	if err != nil {
-		return out, io
-	}
-	// The buffer is a list of NUL-separated roots ("C:\", "D:\", …).
-	for _, root := range splitMultiSZ(names[:n]) {
-		rp, _ := windows.UTF16PtrFromString(root)
-		if t := windows.GetDriveType(rp); t != windows.DRIVE_FIXED && t != windows.DRIVE_REMOVABLE {
-			continue
+	for _, root := range driveRoots() {
+		if !isPartitionDevice(dosDevice(root)) {
+			continue // a virtual drive: not on any physical disk
 		}
 		h, err := openDevice(`\\.\` + strings.TrimSuffix(root, `\`))
 		if err != nil {
@@ -167,3 +160,52 @@ func splitMultiSZ(u []uint16) []string {
 
 // mountLabel is how a mount is displayed: "C:" rather than "C:\".
 func mountLabel(m string) string { return strings.TrimSuffix(m, `\`) }
+
+// driveRoots lists the roots ("C:\") of local fixed and removable drives.
+func driveRoots() []string {
+	var names [256]uint16
+	n, err := windows.GetLogicalDriveStrings(uint32(len(names)), &names[0])
+	if err != nil {
+		return nil
+	}
+	var out []string
+	// The buffer is a list of NUL-separated roots ("C:\", "D:\", …).
+	for _, root := range splitMultiSZ(names[:n]) {
+		rp, _ := windows.UTF16PtrFromString(root)
+		if t := windows.GetDriveType(rp); t == windows.DRIVE_FIXED || t == windows.DRIVE_REMOVABLE {
+			out = append(out, root)
+		}
+	}
+	return out
+}
+
+// dosDevice is the device a drive letter points to, e.g. "C:\" →
+// "\Device\HarddiskVolume3".
+func dosDevice(root string) string {
+	name, _ := windows.UTF16PtrFromString(strings.TrimSuffix(root, `\`))
+	var buf [512]uint16
+	if _, err := windows.QueryDosDevice(name, &buf[0], uint32(len(buf))); err != nil {
+		return ""
+	}
+	return windows.UTF16ToString(buf[:])
+}
+
+// readVirtualDrives lists drive letters that look like local disks but are
+// provided by software (cloud drives such as Google Drive, WinFsp/Dokan
+// file systems), so they aren't attached to a physical disk.
+func readVirtualDrives() []VirtualDrive {
+	var out []VirtualDrive
+	for _, root := range driveRoots() {
+		if dev := dosDevice(root); dev == "" || isPartitionDevice(dev) {
+			continue
+		}
+		v := VirtualDrive{Mount: mountLabel(root)}
+		rp, _ := windows.UTF16PtrFromString(root)
+		var label [261]uint16
+		if windows.GetVolumeInformation(rp, &label[0], uint32(len(label)), nil, nil, nil, nil, 0) == nil {
+			v.Label = windows.UTF16ToString(label[:])
+		}
+		out = append(out, v)
+	}
+	return out
+}
