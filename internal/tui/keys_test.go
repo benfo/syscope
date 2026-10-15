@@ -65,7 +65,7 @@ func TestVimNavigation(t *testing.T) {
 		t.Errorf("jj: cursor %d", m.table.scroll.cursor)
 	}
 	m = drive(t, m, key("k"))
-	if m.table.scroll.cursor != 1 || m.table.confirm != nil {
+	if m.table.scroll.cursor != 1 || m.confirm != nil {
 		t.Errorf("k should move up, not kill: cursor %d", m.table.scroll.cursor)
 	}
 	m = drive(t, m, key("G"))

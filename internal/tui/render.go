@@ -86,14 +86,14 @@ func (m model) renderFooter() string {
 	switch {
 	case m.showHelp:
 		return m.helpFooter()
-	case t.confirm != nil:
+	case m.confirm != nil:
 		verb := "End task"
-		if t.confirm.force {
+		if m.confirm.force {
 			verb = "Force kill"
 		}
-		return ui.prompt.Render(fit(fmt.Sprintf(" %s %s? [y/N]", verb, rowDesc(t.confirm.row)), m.width))
-	case t.searching:
-		return ansi.Truncate(" "+t.search.View(), m.width, "")
+		return ui.prompt.Render(fit(fmt.Sprintf(" %s %s? [y/N]", verb, rowDesc(m.confirm.row)), m.width))
+	case t.search.active:
+		return ansi.Truncate(" "+t.search.input.View(), m.width, "")
 	case m.status != "" && time.Since(m.statusAt) < 5*time.Second:
 		style := ui.muted
 		if !m.statusOK {
@@ -103,7 +103,7 @@ func (m model) renderFooter() string {
 	}
 
 	var b strings.Builder
-	if s := t.search.Value(); s != "" && m.tab == tabProcesses {
+	if s := t.search.value(); s != "" && m.tab == tabProcesses {
 		b.WriteString(ui.prompt.Render(" filter: "+s) + ui.muted.Render(" (esc clears) "))
 	}
 	// "? help" lists every key, so it always shows; other hints are dropped

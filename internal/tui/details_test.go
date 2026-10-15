@@ -81,15 +81,15 @@ func TestDetailsIORateAfterTwoReads(t *testing.T) {
 func TestEscClosesPaneBeforeClearingSearch(t *testing.T) {
 	m := drive(t, detailsModel(t), key("/"), key("c"), keyMsg("enter")) // search for "c"
 	m = pump(t, m, keyMsg("enter"))                                     // open the pane
-	if !m.table.details.open || m.table.search.Value() != "c" {
+	if !m.table.details.open || m.table.search.value() != "c" {
 		t.Fatal("setup: pane open with a search")
 	}
 	m = drive(t, m, keyMsg("esc"))
-	if m.table.details.open || m.table.search.Value() != "c" {
+	if m.table.details.open || m.table.search.value() != "c" {
 		t.Error("first Esc should close only the pane")
 	}
 	m = drive(t, m, keyMsg("esc"))
-	if m.table.search.Value() != "" {
+	if m.table.search.value() != "" {
 		t.Error("second Esc should clear the search")
 	}
 }

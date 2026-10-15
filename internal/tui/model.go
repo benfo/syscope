@@ -4,7 +4,6 @@ package tui
 import (
 	"context"
 	"errors"
-	"fmt"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -72,6 +71,7 @@ type model struct {
 	showHelp   bool
 	helpOff    int             // scroll offset of the ? screen
 	theme      int             // index into Themes
+	confirm    *pendingKill    // kill awaiting y/N; nil when none
 	settingsUI *settingsScreen // settings popover; nil when closed
 	picker     *themePicker    // theme popover; nil when closed
 	prefs      prefs.Prefs     // current settings (the file plus one-run flag overrides)
@@ -192,14 +192,9 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	var cmd tea.Cmd
 	switch {
-	case m.table.confirm != nil:
-		var cancelled bool
-		m.table, cmd, cancelled = m.table.confirmKey(key)
-		if cancelled {
-			m.setStatus("cancelled", true)
-		}
-		return m, cmd
-	case m.table.searching:
+	case m.confirm != nil:
+		return m.confirmKey(key)
+	case m.table.search.active:
 		m.table, cmd = m.table.searchKey(msg)
 		return m, cmd
 	case m.picker != nil:
@@ -221,6 +216,8 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.switchTab(act), nil
 	case actSettings:
 		return m.openSettings(), nil
+	case actEndTask, actForceKill:
+		return m.askKill(act == actForceKill), nil
 	}
 	if m.tab == tabPerformance {
 		return m.perfAction(act), nil
@@ -241,21 +238,6 @@ func (m model) switchTab(act action) model {
 		m.tab = (m.tab + numTabs - 1) % numTabs
 	}
 	return m
-}
-
-func (m *model) showKillResult(r killDoneMsg) {
-	verb := "asked to exit"
-	if r.force {
-		verb = "terminated"
-	}
-	switch {
-	case r.failed == 0:
-		m.setStatus(fmt.Sprintf("%s: %s", r.desc, verb), true)
-	case r.failed == r.total:
-		m.setStatus(fmt.Sprintf("%s: %v", r.desc, r.err), false)
-	default:
-		m.setStatus(fmt.Sprintf("%s: %d of %d failed: %v", r.desc, r.failed, r.total, r.err), false)
-	}
 }
 
 func (m *model) setStatus(s string, ok bool) {

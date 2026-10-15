@@ -6,11 +6,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 
 	"taskman/internal/metrics"
-	"taskman/internal/proc"
 	"taskman/internal/view"
 )
 
@@ -30,34 +28,16 @@ type processTable struct {
 	perCoreCPU bool
 	showGPU    bool // the machine has a GPU: show GPU% and VRAM
 
-	search    textinput.Model
-	searching bool
-	scroll    scroller
-
-	confirm *pendingKill
+	search  searchBox
+	scroll  scroller
 	details detailsPane
-}
-
-// pendingKill is a kill awaiting y/N confirmation.
-type pendingKill struct {
-	row   view.Row
-	force bool
-}
-
-// killDoneMsg reports a finished kill back to the model.
-type killDoneMsg struct {
-	desc   string
-	force  bool
-	failed int
-	total  int
-	err    error // last error
 }
 
 func newProcessTable(fetch detailsFetcher, now func() time.Time) processTable {
 	if now == nil {
 		now = time.Now
 	}
-	t := processTable{sortKey: view.SortCPU, desc: true, search: newSearchInput("name or PID"),
+	t := processTable{sortKey: view.SortCPU, desc: true, search: newSearchBox("name or PID"),
 		details: detailsPane{fetch: fetch, now: now}}
 	t.folds[view.LayoutTree].Default = true // the tree starts open; groups start closed
 	return t
@@ -104,8 +84,7 @@ func (t processTable) apply(act action) (processTable, tea.Cmd) {
 		t.desc = !t.desc
 		t.rebuild()
 	case actSearch:
-		t.searching = true
-		return t, t.search.Focus()
+		return t, t.search.start()
 	case actDetails:
 		t.details.open = !t.details.open
 		t.clampScroll()
@@ -113,8 +92,8 @@ func (t processTable) apply(act action) (processTable, tea.Cmd) {
 		if t.details.open { // Esc closes the pane first, then clears the search
 			t.details.open = false
 			t.clampScroll()
-		} else if t.search.Value() != "" {
-			t.search.SetValue("")
+		} else if t.search.value() != "" {
+			t.search.clear()
 			t.rebuild()
 		}
 	case actGroup:
@@ -130,67 +109,21 @@ func (t processTable) apply(act action) (processTable, tea.Cmd) {
 		t.rebuild()
 	case actCPUMode:
 		t.perCoreCPU = !t.perCoreCPU
-	case actEndTask, actForceKill:
-		if r, ok := t.selected(); ok {
-			t.confirm = &pendingKill{row: r, force: act == actForceKill}
-		}
 	}
 	return t, nil
 }
 
-// searchKey handles typing in the search box, like vim's insert mode: keys
-// type, Enter keeps the search, Esc clears it.
+// searchKey handles a key typed into the search box.
 func (t processTable) searchKey(msg tea.KeyMsg) (processTable, tea.Cmd) {
-	var cmd tea.Cmd
-	switch msg.String() {
-	case "enter":
-		t.searching = false
-		t.search.Blur()
-	case "esc":
-		t.searching = false
-		t.search.Blur()
-		t.search.SetValue("")
-	default:
-		t.search, cmd = t.search.Update(msg)
-	}
+	cmd := t.search.key(msg)
 	t.rebuild()
 	return t, cmd
-}
-
-// confirmKey answers the y/N kill prompt; any key but y cancels.
-func (t processTable) confirmKey(key string) (processTable, tea.Cmd, bool) {
-	pk := *t.confirm
-	t.confirm = nil
-	if key == "y" || key == "Y" {
-		return t, killCmd(pk), false
-	}
-	return t, nil, true
-}
-
-func killCmd(pk pendingKill) tea.Cmd {
-	return func() tea.Msg {
-		res := killDoneMsg{desc: rowDesc(pk.row), force: pk.force, total: len(pk.row.PIDs)}
-		for _, pid := range pk.row.PIDs {
-			if err := proc.Kill(pid, pk.force); err != nil {
-				res.failed++
-				res.err = err
-			}
-		}
-		return res
-	}
-}
-
-func rowDesc(r view.Row) string {
-	if r.Count > 1 {
-		return fmt.Sprintf("%s (%d processes)", r.Name, r.Count)
-	}
-	return fmt.Sprintf("%s (PID %d)", r.Name, r.PID)
 }
 
 // rebuild derives the visible rows and keeps the cursor on the followed
 // process or group (see scroller).
 func (t *processTable) rebuild() {
-	t.rows = view.Build(t.procs, t.search.Value(), t.layout, t.sortKey, t.desc, t.folds[t.layout])
+	t.rows = view.Build(t.procs, t.search.value(), t.layout, t.sortKey, t.desc, t.folds[t.layout])
 	t.scroll.refresh(t.keys(), t.rowsHeight())
 }
 

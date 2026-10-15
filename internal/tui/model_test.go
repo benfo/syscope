@@ -110,8 +110,8 @@ func TestFilterAndGroup(t *testing.T) {
 	f := &fakeSampler{procs: []metrics.ProcInfo{p(1, "chrome.exe", 1), p(2, "chrome.exe", 2), p(3, "code.exe", 1)}}
 	m := sampled(t, f)
 	m = drive(t, m, key("/"), key("c"), key("h"), key("enter"))
-	if len(m.table.rows) != 2 || m.table.searching {
-		t.Fatalf("filter: %d rows, filtering=%v", len(m.table.rows), m.table.searching)
+	if len(m.table.rows) != 2 || m.table.search.active {
+		t.Fatalf("filter: %d rows, filtering=%v", len(m.table.rows), m.table.search.active)
 	}
 	m = drive(t, m, key("z"))
 	if len(m.table.rows) != 1 || m.table.rows[0].Count != 2 {
@@ -126,7 +126,7 @@ func TestFilterAndGroup(t *testing.T) {
 func TestKillNeedsConfirmation(t *testing.T) {
 	m := sampled(t, &fakeSampler{procs: []metrics.ProcInfo{p(1, "a", 1)}})
 	m = drive(t, m, key("D"))
-	if m.table.confirm == nil || !m.table.confirm.force {
+	if m.confirm == nil || !m.confirm.force {
 		t.Fatal("D should ask to confirm a force kill")
 	}
 	if !strings.Contains(m.View(), "Force kill a (PID 1)? [y/N]") {
@@ -134,7 +134,7 @@ func TestKillNeedsConfirmation(t *testing.T) {
 	}
 	next, cmd := m.Update(key("n"))
 	m = next.(model)
-	if cmd != nil || m.table.confirm != nil {
+	if cmd != nil || m.confirm != nil {
 		t.Error("n should cancel without killing")
 	}
 }
@@ -179,7 +179,7 @@ func TestTabs(t *testing.T) {
 		t.Error("down should select Memory")
 	}
 	m = drive(t, m, key("D")) // process keys are inert on the Performance tab
-	if m.table.confirm != nil {
+	if m.confirm != nil {
 		t.Error("kill must not trigger from the Performance tab")
 	}
 	m = drive(t, m, keyMsg("tab"))
@@ -187,7 +187,7 @@ func TestTabs(t *testing.T) {
 		t.Error("tab should cycle back to Processes")
 	}
 	m = drive(t, m, key("/"), key("2"))
-	if m.tab != tabProcesses || m.table.search.Value() != "2" {
+	if m.tab != tabProcesses || m.table.search.value() != "2" {
 		t.Error("digits typed into the filter must not switch tabs")
 	}
 }

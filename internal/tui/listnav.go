@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/bubbles/textinput"
+	tea "github.com/charmbracelet/bubbletea"
 )
 
 // scroller is the cursor and scroll position of a scrolling list whose rows
@@ -96,12 +97,45 @@ func scrollMove(act action, n, height int) (delta int, ok bool) {
 	return 0, false
 }
 
-// newSearchInput is the "/" search box used by searchable lists.
-func newSearchInput(placeholder string) textinput.Model {
+// searchBox is a list's "/" live filter. Typing in it works like vim's
+// insert mode: keys type, Enter keeps the search, Esc clears it.
+type searchBox struct {
+	input  textinput.Model
+	active bool // keys go to the box
+}
+
+func newSearchBox(placeholder string) searchBox {
 	ti := textinput.New()
 	ti.Prompt = "/"
 	ti.Placeholder = placeholder
-	return ti
+	return searchBox{input: ti}
+}
+
+func (s searchBox) value() string { return s.input.Value() }
+
+func (s *searchBox) start() tea.Cmd {
+	s.active = true
+	return s.input.Focus()
+}
+
+func (s *searchBox) clear() { s.input.SetValue("") }
+
+// key handles a key while the box is active.
+func (s *searchBox) key(msg tea.KeyMsg) tea.Cmd {
+	switch msg.String() {
+	case "enter":
+		s.active = false
+		s.input.Blur()
+	case "esc":
+		s.active = false
+		s.input.Blur()
+		s.clear()
+	default:
+		var cmd tea.Cmd
+		s.input, cmd = s.input.Update(msg)
+		return cmd
+	}
+	return nil
 }
 
 // column is one column of a table of R rows rendered by a T. Adding a column
