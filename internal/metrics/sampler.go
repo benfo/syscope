@@ -41,6 +41,7 @@ func NewGopsutilSampler() *GopsutilSampler {
 		numCPU: n,
 		collectors: []collector{
 			&cpuCollector{}, memoryCollector{}, &diskCollector{}, newNetworkCollector(), &gpuCollector{},
+			socketCollector{},
 		},
 		procs: newProcessCollector(n),
 	}

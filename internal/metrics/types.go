@@ -30,6 +30,27 @@ type SystemSnapshot struct {
 	VirtualDrives []VirtualDrive // drive letters that aren't disk partitions (Windows)
 	Nets          []NetStat
 	GPUs          []GPUStat
+	Sockets       []Socket
+}
+
+// Socket is one TCP or UDP socket and the process that owns it.
+type Socket struct {
+	Proto      string // "TCP" or "UDP"
+	LocalIP    string
+	LocalPort  uint32
+	RemoteIP   string // "" when not connected
+	RemotePort uint32
+	State      string // TCP state such as "LISTEN" or "ESTABLISHED"; "" for UDP
+	PID        int32  // 0 when unknown (e.g. another user's socket without root on Linux)
+}
+
+// Listening reports whether the socket waits for others to connect: a TCP
+// socket in LISTEN or a bound, unconnected UDP socket.
+func (s Socket) Listening() bool {
+	if s.Proto == "UDP" {
+		return s.RemotePort == 0
+	}
+	return s.State == "LISTEN"
 }
 
 // ProcInfo is a point-in-time view of one process.
