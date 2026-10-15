@@ -66,3 +66,17 @@ func TestKillMissing(t *testing.T) {
 		}
 	}
 }
+
+func TestSuspendResume(t *testing.T) {
+	cmd := sleeper(t)
+	pid := int32(cmd.Process.Pid)
+	if err := Suspend(pid); err != nil {
+		t.Fatal(err)
+	}
+	if err := Resume(pid); err != nil {
+		t.Fatal(err)
+	}
+	if err := Suspend(0x7ffffff1); !errors.Is(err, ErrNotFound) {
+		t.Errorf("missing process: got %v, want ErrNotFound", err)
+	}
+}
