@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="964" height="626" viewBox="0 0 964 626">
+<rect width="100%" height="100%" rx="8" fill="#171717"/>
+<circle cx="18" cy="15" r="5.5" fill="#FF5A54"/>
+<circle cx="37" cy="15" r="5.5" fill="#E6BF29"/>
+<circle cx="56" cy="15" r="5.5" fill="#52C12B"/>
+<g font-family="'JetBrains Mono','Cascadia Mono','SF Mono',Menlo,Consolas,'DejaVu Sans Mono',monospace" font-size="14" fill="#c4c4c4">
+<rect x="272.0" y="48.0" width="75.6" height="18.0" fill="#c4c4c4"/>
+<rect x="20.0" y="66.0" width="924.0" height="18.0" fill="#c4c4c4"/>
+<rect x="20.0" y="84.0" width="924.0" height="18.0" fill="#8056FF"/>
+<text x="28.4" y="42.96" textLength="33.6" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#04D7D7" font-weight="bold">CPU </text>
+<text x="62" y="42.96" textLength="50.400000000000006" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#31BB71">40.0% </text>
+<g fill="#31BB71" color="#31BB71"><rect x="112.4" y="39.0" width="8.4" height="9.0"/></g>
+<g fill="#31BB71" color="#31BB71"><rect x="120.8" y="39.0" width="8.4" height="9.0"/></g>
+<g fill="#31BB71" color="#31BB71"><rect x="129.2" y="41.2" width="8.4" height="6.8"/></g>
+<g fill="#31BB71" color="#31BB71"><rect x="137.6" y="43.5" width="8.4" height="4.5"/></g>
+<g fill="#31BB71" color="#31BB71"><rect x="146.0" y="36.8" width="8.4" height="11.2"/></g>
+<g fill="#31BB71" color="#31BB71"><rect x="154.4" y="39.0" width="8.4" height="9.0"/></g>
+<g fill="#31BB71" color="#31BB71"><rect x="162.8" y="39.0" width="8.4" height="9.0"/></g>
+<g fill="#31BB71" color="#31BB71"><rect x="171.2" y="41.2" width="8.4" height="6.8"/></g>
+<text x="196.4" y="42.96" textLength="33.6" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#04D7D7" font-weight="bold">MEM </text>
+<text x="230" y="42.96" textLength="25.200000000000003" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#D3E561">62%</text>
+<text x="255.20000000000002" y="42.96" textLength="92.4" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#7a7a7a"> 40.0/64.0G</text>
+<text x="364.40000000000003" y="42.96" textLength="33.6" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#04D7D7" font-weight="bold">GPU </text>
+<text x="398" y="42.96" textLength="25.200000000000003" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#D3E561">65%</text>
+<text x="431.6" y="42.96" textLength="33.6" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#D3E561">79°C</text>
+<text x="465.20000000000005" y="42.96" textLength="126" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#7a7a7a"> VRAM 9.0/12.0G</text>
+<text x="608" y="42.96" textLength="42" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#04D7D7" font-weight="bold">DISK </text>
+<text x="650" y="42.96" textLength="25.200000000000003" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#31BB71">20%</text>
+<text x="692" y="42.96" textLength="33.6" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#04D7D7" font-weight="bold">NET </text>
+<text x="725.6" y="42.96" textLength="168" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#c4c4c4">↓22.4 Mbps ↑2.9 Mbps</text>
+<text x="20" y="60.96" textLength="109.2" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#7a7a7a"> 1 Processes </text>
+<text x="137.60000000000002" y="60.96" textLength="126" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#7a7a7a"> 2 Performance </text>
+<text x="272" y="60.96" textLength="75.60000000000001" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#171717" font-weight="bold"> 3 Ports </text>
+<text x="734" y="60.96" textLength="210" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#7a7a7a">sort port▲ · all sockets </text>
+<text x="20" y="78.96000000000001" textLength="924" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#171717" font-weight="bold"> PORT▲ PROTO  ADDRESS                  REMOTE                   STATE           PID PROCESS                   </text>
+<text x="20" y="96.96000000000001" textLength="924" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#FFFFFF">   135 TCP    0.0.0.0                                           LISTEN         1460 svchost.exe               </text>
+<text x="20" y="114.96000000000001" textLength="924" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#c4c4c4">   445 TCP    0.0.0.0                                           LISTEN            4 System                    </text>
+<text x="20" y="132.96" textLength="924" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#c4c4c4">  3478 UDP    0.0.0.0                                                          9512 Meet.exe                  </text>
+<text x="20" y="150.96" textLength="924" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#c4c4c4">  5353 UDP    0.0.0.0                                                          6012 browser.exe               </text>
+<text x="20" y="168.96" textLength="924" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#c4c4c4">  8080 TCP    127.0.0.1                                         LISTEN         8061 go.exe                    </text>
+<text x="20" y="186.96" textLength="924" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#c4c4c4"> 11434 TCP    127.0.0.1                                         LISTEN         4120 ollama.exe                </text>
+<text x="20" y="204.96" textLength="924" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#c4c4c4"> 27015 UDP    0.0.0.0                                                          9300 StarRacer.exe             </text>
+<text x="20" y="222.96" textLength="924" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#c4c4c4"> 52101 TCP    192.0.2.106              198.51.100.9:443         TIME_WAIT           (unknown)                 </text>
+<text x="20" y="240.96" textLength="924" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#c4c4c4"> 52144 TCP    192.0.2.106              203.0.113.20:443         ESTABLISHED    6012 browser.exe               </text>
+<text x="20" y="258.96" textLength="924" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#c4c4c4"> 52150 TCP    127.0.0.1                127.0.0.1:11434          ESTABLISHED    7710 Example.TextEditor.exe    </text>
+<text x="20" y="276.96" textLength="924" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#c4c4c4"> 52160 TCP    192.0.2.106              203.0.113.45:443         ESTABLISHED    6140 browser.exe               </text>
+<text x="20" y="294.96" textLength="924" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#c4c4c4"> 52171 TCP    192.0.2.106              198.51.100.30:27015      ESTABLISHED    9300 StarRacer.exe             </text>
+<text x="28.4" y="600.96" textLength="8.4" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#c4c4c4" font-weight="bold">/</text>
+<text x="45.2" y="600.96" textLength="50.400000000000006" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#7a7a7a">search</text>
+<text x="104" y="600.96" textLength="25.200000000000003" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#c4c4c4" font-weight="bold">d/D</text>
+<text x="137.60000000000002" y="600.96" textLength="33.6" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#7a7a7a">kill</text>
+<text x="179.6" y="600.96" textLength="25.200000000000003" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#c4c4c4" font-weight="bold">s/S</text>
+<text x="213.20000000000002" y="600.96" textLength="33.6" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#7a7a7a">sort</text>
+<text x="255.20000000000002" y="600.96" textLength="8.4" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#c4c4c4" font-weight="bold">.</text>
+<text x="272" y="600.96" textLength="25.200000000000003" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#7a7a7a">all</text>
+<text x="305.6" y="600.96" textLength="42" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#c4c4c4" font-weight="bold">enter</text>
+<text x="356" y="600.96" textLength="58.800000000000004" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#7a7a7a">process</text>
+<text x="423.20000000000005" y="600.96" textLength="25.200000000000003" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#c4c4c4" font-weight="bold">j/k</text>
+<text x="456.8" y="600.96" textLength="33.6" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#7a7a7a">move</text>
+<text x="498.8" y="600.96" textLength="25.200000000000003" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#c4c4c4" font-weight="bold">1-3</text>
+<text x="532.4" y="600.96" textLength="33.6" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#7a7a7a">tabs</text>
+<text x="574.4" y="600.96" textLength="8.4" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#c4c4c4" font-weight="bold">,</text>
+<text x="591.2" y="600.96" textLength="67.2" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#7a7a7a">settings</text>
+<text x="666.8000000000001" y="600.96" textLength="8.4" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#c4c4c4" font-weight="bold">q</text>
+<text x="683.6" y="600.96" textLength="33.6" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#7a7a7a">quit</text>
+<text x="725.6" y="600.96" textLength="8.4" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#c4c4c4" font-weight="bold">?</text>
+<text x="742.4" y="600.96" textLength="33.6" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#7a7a7a">help</text>
+</g>
+</svg>

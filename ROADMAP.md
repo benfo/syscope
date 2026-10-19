@@ -57,6 +57,7 @@ The codebase must stay easy to maintain:
 - **Linux (Docker):** `docker run --rm -v "$PWD:/src" -v syscope-gomod:/go/pkg/mod -w /src golang:1.27 sh -c 'go vet ./... && go test ./...'`
 - **macOS:** compile-only, `GOOS=darwin go vet ./...`
 - **Screens:** golden tests in `internal/tui/testdata`; after an intended visual change, `go test ./internal/tui -run Golden -update` and review the diff
+- **README screenshots:** `go test ./internal/tui -run Screenshots -screenshots` renders `docs/screenshots/*.svg` from synthetic data (`internal/tui/screenshot_test.go`); rerun after visible changes
 - **Try Linux by hand (Docker):** builds syscope in a container with demo listeners (TCP 8080, UDP 5353, a connection) and two `bash` processes that each started two `sleep`s. Use `--init`; without it syscope is PID 1, nothing reaps exited processes, and they stay listed as `(exited)` (handy for testing that):
   `docker run --rm -it --init -v "$PWD:/src" -v syscope-gomod:/go/pkg/mod -w /src golang:1.27 bash -c 'apt-get update -qq >/dev/null && apt-get install -y -qq netcat-openbsd >/dev/null && go build -o /usr/local/bin/syscope ./cmd/syscope && (nc -lk 8080 >/dev/null &) && (nc -lku 5353 >/dev/null &) && (sleep 9999 | nc localhost 8080 &) && (bash -c "sleep 9999 & sleep 9999 & wait" &) && (bash -c "sleep 9999 & sleep 9999 & wait" &) && sleep 1 && syscope'`
   Replace the final `syscope` with `useradd -m demo && su demo -c syscope` to see Linux without root (socket owners `(unknown)`).

@@ -4,6 +4,8 @@ A process manager and performance monitor for the terminal, in the spirit of
 Windows Task Manager. One program for Windows, Linux and macOS, aimed at power
 users, developers, local-LLM users and gamers.
 
+![The Processes tab in tree view, with CPU, memory, GPU and VRAM per process](docs/screenshots/processes.svg)
+
 - **Processes**: live table with CPU, memory and GPU per process, a tree view,
   search, and ending, killing, suspending or resuming processes (always asks first)
 - **Performance**: CPU core grid (P/E cores), memory, disks, network and GPU,
@@ -11,6 +13,12 @@ users, developers, local-LLM users and gamers.
 - **Ports**: who is listening on what, and which process owns each connection
 - Vim-style keys, `?` help that explains every number on screen, colour themes
 - `syscope ps` and `syscope kill` for scripts
+
+| Performance | GPU | Ports |
+|---|---|---|
+| ![CPU graph, per-core grid and the device list](docs/screenshots/performance.svg) | ![GPU utilization, memory, temperature, power and engines](docs/screenshots/gpu.svg) | ![Listening ports and connections with their processes](docs/screenshots/ports.svg) |
+
+<sub>Screenshots show made-up data.</sub>
 
 ## Install
 

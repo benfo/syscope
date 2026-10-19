@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="964" height="626" viewBox="0 0 964 626">
+<rect width="100%" height="100%" rx="8" fill="#171717"/>
+<circle cx="18" cy="15" r="5.5" fill="#FF5A54"/>
+<circle cx="37" cy="15" r="5.5" fill="#E6BF29"/>
+<circle cx="56" cy="15" r="5.5" fill="#52C12B"/>
+<g font-family="'JetBrains Mono','Cascadia Mono','SF Mono',Menlo,Consolas,'DejaVu Sans Mono',monospace" font-size="14" fill="#c4c4c4">
+<rect x="20.0" y="48.0" width="109.2" height="18.0" fill="#c4c4c4"/>
+<rect x="20.0" y="66.0" width="924.0" height="18.0" fill="#c4c4c4"/>
+<rect x="20.0" y="84.0" width="924.0" height="18.0" fill="#8056FF"/>
+<text x="28.4" y="42.96" textLength="33.6" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#04D7D7" font-weight="bold">CPU </text>
+<text x="62" y="42.96" textLength="50.400000000000006" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#31BB71">40.0% </text>
+<g fill="#31BB71" color="#31BB71"><rect x="112.4" y="39.0" width="8.4" height="9.0"/></g>
+<g fill="#31BB71" color="#31BB71"><rect x="120.8" y="39.0" width="8.4" height="9.0"/></g>
+<g fill="#31BB71" color="#31BB71"><rect x="129.2" y="41.2" width="8.4" height="6.8"/></g>
+<g fill="#31BB71" color="#31BB71"><rect x="137.6" y="43.5" width="8.4" height="4.5"/></g>
+<g fill="#31BB71" color="#31BB71"><rect x="146.0" y="36.8" width="8.4" height="11.2"/></g>
+<g fill="#31BB71" color="#31BB71"><rect x="154.4" y="39.0" width="8.4" height="9.0"/></g>
+<g fill="#31BB71" color="#31BB71"><rect x="162.8" y="39.0" width="8.4" height="9.0"/></g>
+<g fill="#31BB71" color="#31BB71"><rect x="171.2" y="41.2" width="8.4" height="6.8"/></g>
+<text x="196.4" y="42.96" textLength="33.6" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#04D7D7" font-weight="bold">MEM </text>
+<text x="230" y="42.96" textLength="25.200000000000003" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#D3E561">62%</text>
+<text x="255.20000000000002" y="42.96" textLength="92.4" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#7a7a7a"> 40.0/64.0G</text>
+<text x="364.40000000000003" y="42.96" textLength="33.6" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#04D7D7" font-weight="bold">GPU </text>
+<text x="398" y="42.96" textLength="25.200000000000003" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#D3E561">65%</text>
+<text x="431.6" y="42.96" textLength="33.6" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#D3E561">79°C</text>
+<text x="465.20000000000005" y="42.96" textLength="126" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#7a7a7a"> VRAM 9.0/12.0G</text>
+<text x="608" y="42.96" textLength="42" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#04D7D7" font-weight="bold">DISK </text>
+<text x="650" y="42.96" textLength="25.200000000000003" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#31BB71">20%</text>
+<text x="692" y="42.96" textLength="33.6" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#04D7D7" font-weight="bold">NET </text>
+<text x="725.6" y="42.96" textLength="168" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#c4c4c4">↓22.4 Mbps ↑2.9 Mbps</text>
+<text x="20" y="60.96" textLength="109.2" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#171717" font-weight="bold"> 1 Processes </text>
+<text x="137.60000000000002" y="60.96" textLength="126" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#7a7a7a"> 2 Performance </text>
+<text x="272" y="60.96" textLength="75.60000000000001" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#7a7a7a"> 3 Ports </text>
+<text x="650" y="60.96" textLength="294" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#7a7a7a">sort cpu▼ · CPU% normalized · tree </text>
+<text x="20" y="78.96000000000001" textLength="924" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#171717" font-weight="bold">    PID NAME                                              USER             CPU%▼         MEM   GPU%       VRAM</text>
+<text x="20" y="96.96000000000001" textLength="924" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#FFFFFF">   3108   dwm.exe                                         SYSTEM             1.4   142.0 MiB    6.2  380.0 MiB</text>
+<text x="20" y="114.96000000000001" textLength="924" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#c4c4c4">   5520 ▾ explorer.exe                                    sam                0.4   210.0 MiB    0.3   64.0 MiB</text>
+<text x="20" y="132.96" textLength="924" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#c4c4c4">   9300     StarRacer.exe                                 sam               12.2     3.0 GiB    0.0        0 B</text>
+<text x="20" y="150.96" textLength="924" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#c4c4c4">   4120   ▾ ollama.exe                                    sam                6.8     1.2 GiB    0.0        0 B</text>
+<text x="20" y="168.96" textLength="924" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#c4c4c4">   4388       ollama_llama_server.exe                     sam               18.5     2.6 GiB   91.0    9.2 GiB</text>
+<text x="20" y="186.96" textLength="924" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#c4c4c4">   6012   ▾ browser.exe                                   sam                2.1   640.0 MiB    1.2  220.0 MiB</text>
+<text x="20" y="204.96" textLength="924" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#c4c4c4">   6140       browser.exe                                 sam                0.9   310.0 MiB    0.4   96.0 MiB</text>
+<text x="20" y="222.96" textLength="924" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#c4c4c4">   6188       browser.exe                                 sam                0.6   180.0 MiB    0.0        0 B</text>
+<text x="20" y="240.96" textLength="924" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#c4c4c4">   6232       browser.exe                                 sam                0.2   145.0 MiB    0.0        0 B</text>
+<text x="20" y="258.96" textLength="924" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#c4c4c4">   9512     Meet.exe                                      sam                1.6   520.0 MiB    2.8  310.0 MiB</text>
+<text x="20" y="276.96" textLength="924" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#c4c4c4">   7710   ▾ Example.TextEditor.exe                        sam                1.1   720.0 MiB    0.2   48.0 MiB</text>
+<text x="20" y="294.96" textLength="924" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#c4c4c4">   7744       gopls.exe                                   sam                3.4   890.0 MiB    0.0        0 B</text>
+<text x="20" y="312.96" textLength="924" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#c4c4c4">   8020     ▾ terminal.exe                                sam                0.3    96.0 MiB    0.1   24.0 MiB</text>
+<text x="20" y="330.96" textLength="924" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#c4c4c4">   8061         go.exe                                    sam                9.7   410.0 MiB    0.0        0 B</text>
+<text x="20" y="348.96" textLength="924" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#c4c4c4">   9840     SongPlayer.exe (suspended)                    sam                0.0   187.0 MiB    0.0        0 B</text>
+<text x="20" y="366.96" textLength="924" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#c4c4c4">      4 ▾ System                                          SYSTEM              --          --     --         --</text>
+<text x="20" y="384.96" textLength="924" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#c4c4c4">    812   ▾ services.exe                                  SYSTEM             0.1     9.0 MiB    0.0        0 B</text>
+<text x="20" y="402.96" textLength="924" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#c4c4c4">   1460       svchost.exe                                 SYSTEM             0.3    38.0 MiB    0.0        0 B</text>
+<text x="20" y="420.96" textLength="924" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#c4c4c4">   2210       svchost.exe                                 SYSTEM             0.1    64.0 MiB    0.0        0 B</text>
+<text x="20" y="438.96" textLength="924" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#c4c4c4">   1932       svchost.exe                                 SYSTEM             0.0    21.0 MiB    0.0        0 B</text>
+<text x="28.4" y="600.96" textLength="8.4" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#c4c4c4" font-weight="bold">/</text>
+<text x="45.2" y="600.96" textLength="50.400000000000006" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#7a7a7a">search</text>
+<text x="104" y="600.96" textLength="25.200000000000003" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#c4c4c4" font-weight="bold">d/D</text>
+<text x="137.60000000000002" y="600.96" textLength="33.6" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#7a7a7a">kill</text>
+<text x="179.6" y="600.96" textLength="25.200000000000003" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#c4c4c4" font-weight="bold">s/S</text>
+<text x="213.20000000000002" y="600.96" textLength="33.6" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#7a7a7a">sort</text>
+<text x="255.20000000000002" y="600.96" textLength="8.4" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#c4c4c4" font-weight="bold">z</text>
+<text x="272" y="600.96" textLength="42" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#7a7a7a">group</text>
+<text x="322.40000000000003" y="600.96" textLength="8.4" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#c4c4c4" font-weight="bold">t</text>
+<text x="339.2" y="600.96" textLength="33.6" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#7a7a7a">tree</text>
+<text x="381.2" y="600.96" textLength="25.200000000000003" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#c4c4c4" font-weight="bold">l/h</text>
+<text x="414.8" y="600.96" textLength="33.6" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#7a7a7a">fold</text>
+<text x="456.8" y="600.96" textLength="8.4" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#c4c4c4" font-weight="bold">c</text>
+<text x="473.6" y="600.96" textLength="33.6" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#7a7a7a">cpu%</text>
+<text x="515.6" y="600.96" textLength="8.4" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#c4c4c4" font-weight="bold">p</text>
+<text x="532.4" y="600.96" textLength="58.800000000000004" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#7a7a7a">suspend</text>
+<text x="599.6" y="600.96" textLength="42" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#c4c4c4" font-weight="bold">enter</text>
+<text x="650" y="600.96" textLength="58.800000000000004" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#7a7a7a">details</text>
+<text x="717.2" y="600.96" textLength="25.200000000000003" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#c4c4c4" font-weight="bold">j/k</text>
+<text x="750.8000000000001" y="600.96" textLength="33.6" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#7a7a7a">move</text>
+<text x="792.8000000000001" y="600.96" textLength="25.200000000000003" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#c4c4c4" font-weight="bold">1-3</text>
+<text x="826.4000000000001" y="600.96" textLength="33.6" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#7a7a7a">tabs</text>
+<text x="868.4000000000001" y="600.96" textLength="8.4" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#c4c4c4" font-weight="bold">?</text>
+<text x="885.2" y="600.96" textLength="33.6" lengthAdjust="spacingAndGlyphs" xml:space="preserve" fill="#7a7a7a">help</text>
+</g>
+</svg>
