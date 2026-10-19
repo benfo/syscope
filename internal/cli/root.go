@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"runtime/debug"
 	"time"
 
 	"github.com/charmbracelet/x/term"
@@ -18,9 +19,19 @@ import (
 	"github.com/benfo/syscope/internal/tui"
 )
 
-// version is set at build time by scripts/release.sh (-ldflags -X); "dev" for
-// local builds.
+// version is set at build time by scripts/release.sh (-ldflags -X). Without
+// it, Go's module version is used: v0.x.y for `go install ...@v0.x.y`, a
+// pseudo-version from git for a local build, else "dev".
 var version = "dev"
+
+func init() {
+	if version != "dev" {
+		return
+	}
+	if bi, ok := debug.ReadBuildInfo(); ok && bi.Main.Version != "" && bi.Main.Version != "(devel)" {
+		version = bi.Main.Version
+	}
+}
 
 // exitError carries a specific process exit code out of a command.
 type exitError struct {
