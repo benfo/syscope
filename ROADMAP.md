@@ -17,7 +17,7 @@ This file is updated in the same commit as each feature.
 | TUI layout | Tabs (`1` Processes, `2` Performance, `3` Ports, …) + one-line summary strip on every tab; inactive tabs shrink to their number when the tab bar is narrow |
 | CPU % | Normalized to 100% total (Task Manager); `--per-core` / `c` for per-core |
 | Memory column | RSS (working set on Windows) |
-| Name | **syscope** (renamed from taskman, 2026-10-15): "a scope for your system". Module `github.com/benfo/syscope`; repo github.com/benfo/syscope (private until reviewed) |
+| Name | **syscope** (renamed from taskman, 2026-10-15): "a scope for your system". Module `github.com/benfo/syscope`; repo github.com/benfo/syscope (public since 2026-10-19) |
 | Kill | Graceful (`d`) + force (`D`), confirm first (`t` adds the processes it started); never self-elevate |
 | Suspend | `p` asks before suspending, resumes without asking; never suspends syscope or its terminal; quitting offers to resume what this session suspended |
 | `ps` sampling | Two samples, 1s window (`--interval`) |
@@ -61,7 +61,7 @@ The codebase must stay easy to maintain:
   `docker run --rm -it --init -v "$PWD:/src" -v syscope-gomod:/go/pkg/mod -w /src golang:1.27 bash -c 'apt-get update -qq >/dev/null && apt-get install -y -qq netcat-openbsd >/dev/null && go build -o /usr/local/bin/syscope ./cmd/syscope && (nc -lk 8080 >/dev/null &) && (nc -lku 5353 >/dev/null &) && (sleep 9999 | nc localhost 8080 &) && (bash -c "sleep 9999 & sleep 9999 & wait" &) && (bash -c "sleep 9999 & sleep 9999 & wait" &) && sleep 1 && syscope'`
   Replace the final `syscope` with `useradd -m demo && su demo -c syscope` to see Linux without root (socket owners `(unknown)`).
 - **Docker's limits:** only the container's processes; CPU/memory/disk/network are Docker Desktop's VM; no GPU.
-- **Release a test build:** `scripts/release.sh v0.x.y` builds all six OS/CPU archives into `dist/` (neutral file owner, executable bit set, `--version` stamped), then `gh release create v0.x.y --prerelease --target master dist/syscope_* dist/SHA256SUMS`. Testers need read access to the private repo: `gh api -X PUT repos/benfo/syscope/collaborators/<user> -f permission=pull`. v0.1.0 released 2026-10-15
+- **Release a test build:** `scripts/release.sh v0.x.y` builds all six OS/CPU archives into `dist/` (neutral file owner, executable bit set, `--version` stamped), then `gh release create v0.x.y --prerelease --target master dist/syscope_* dist/SHA256SUMS`. Users install with `install.sh` / `install.ps1` (see README), which fetch the newest release (pre-releases too while there is no full release) and check `SHA256SUMS`; the README links them from `master`, so they must keep working there. v0.1.0 released 2026-10-15
 
 ### Phases
 1. **POC** — process table, CPU/MEM header, `ps`, `kill` ✓
@@ -100,9 +100,10 @@ Merges the earlier "High-resolution graphs" and "Adjustable history timeframe" i
 - [ ] **License** — choose one (ask the user; MIT or Apache-2.0 are the usual picks)
 - [ ] **Delete `backup/pre-scrub`** (local only, contains old personal data): `git branch -D backup/pre-scrub && git reflog expire --expire=now --all && git gc --prune=now`. Never push it
 - [ ] **CI** (suggestion) — GitHub Actions running `go vet` + `go test` on Windows, Linux and **macOS runners**, which would finally test macOS for real instead of compile-only
-- [ ] **Signed releases** (later) — v0.1.0 binaries are unsigned (Windows SmartScreen and macOS Gatekeeper warn; the release notes explain the workaround). Signing needs certificates (Windows code signing, Apple Developer ID); a Homebrew tap / winget / Scoop listing would come after
-- [ ] **Default branch** — repo uses `master`; rename to `main` before going public if wanted
-- [ ] **Go public:** `gh repo edit benfo/syscope --visibility public --accept-visibility-change-consequences`. History was checked on 2026-10-15 (every commit uses the intended public author identity; three old comments mention Google Drive's default drive letter, judged fine)
+- [ ] **Signed releases** (later) — v0.1.0 binaries are unsigned (Windows SmartScreen and macOS Gatekeeper warn; the release notes explain the workaround). Signing needs certificates (Windows code signing, Apple Developer ID). A Homebrew tap and a Scoop bucket don't need signing (next install step if wanted); winget is easier with it
+- [ ] **Default branch** — repo uses `master`; the README's install one-liners point at `master`, so a rename to `main` must update them (and old links may break)
+- [x] **Go public** (2026-10-19). History was checked on 2026-10-15 (every commit uses the intended public author identity; three old comments mention Google Drive's default drive letter, judged fine)
+- [ ] **musl Linux build** (suggestion) — the Linux build is dynamically linked (purego loads NVML), so Alpine needs `apk add gcompat`; the installer says so. A static musl variant would need NVML left out or loaded differently
 
 ### Testing setup (suggestions, 2026-10-15)
 - [ ] **WSL2 Ubuntu** for everyday Linux testing on the dev machine: a full system (many processes, users, permissions), and probably NVIDIA via WSL's driver passthrough — the first real test of the Linux NVML path. `wsl --install -d Ubuntu`, then install Go
